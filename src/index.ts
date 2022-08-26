@@ -59,10 +59,13 @@ const processTemplates = async (data: any, context: Context) => {
   const version = data.version
   const templateContents = await downloadTemplates(version, context)
   templateContents.map(template => {
+    //TODO: Configure mustache to use existing template format.
     const rendered = render(template, data)
 
     // TODO: Create commit to repository with rendered template.
+
   })
+
   // TODO: Push changes to repository or create a PR (depending on the repository config: 'automerge: true')
 }
 
@@ -73,7 +76,6 @@ const downloadTemplates = async (templateVersion: string | undefined, context: C
   
   // TODO: Extract relevant templates and return them as a string[].
   const unzipped = await open("release.zip")
-  
   return []
 }
 
