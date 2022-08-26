@@ -32,11 +32,9 @@ values:          # Template configuration values
 
 The app listens for `push` events to `main` or `master` in repositories which modify the repository configuration. 
 
-The app then pulls the repository configuration, downloads, and processes templates. 
+The app then pulls the repository configuration, downloads templates and processes templates according to the repository configuration. 
 
-Processed templates are then submitted to the repository as a PR.
-
-If `automerge` is enabled, the PR is merged automatically.
+Processed templates are then submitted to the repository as a PR. If `automerge` is enabled, the PR is merged automatically.
 
 ## Setup
 
