@@ -210,8 +210,6 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
       app.log.error(`Failed to process commit '${payload.after}'`)
     }
   }
-
-  
 }
 
 
