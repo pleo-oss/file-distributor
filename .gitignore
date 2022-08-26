@@ -1,3 +1,4 @@
+private-key.pem
 node_modules
 npm-debug.log
 *.pem
