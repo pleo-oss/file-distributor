@@ -211,8 +211,3 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
     }
   }
 }
-
-
-
-
-
