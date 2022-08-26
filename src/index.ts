@@ -80,8 +80,8 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
       
       app.log.debug(`Fetching templates from '${templateRepository.owner}/${templateRepository.repo}.`)
       const version = templateVersion 
-      ? await getReleaseAssetId(templateVersion) 
-      : await getLatestRelease()
+        ? await getReleaseAssetId(templateVersion) 
+        : await getLatestRelease()
       app.log.debug(`Fetching template version '${version}.`)
       
       const release = await context.octokit.repos.getReleaseAsset({...templateRepository, asset_id: version, headers: {"Accept": "application/octet-stream"}})
