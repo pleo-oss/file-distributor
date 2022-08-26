@@ -51,10 +51,12 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
   const determineConfigurationChanges = async (configFileName: string, repository: RepositoryDetails) =>{
     app.log.debug(`Saw changes to ${configFileName}`);
     const fileContents = await context.octokit.repos.getContent({ ...repository, path: configFileName, ref: payload.after });
+
     const content: string = (fileContents.data as any).content;
     const decodedContent = Buffer.from(content, 'base64').toString();
     app.log.debug(`'${configFileName}' contains:`);
     app.log.debug(decodedContent);
+
     const parsed: RepositoryConfiguration = parse(decodedContent);
     return parsed;
   }
@@ -183,9 +185,11 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
         repo: payload.repository.name
       }
       app.log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
+
       const commit = await context.octokit.repos.getCommit({...repository, ref: payload.after})
       app.log.debug(`Fetched commit:`)
       app.log.debug(commit)
+
       const filesChanged = commit.data.files?.map(c => c.filename) ?? []
       app.log.debug(`Saw files changed in ${payload.after}:`)
       app.log.debug(filesChanged)
