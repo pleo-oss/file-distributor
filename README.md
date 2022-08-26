@@ -16,8 +16,8 @@ The configuration has the following format:
 
 ``` yaml
 version: v10.7.0 # The template version to use.
-automerge: true  # Whether to merge template changes automatically
-files:           # Templates to add to the template
+automerge: true  # Whether to merge template changes automatically.
+files:           # Templates to add to the template.
   - source: path/to/template/filename.yaml
     destination: "path/to/template-destination/filename.yaml"
 directories:
@@ -26,7 +26,7 @@ directories:
     files:
       - source: path/to/template/filename.yaml
         destination: "path/to/template-destination/filename.yaml"
-values:          # Template configuration values
+values:          # Template configuration values.
   templateProperty: true
 ```
 
