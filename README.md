@@ -7,7 +7,7 @@
 
 ---
 
-This app monitors repositories for changes made to a template configuration detailing which templates the repository contains and which template conditions should be used for rendering templates.
+This app monitors repositories for changes made to a repository template configuration detailing which templates the repository contains and which template conditions to use for rendering templates.
 
 ## Configuration
 The app expects repositories to contain a `<repository-name>.yaml` file containing the template configuration the repository uses.
