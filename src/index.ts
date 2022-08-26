@@ -40,8 +40,8 @@ export = (app: Probot) => {
     app.log.debug(context)
 
     const { payload } = context
-    app.log.debug(payload)
     app.log.debug(`${context.name} event contains payload:`)
+    app.log.debug(payload)
     
     await processEvent(payload, context, app)
   })
