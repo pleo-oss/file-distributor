@@ -3,7 +3,7 @@ import { Context, Probot } from "probot";
 import { parse } from "yaml";
 import { render } from "mustache";
 import { createWriteStream, promises as fs } from "fs";
-import { open } from "yauzl";
+// import { open } from "yauzl";
 import { config } from "dotenv"
 import fetch from "node-fetch";
 import { pipeline } from 'node:stream';
@@ -26,16 +26,10 @@ interface Template {
   contents: string
 }
 
-interface Tree {
-  path: string;
-  mode: "100644";
-  type: "blob"
-  content: string;
-}[]
-
 const monitorAllBranches = false
 const branchesToProcess = /master|main/
-const reducedBranchName = "heads/centralized-templates"
+const baseBranchName = "centralized-templates"
+const reducedBranchName = `heads/${baseBranchName}`
 const fullBranchName = `refs/${reducedBranchName}`
 
 export = (app: Probot) => {
@@ -64,7 +58,7 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
     return parsed;
   }
 
-  const processTemplates = async (data: RepositoryConfiguration, context: Context): Promise<Template[]> => {
+  const processTemplates = async (data: RepositoryConfiguration): Promise<Template[]> => {
     const downloadTemplates = async (templateVersion: string | undefined): Promise<Template[]> => {
       const getBearerToken = async () => {
         const pemFilePath = process.env.PRIVATE_KEY_PATH
@@ -114,8 +108,8 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
       app.log.debug(`Fetching templates from '${templateRepository.owner}/${templateRepository.repo}.`)
 
       const release = templateVersion 
-      ? await getRelease(templateVersion) 
-      : await getLatestRelease()
+        ? await getRelease(templateVersion) 
+        : await getLatestRelease()
       app.log.debug(`Fetching templates from URL: '${release.zipball_url}'.`)
       
       if (!release.zipball_url) {
@@ -144,10 +138,14 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
       app.log.debug(`Wrote release ZIP.`)
       
       // TODO: Extract relevant templates and return them as a Template[].
-      const unzipped = open("release.zip")
+      // const unzipped = open("release.zip")
       return [{
         path: "filename",
-        contents: "contents"
+        contents: `
+Hello: {{hello}}
+Another value: {{another-value}}
+Yet another value: {{yet-another-value}}
+`
       }]
     }
     
@@ -167,7 +165,7 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
     return rendered
   }
 
-  const commitFiles = async (repository: RepositoryDetails, templates: Template[], automerge: boolean, context: Context) => {
+  const commitFiles = async (repository: RepositoryDetails, templates: Template[], automerge: boolean) => {
     const getOrCreateNewBranch = async () => {
       try {
         const newBranch = (await context.octokit.git.createRef({ ...repository, ref: fullBranchName, sha: baseBranchRef })).data
@@ -183,16 +181,18 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
       }
     }
 
-    const createTreeWithChanges = async () => {
-      const tree: Tree[] = templates.map(template => ({
+    const createTreeWithChanges = async (treeSha: string) => {
+      const tree = templates.map(template => ({
         path: template.path,
         mode: "100644",
         type: "blob",
         content: template.contents
       }));
 
+      app.log.debug(`Fetching existing trees from '${treeSha}'.`);
+      const existingTree = (await context.octokit.git.getTree({...repository, tree_sha: treeSha})).data.tree
       app.log.debug(`Creating git tree with modified templates.`);
-      const createdTree = await context.octokit.git.createTree({ ...repository, tree: tree });
+      const createdTree = await context.octokit.git.createTree({ ...repository, tree: [...tree, ...existingTree] as any });
       app.log.debug(`Created git tree with SHA '${createdTree.data.sha}'.`);
       return createdTree;
     }
@@ -221,17 +221,51 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
     }
 
     const createOrUpdatePullRequest = async () => {
-      //TODO: Handle updating PRs.
+      const createOrUpdateExisting = async () => {
+        const openPullRequests = (await context.octokit.pulls.list({
+          ...repository, 
+          head: fullBranchName,
+          state: "open"
+        })).data
+        app.log.debug(`Saw ${openPullRequests.length} open PRs.`);
+        
+        const toUpdate = openPullRequests.shift()
+        if (!toUpdate) {
+          app.log.debug(`Creating PR.`);
+          const created = await context.octokit.pulls.create({
+            ...repository,
+            title,
+            body: title,
+            head: fullBranchName,
+            base: baseBranch,
+          });
+          app.log.debug(`Created PR #${created.data.number}.`);
+          
+          return created
+        } else {
+          app.log.debug(`Updating PR #${toUpdate.number}.`);
+          const updated = await context.octokit.pulls.update({
+            ...repository,
+            pull_number: toUpdate.number,
+            head: fullBranchName
+          })
+          app.log.debug(`Updated PR #${updated.data.number}.`);
+          
+          await Promise.all(openPullRequests.map(async (pr) => {
+            app.log.debug(`Closing PR #${pr.number}.`);
+            await context.octokit.pulls.update({
+              ...repository,
+              pull_number: toUpdate.number,
+              state: "closed"
+            })
+            app.log.debug(`Closed PR #${updated.data.number}.`);
+          }))
 
-      app.log.debug(`Creating PR.`);
-      const pullRequest = await context.octokit.pulls.create({
-        ...repository,
-        title,
-        body: title,
-        head: fullBranchName,
-        base: `heads/${baseBranch}`,
-      });
-      app.log.debug(`Created PR #${pullRequest.data.number}.`);
+          return updated
+        }
+      }
+
+      const pullRequest = await createOrUpdateExisting()
 
       if (automerge) {
         app.log.debug(`Attempting automerge of PR #${pullRequest.data.number}.`);
@@ -242,6 +276,7 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
         });
         app.log.debug(`Merged PR #${pullRequest.data.number}.`);
       }
+
       return pullRequest;
     }
 
@@ -260,7 +295,7 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
     app.log.debug(`Creating new branch '${newBranch.ref}'.`)
     app.log.debug(`Using base commit '${currentCommit.data.sha}'.`)
 
-    const createdTree = await createTreeWithChanges();
+    const createdTree = await createTreeWithChanges(baseBranchRef);
     const newCommit = await createCommitWithChanges();
     await updateBranch();
     const pullRequest = await createOrUpdatePullRequest();
@@ -289,10 +324,10 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
       if (filesChanged.includes(configFileName)) {
         const parsed: RepositoryConfiguration = await determineConfigurationChanges(configFileName, repository);
 
-        const processed = await processTemplates(parsed, context)
+        const processed = await processTemplates(parsed)
         
         const shouldAutomerge = parsed.automerge ?? false
-        const pullRequestNumber = await commitFiles(repository, processed, shouldAutomerge, context)
+        const pullRequestNumber = await commitFiles(repository, processed, shouldAutomerge)
         app.log.info(`Committed templates in #${pullRequestNumber}`)
         app.log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
       }
