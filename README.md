@@ -15,19 +15,20 @@ The app expects repositories to contain a `<repository-name>.yaml` file containi
 The configuration has the following format: 
 
 ``` yaml
-version: v10.7.0 # The template version to use.
-automerge: true  # Whether to merge template changes automatically.
-files:           # Templates to add to the template.
+# The template version to use (optional).
+version: v10.7.0
+
+# Whether to merge template changes automatically (optional).
+automerge: true
+
+# Templates to add to the repository (optional).
+files:           
   - source: path/to/template/filename.yaml
-    destination: "path/to/template-destination/filename.yaml"
-directories:
-  - source: "path/to/template/filename.yaml"
-    destination: "path/to/template-destination/filename.yaml"
-    files:
-      - source: path/to/template/filename.yaml
-        destination: "path/to/template-destination/filename.yaml"
-values:          # Template configuration values.
-  templateProperty: true
+    destination: path/to/template-destination/filename.yaml
+
+# Configuration values for template formatting (optional).
+values:          
+  someTemplateProperty: some-value
 ```
 
 The app listens for `push` events to `main` or `master` in repositories which modify the repository configuration. 
@@ -35,6 +36,33 @@ The app listens for `push` events to `main` or `master` in repositories which mo
 The app then pulls the repository configuration, downloads templates and processes templates according to the repository configuration. 
 
 Processed templates are then submitted to the repository as a PR. If `automerge` is enabled, the PR is merged automatically.
+
+## Templates
+Templates support the full [Mustache template language](https://mustache.github.io) tags. 
+
+Logic is handled as follows using a `YAML` template as an example:
+```yaml
+on:
+  push:
+
+jobs:
+  build:
+    steps:
+      #{{^shouldCheckoutCode}}
+      - name: Checkout {{repositoryName}}
+        uses: actions/checkout@v3.0.2
+      #{{/shouldCheckoutCode}}
+
+      #{{#shouldLoginToDockerHub}}
+      - name: Login to DockerHub
+        uses: docker/login-action@v2.0.0
+        with:
+          username: pleodeployments
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #{{/shouldLoginToDockerHub}}
+```
+
+See the [Mustache manual](https://mustache.github.io/mustache.5.html) for more information on the template syntax.
 
 ## Setup
 
