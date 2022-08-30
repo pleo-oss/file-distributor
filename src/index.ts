@@ -3,9 +3,10 @@ import { Context, Probot } from "probot";
 import { parse } from "yaml";
 import { render } from "mustache";
 import { createWriteStream } from "fs";
-import streamZip from "node-stream-zip";
 import { config } from "dotenv"
 import axios from "axios";
+import { promises as fs } from "fs"
+import { loadAsync } from "jszip"
 
 
 interface PathConfiguration {
@@ -135,20 +136,23 @@ const renderTemplates = (app: Probot, context: Context<"push">) => async (data: 
 
   const extractZipContents = async (filePath: string, configuration: RepositoryConfiguration) => {
     app.log.debug(`Extracting ZIP contents from ${filePath}.`)
-    const zip = new streamZip.async({ file: filePath })
-    app.log.debug(`Saw entries in ZIP:`)
-    app.log.debug(await zip.entries())
-    
-    const templates = await Promise.all(configuration.files?.map(async (file) => {
-      app.log.debug(`Extracting '${file.source}'.`)
+    const zipFile = await fs.readFile(filePath)
+    const loaded = await loadAsync(zipFile)
+
+    const toProcess = Promise.all(configuration.files?.map(async (file) => {
+      const found = loaded.file(new RegExp(file.source))
+      app.log.debug(`Found ${found.length} file(s) matching ${file.source}. `)
+      const picked = found.shift()
+      if (picked) app.log.debug(`Using ${picked.name} for ${file.source}. `)
+
       return {
-        path: file.source, 
-        contents: (await zip.entryData(file.source)).toString()
+        path: file.source,
+        contents: await picked?.async("text")
       }
     }) ?? [])
-    zip.close()
+    const templates = (await toProcess).filter(it => it) as Template[]
 
-    app.log.debug(`Extracted ${templates.length} ZIP contents.`)
+    app.log.debug(`Extracted ${templates.length} ZIP templates.`)
 
     return templates
   }
@@ -160,11 +164,10 @@ const renderTemplates = (app: Probot, context: Context<"push">) => async (data: 
   const templateFilePath = await downloadTemplates(version)
   const templateContents = await extractZipContents(templateFilePath, data);
 
-  app.log.debug(`Templating ${templateContents.map(t => t.path)}'.`)
   const rendered = templateContents.map(template => 
     ({
       ...template,
-      contents: render(template.contents, data)
+      contents: render(template?.contents ?? "", data)
     })
   )
   app.log.debug(`Processed ${rendered.length} templates.`)
@@ -317,46 +320,6 @@ const commitFiles = (app: Probot, context: Context<"push">) => async (repository
 
   return pullRequest.data.number
 }
-
-// const generateBearerToken = async (app: Probot) => {
-//   const pemFilePath = process.env.PRIVATE_KEY_PATH;
-//   const appID = process.env.APP_ID;
-
-//   if (!pemFilePath) {
-//     app.log.error("Environment does not contain a PEM file path.");
-//     throw Error("Environment does not contain a PEM file path.");
-//   }
-
-//   if (!appID) {
-//     app.log.error("Environment does not contain an App ID.");
-//     throw Error("Environment does not contain an App ID.");
-//   }
-
-//   app.log.debug(`Reading PEM file at ${pemFilePath}.`);
-//   const privateKey = await fs.readFile(pemFilePath);
-//   app.log.debug(`Read PEM file at ${pemFilePath}.`);
-
-//   const now = Math.round(Date.now() / 1000);
-//   const minutesValid = 1;
-//   const payload = {
-//     iat: now,
-//     exp: now + (minutesValid * 60),
-//     iss: appID
-//   };
-
-//   app.log.debug(`Generating bearer token valid for ${minutesValid} minute.`);
-//   return jwt.sign(payload, privateKey, { algorithm: 'RS256' });
-// }
-
-// const getZipFile = async (url: string, token: string) => {
-//   return await axios({
-//     method: 'GET',
-//     url,
-//     headers: {
-//       Authorization: `Bearer ${token}`
-//     },
-//   });
-// }
 
 const downloadFile = async(url: string, path: string) => {
   const response = await axios({
