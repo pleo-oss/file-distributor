@@ -145,12 +145,15 @@ const renderTemplates = (app: Probot, context: Context<"push">) => async (data: 
       const picked = found.shift()
       if (picked) app.log.debug(`Using ${picked.name} for ${file.source}. `)
 
+      const text = await picked?.async("text")
+      const contents = text?.replace("#{{", "{{")
+      
       return {
         path: file.source,
-        contents: await picked?.async("text")
+        contents
       }
     }) ?? [])
-    const templates = (await toProcess).filter(it => it) as Template[]
+    const templates = (await toProcess).filter(it => it?.contents) as Template[]
 
     app.log.debug(`Extracted ${templates.length} ZIP templates.`)
 
@@ -167,7 +170,7 @@ const renderTemplates = (app: Probot, context: Context<"push">) => async (data: 
   const rendered = templateContents.map(template => 
     ({
       ...template,
-      contents: render(template?.contents ?? "", data)
+      contents: render(template.contents, data.values)
     })
   )
   app.log.debug(`Processed ${rendered.length} templates.`)
