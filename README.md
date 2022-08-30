@@ -48,10 +48,11 @@ on:
 jobs:
   build:
     steps:
-      #{{^shouldCheckoutCode}}
       - name: Checkout {{repositoryName}}
         uses: actions/checkout@v3.0.2
-      #{{/shouldCheckoutCode}}
+        #{{^shouldCheckoutCode}}
+        if: false
+        #{{/shouldCheckoutCode}}
 
       #{{#shouldLoginToDockerHub}}
       - name: Login to DockerHub
