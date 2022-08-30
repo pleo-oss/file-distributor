@@ -1,8 +1,14 @@
-FROM node:12-slim
+FROM node:16-slim
+
 WORKDIR /usr/src/app
-COPY package.json package-lock.json ./
-RUN npm ci --production
-RUN npm cache clean --force
+COPY yarn.lock yarn.lock ./
+COPY package.json package.json ./
+COPY tsconfig.json tsconfig.json ./
+COPY src/ ./src
+
+RUN yarn
+RUN yarn build
+
 ENV NODE_ENV="production"
-COPY . .
-CMD [ "npm", "start" ]
+
+CMD [ "yarn", "start" ]
