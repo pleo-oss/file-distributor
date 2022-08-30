@@ -146,10 +146,10 @@ const renderTemplates = (app: Probot, context: Context<"push">) => async (data: 
       if (picked) app.log.debug(`Using ${picked.name} for ${file.source}. `)
 
       const text = await picked?.async("text")
-      const contents = text?.replace("#{{", "{{")
-      
+      const contents = text?.replace(/#{{/gm, "{{")
+
       return {
-        path: file.source,
+        path: file.destination,
         contents
       }
     }) ?? [])
