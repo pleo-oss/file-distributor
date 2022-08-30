@@ -3,7 +3,7 @@ import { Context, Probot } from "probot";
 import { parse } from "yaml";
 import { render } from "mustache";
 import { createWriteStream, promises as fs } from "fs";
-// import { open } from "yauzl";
+import { open } from "yauzl";
 import { config } from "dotenv"
 import fetch from "node-fetch";
 import { pipeline } from 'node:stream';
@@ -144,7 +144,7 @@ const processEvent = async (payload: PushEvent, context: Context, app: Probot) =
       app.log.debug(`Wrote release ZIP.`)
       
       // TODO: Extract relevant templates and return them as a Template[].
-      // const unzipped = open("release.zip")
+      const unzipped = open("release.zip")
       return [{
         path: "filename",
         contents: "contents"
