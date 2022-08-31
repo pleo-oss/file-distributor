@@ -58,9 +58,35 @@ const createCommitWithChanges = (app: Probot, context: Context<'push'>) => (repo
   return newCommit;
 };
 
-const createOrUpdateExistingPullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string) => {
+const createPullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string) => {
   const { title, description } = details;
 
+  app.log.debug('Creating PR.');
+  const created = await context.octokit.pulls.create({
+    ...repository,
+    title,
+    body: description,
+    head: fullBranchName,
+    base: baseBranch,
+  });
+  app.log.debug(`Created PR #${created.data.number}.`);
+
+  return created;
+};
+
+const updatePullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, number: number) => {
+  app.log.debug(`Updating PR #${number}.`);
+  const updated = await context.octokit.pulls.update({
+    ...repository,
+    pull_number: number,
+    head: fullBranchName,
+    state: 'open',
+  });
+  app.log.debug(`Updated PR #${updated.data.number}.`);
+  return updated;
+};
+
+const getExistingPullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails) => {
   const closedPullRequests = (await context.octokit.pulls.list({
     ...repository,
     head: fullBranchName,
@@ -73,45 +99,31 @@ const createOrUpdateExistingPullRequest = (app: Probot, context: Context<'push'>
     .sort((pr) => pr.number)
     .shift();
 
-  if (!toUpdate) {
-    app.log.debug('Creating PR.');
-    const created = await context.octokit.pulls.create({
-      ...repository,
-      title,
-      body: description,
-      head: fullBranchName,
-      base: baseBranch,
-    });
-    app.log.debug(`Created PR #${created.data.number}.`);
-
-    return created;
-  }
-
-  app.log.debug(`Updating PR #${toUpdate.number}.`);
-  const updated = await context.octokit.pulls.update({
-    ...repository,
-    pull_number: toUpdate.number,
-    head: fullBranchName,
-    state: 'open',
-  });
-  app.log.debug(`Updated PR #${updated.data.number}.`);
-
-  return updated;
+  return toUpdate;
 };
 
-const createOrUpdatePullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string, automerge?: boolean) => {
-  const created = await createOrUpdateExistingPullRequest(app, context)(repository, details, baseBranch);
-  if (!automerge) return created;
-
-  app.log.debug(`Attempting automerge of PR #${created.data.number}.`);
-  await context.octokit.rest.pulls.merge({
+const mergePullRequest = (app: Probot, context: Context<'push'>) => async (number: number, repository: RepositoryDetails) => {
+  app.log.debug(`Attempting automerge of PR #${number}.`);
+  const merged = await context.octokit.rest.pulls.merge({
     ...repository,
-    pull_number: created.data.number,
+    pull_number: number,
     merge_method: 'squash',
   });
-  app.log.debug(`Merged PR #${created.data.number}.`);
+  app.log.debug(`Merged PR #${number}.`);
+  return merged;
+};
 
-  return created;
+const maintainPullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string, automerge?: boolean) => {
+  const currentPullRequest = await getExistingPullRequest(app, context)(repository);
+
+  const pr = currentPullRequest
+    ? (await updatePullRequest(app, context)(repository, currentPullRequest.number))
+    : (await createPullRequest(app, context)(repository, details, baseBranch));
+
+  if (automerge) {
+    await mergePullRequest(app, context)(pr.data.number, repository);
+  }
+  return pr;
 };
 
 const updateBranch = (app: Probot, context: Context<'push'>) => async (newBranch: { ref: string; }, newCommit: { data: { sha: string; }; }, repository: RepositoryDetails) => {
@@ -167,7 +179,7 @@ export default (app: Probot, context: Context<'push'>) => async (repository: Rep
   const createdTree = await createTreeWithChanges(app, context)(templates, repository)(baseBranchRef);
   const newCommit = await createCommitWithChanges(app, context)(repository, prDetails.title)(currentCommit, createdTree);
   await updateBranch(app, context)(newBranch, newCommit, repository);
-  const pullRequest = await createOrUpdatePullRequest(app, context)(repository, prDetails, baseBranch);
+  const pullRequest = await maintainPullRequest(app, context)(repository, prDetails, baseBranch);
 
   return pullRequest.data.number;
 };
