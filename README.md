@@ -65,6 +65,9 @@ jobs:
 
 See the [Mustache manual](https://mustache.github.io/mustache.5.html) for more information on the template syntax.
 
+## Implementation
+A high-level overview of how the logic flows in the implementation can be seen in [this overview](docs/Overview.md).
+
 ## Setup
 
 ```sh
