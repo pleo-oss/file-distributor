@@ -108,16 +108,15 @@ const createOrUpdateExistingPullRequest = (app: Probot, context: Context<'push'>
 
 const createOrUpdatePullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: { title: string; description: string; }, baseBranch: string, automerge?: boolean) => {
   const created = await createOrUpdateExistingPullRequest(app, context)(repository, details, baseBranch);
+  if (!automerge) return created;
 
-  if (automerge) {
-    app.log.debug(`Attempting automerge of PR #${created.data.number}.`);
-    await context.octokit.rest.pulls.merge({
-      ...repository,
-      pull_number: created.data.number,
-      merge_method: 'squash',
-    });
-    app.log.debug(`Merged PR #${created.data.number}.`);
-  }
+  app.log.debug(`Attempting automerge of PR #${created.data.number}.`);
+  await context.octokit.rest.pulls.merge({
+    ...repository,
+    pull_number: created.data.number,
+    merge_method: 'squash',
+  });
+  app.log.debug(`Merged PR #${created.data.number}.`);
 
   return created;
 };

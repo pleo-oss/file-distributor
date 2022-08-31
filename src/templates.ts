@@ -97,18 +97,16 @@ export const downloadTemplates = (app: Probot, context: Context<'push'>) => asyn
     templateRepository,
   );
   app.log.debug(`Fetching templates from URL: '${release.zipball_url}'.`);
-  const directory = await fs.mkdir(`/tmp/${repository.repo}`, { recursive: true });
 
-  if (!directory) {
+  const templatePath = `/tmp/${repository.repo}`;
+  try {
+    await fs.mkdir(templatePath, { recursive: true });
+  } catch (e: unknown) {
     app.log.error(
       `Failed to create temporary ZIP directory for '${repository.repo}'.`,
     );
-    throw Error(
-      `Failed to create temporary ZIP directory for '${repository.repo}'.`,
-    );
+    throw e;
   }
-
-  const templatePath = `${directory}/release.zip`;
 
   if (!release.zipball_url) {
     app.log.error(`Release '${release.id}' has no zipball URL.`);
@@ -118,13 +116,16 @@ export const downloadTemplates = (app: Probot, context: Context<'push'>) => asyn
   app.log.debug(
     `Fetching release information from '${release.zipball_url}'.`,
   );
+
   const link: { url: string } = (await context.octokit.repos.downloadZipballArchive({
     ...templateRepository,
     ref: release.tag_name,
   })) as any;
   app.log.debug('Fetching release ZIP from:');
   app.log.debug(link);
-  const path = await downloadFile(link.url, templatePath);
+
+  const filePath = `${templatePath}/release.zip`;
+  const path = await downloadFile(link.url, filePath);
   app.log.debug('Fetched release ZIP.');
 
   return path;
