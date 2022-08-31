@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc",
     "build:run": "tsc && yarn start",
-    "start": "probot run ./lib/index.js",
+    "start": "probot run ./lib/app.js",
     "test": "jest"
   },
   "dependencies": {
