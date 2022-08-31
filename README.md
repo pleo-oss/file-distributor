@@ -88,7 +88,14 @@ yarn start
 docker build -t file-distributor .
 
 # 2. Start container
-docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> file-distributor
+docker run \
+  -e APP_ID=<app-id> \
+  -e PRIVATE_KEY=<pem-value> \
+  -e WEBHOOK_SECRET=<webhook-secret> \
+  -e TEMPLATE_REPOSITORY_NAME=<template-repository-name> \
+  -e TEMPLATE_REPOSITORY_OWNER=<template-repository-owner> \
+  -e BRANCHES_TO_PROCESS=<branches-to-process-regex> \
+  file-distributor
 ```
 
 ## Environment variables
@@ -102,6 +109,8 @@ WEBHOOK_SECRET=secret-here
 
 TEMPLATE_REPOSITORY_NAME=template-repository
 TEMPLATE_REPOSITORY_OWNER=template-repository-owner
+
+BRANCHES_TO_PROCESS=master|main
 ```
 
 ## Contributing
