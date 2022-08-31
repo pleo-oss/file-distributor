@@ -25,4 +25,4 @@ Once the Mustache templates have been rendered with relevant configuration from 
 
 A simplified version of the app flow can be seen below. This shows how the template repository, configured repository, GitHub API and the app interact.
 
-![](images/flow-illustration.svg)
+![](images/flow-illustration.png)
