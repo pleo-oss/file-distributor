@@ -29,6 +29,7 @@
     "yaml": "^2.1.1"
   },
   "devDependencies": {
+    "@jest/globals": "^29.0.1",
     "@octokit/webhooks-types": "^6.3.6",
     "@swc/core": "^1.2.220",
     "@swc/jest": "^0.2.22",
