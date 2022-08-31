@@ -47,12 +47,13 @@ const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEven
         repository,
         payload.after,
       );
-      const processed = await renderTemplates(app, context)(
+      const { version, templates: processed } = await renderTemplates(app, context)(
         repository,
         parsed,
       );
       const pullRequestNumber = await commitFiles(app, context)(
         repository,
+        version,
         processed,
       );
       app.log.info(

@@ -3,7 +3,9 @@ import { createWriteStream, promises as fs } from 'fs';
 import axios from 'axios';
 import { loadAsync } from 'jszip';
 import { render } from 'mustache';
-import { RepositoryDetails, RepositoryConfiguration, Template } from './types';
+import {
+  RepositoryDetails, RepositoryConfiguration, Template, TemplateInformation, Templates,
+} from './types';
 
 export const extractZipContents = (app: Probot) => async (filePath: string, configuration: RepositoryConfiguration) => {
   app.log.debug(`Extracting ZIP contents from ${filePath}.`);
@@ -84,7 +86,7 @@ const downloadFile = async (url: string, path: string) => {
   return path;
 };
 
-export const downloadTemplates = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, templateVersion?: string) => {
+export const downloadTemplates = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, templateVersion?: string): Promise<TemplateInformation> => {
   const templateRepository = {
     owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
     repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
@@ -128,23 +130,23 @@ export const downloadTemplates = (app: Probot, context: Context<'push'>) => asyn
   const path = await downloadFile(link.url, filePath);
   app.log.debug('Fetched release ZIP.');
 
-  return path;
+  return {
+    path,
+    version: release.tag_name,
+  };
 };
 
-export const renderTemplates = (app: Probot, context: Context<'push'>) => async (
-  repository: RepositoryDetails,
-  configuration: RepositoryConfiguration,
-): Promise<Template[]> => {
+export const renderTemplates = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, configuration: RepositoryConfiguration): Promise<Templates> => {
   app.log.debug('Processing configuration changes.');
   const { version } = configuration;
   app.log.debug(`Configuration uses template version '${version}'.`);
 
-  const templateFilePath = await downloadTemplates(app, context)(
+  const { path, version: fetchedVersion } = await downloadTemplates(app, context)(
     repository,
     version,
   );
   const templateContents = await extractZipContents(app)(
-    templateFilePath,
+    path,
     configuration,
   );
 
@@ -153,5 +155,5 @@ export const renderTemplates = (app: Probot, context: Context<'push'>) => async 
     contents: render(template.contents, configuration.values),
   }));
   app.log.debug(`Processed ${rendered.length} templates.`);
-  return rendered;
+  return { version: fetchedVersion, templates: rendered };
 };

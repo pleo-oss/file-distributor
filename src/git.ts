@@ -1,5 +1,5 @@
 import { Context, Probot } from 'probot';
-import { RepositoryDetails, Template } from './types';
+import { PRDetails, RepositoryDetails, Template } from './types';
 
 const baseBranchName = 'centralized-templates';
 const reducedBranchName = `heads/${baseBranchName}`;
@@ -58,7 +58,7 @@ const createCommitWithChanges = (app: Probot, context: Context<'push'>) => (repo
   return newCommit;
 };
 
-const createOrUpdateExistingPullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: { title: string; description: string; }, baseBranch: string) => {
+const createOrUpdateExistingPullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string) => {
   const { title, description } = details;
 
   const openPullRequests = (await context.octokit.pulls.list({
@@ -106,7 +106,7 @@ const createOrUpdateExistingPullRequest = (app: Probot, context: Context<'push'>
   return updated;
 };
 
-const createOrUpdatePullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: { title: string; description: string; }, baseBranch: string, automerge?: boolean) => {
+const createOrUpdatePullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string, automerge?: boolean) => {
   const created = await createOrUpdateExistingPullRequest(app, context)(repository, details, baseBranch);
   if (!automerge) return created;
 
@@ -132,12 +132,27 @@ const updateBranch = (app: Probot, context: Context<'push'>) => async (newBranch
   app.log.debug(`Updated new branch ref '${updatedRef.data.ref}'.`);
 };
 
-export default (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, templates: Template[]) => {
-  const prDetails = {
-    title: 'Update templates based on repository configuration',
-    description: 'Update templates based on repository configuration.',
-  };
+const generatePullRequestDescription = (version: string, templates: Template[]) => {
+  const stringifiedTemplateNames = templates.map((t) => `- \`${t.path}\``).join('\n');
 
+  return `
+  ---
+
+  Template version: \`${version}\`
+
+  ---
+  
+  This will update templates based on the current repository configuration.
+  
+  ---
+  
+  This updates:
+
+  ${stringifiedTemplateNames}
+  `;
+};
+
+export default (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, version: string, templates: Template[]) => {
   app.log.debug('Fetching base branch.');
   const baseBranch = (await context.octokit.repos.get({ ...repository })).data.default_branch;
   app.log.debug(`Fetching base branch ref 'heads/${baseBranch}'.`);
@@ -150,6 +165,11 @@ export default (app: Probot, context: Context<'push'>) => async (repository: Rep
 
   app.log.debug(`Using base branch '${baseBranch}'.`);
   app.log.debug(`Using base commit '${currentCommit.data.sha}'.`);
+
+  const prDetails = {
+    title: 'Update templates based on repository configuration',
+    description: generatePullRequestDescription(version, templates),
+  };
 
   const createdTree = await createTreeWithChanges(app, context)(templates, repository)(baseBranchRef);
   const newCommit = await createCommitWithChanges(app, context)(repository, prDetails.title)(currentCommit, createdTree);
