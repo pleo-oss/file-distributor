@@ -6,17 +6,27 @@ import {
 import fs from 'fs';
 import path from 'path';
 import probotApp from '../src/app';
-import payload from './fixtures/issues.opened.json';
-
-const pushBody = { };
+import { RepositoryConfiguration } from '../src/types';
 
 const privateKey = fs.readFileSync(
   path.join(__dirname, 'fixtures/mock-cert.pem'),
   'utf-8',
 );
 
-describe('My Probot app', () => {
-  let probot: any;
+const configuration: RepositoryConfiguration = {
+  version: undefined,
+  automerge: false,
+  files: [
+    {
+      source: 'templates/github/destination.yaml',
+      destination: 'github/destination.yaml',
+    },
+  ],
+  values: { isEnabled: 'true' },
+};
+
+describe('Probot Tests', () => {
+  let probot: Probot;
 
   beforeEach(() => {
     nock.disableNetConnect();
@@ -29,30 +39,41 @@ describe('My Probot app', () => {
         throttle: { enabled: false },
       }),
     });
-    // Load our app into probot
     probot.load(probotApp);
   });
 
-  test('creates a comment when an issue is opened', async () => {
+  test('can authenticate', async () => {
     const mock = nock('https://api.github.com')
-      // Test that we correctly return a test token
       .post('/app/installations/2/access_tokens')
       .reply(200, {
         token: 'test',
         permissions: {
           push: 'read',
         },
-      })
+      });
 
-      .post('/repos/probot-test', (body: any) => {
-        expect(body).toMatchObject(pushBody);
-        return true;
-      })
+    probot.on('push', () => {});
+
+    expect(mock.pendingMocks()).toStrictEqual([
+      'POST https://api.github.com:443/app/installations/2/access_tokens',
+    ]);
+  });
+
+  test('can read repository configuration', async () => {
+    const mock = nock('https://api.github.com')
+      .get('/repos/pleo-io/probot-test/probot-test.yaml')
+      .reply(200, configuration)
+      .post('/repos/pleo-io/probot-test/commit', (body) => body)
       .reply(200);
 
-    await probot.receive({ name: 'push', payload });
+    const pushPayload = {};
 
-    expect(mock.pendingMocks()).toStrictEqual([]);
+    await probot.receive({ name: 'push', id: '', payload: (pushPayload as any) });
+
+    expect(mock.activeMocks()).toStrictEqual([
+      'GET https://api.github.com:443/repos/pleo-io/probot-test/probot-test.yaml',
+      'POST https://api.github.com:443/repos/pleo-io/probot-test/commit',
+    ]);
   });
 
   afterEach(() => {
