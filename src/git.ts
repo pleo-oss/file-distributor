@@ -61,14 +61,17 @@ const createCommitWithChanges = (app: Probot, context: Context<'push'>) => (repo
 const createOrUpdateExistingPullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string) => {
   const { title, description } = details;
 
-  const openPullRequests = (await context.octokit.pulls.list({
+  const closedPullRequests = (await context.octokit.pulls.list({
     ...repository,
     head: fullBranchName,
-    state: 'open',
+    state: 'closed',
   })).data;
-  app.log.debug(`Found ${openPullRequests.length} open PRs.`);
+  app.log.debug(`Found ${closedPullRequests.length} closed PRs.`);
 
-  const toUpdate = openPullRequests.shift();
+  const toUpdate = closedPullRequests
+    .filter((pr) => !pr.merged_at)
+    .sort((pr) => pr.number)
+    .shift();
 
   if (!toUpdate) {
     app.log.debug('Creating PR.');
@@ -83,16 +86,6 @@ const createOrUpdateExistingPullRequest = (app: Probot, context: Context<'push'>
 
     return created;
   }
-
-  await Promise.all(openPullRequests.map(async (pr) => {
-    app.log.debug(`Closing PR #${pr.number}.`);
-    await context.octokit.pulls.update({
-      ...repository,
-      pull_number: pr.number,
-      state: 'closed',
-    });
-    app.log.debug(`Closed PR #${pr.number}.`);
-  }));
 
   app.log.debug(`Updating PR #${toUpdate.number}.`);
   const updated = await context.octokit.pulls.update({
