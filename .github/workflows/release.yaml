@@ -1,3 +1,4 @@
+name: Release
 on: 
   push:
     branches:
@@ -5,6 +6,7 @@ on:
 
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
@@ -33,12 +35,13 @@ jobs:
       - name: Get current version
         id: current-version
         run: |
-          VERSION=$(auto info | sed -n 's/.*Current Version: //p')
+          VERSION=$(~/auto info | sed -n 's/.*Current Version: //p')
           echo "Detected version: $VERSION"
           echo "::set-output name=version::$VERSION"
       
       # Build Docker image and cache Docker image/layers.
       - name: Build Docker image
+        if: steps.current-version.outputs.version
         uses: docker/build-push-action@v3
         with:
           context: .
