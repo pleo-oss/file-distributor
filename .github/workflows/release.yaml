@@ -19,6 +19,17 @@ jobs:
         with:
             ssh-private-key: ${{ secrets.SSH_RELEASE_KEY }}
 
+      - name: Get release version
+        id: release-version
+        run: |
+          VERSION=$(npx auto version)
+          echo "Detected version: $VERSION"
+          echo "::set-output name=version::$VERSION"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Auto release
         run: |
           npx auto shipit
@@ -26,13 +37,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Get release version
-        id: release-version
-        run: |
-          VERSION=$(npx auto version)
-          echo "Detected version: $VERSION"
-          echo "::set-output name=version::$VERSION"
       
       - name: Login to Docker Hub
         if: steps.release-version.outputs.version
