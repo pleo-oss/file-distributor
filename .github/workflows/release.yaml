@@ -50,5 +50,4 @@ jobs:
         with:
           context: .
           tags: ${{ steps.release-version.outputs.version }}
-          load: true
           push: true
