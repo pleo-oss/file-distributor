@@ -19,25 +19,23 @@ jobs:
         with:
             ssh-private-key: ${{ secrets.SSH_RELEASE_KEY }}
 
-      - name: Get release version
-        id: release-version
-        run: |
-          VERSION=$(npx auto version)
-          echo "Detected version: $VERSION"
-          echo "::set-output name=version::$VERSION"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Release
-        if: steps.release-version.outputs.version
         run: |
           npx auto shipit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Get release version
+        uses: actions/github-script@v6.3.1
+        id: release-version
+        with: 
+          script: |
+            const packageJSON = require('./package.json')
+            const version = packageJSON['version']
+            console.log(version)
+            console.log('::set-output name=version::' + version)
       
       - name: Login to Docker Hub
         if: steps.release-version.outputs.version
@@ -46,7 +44,6 @@ jobs:
           username: pleodeployments
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build Docker image and cache Docker image/layers.
       - name: Build Docker image
         if: steps.release-version.outputs.version
         uses: docker/build-push-action@v3
