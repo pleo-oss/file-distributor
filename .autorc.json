@@ -36,10 +36,12 @@
     }
   ],
   "plugins": [
-    "docker",
-    {
-      "registry": "docker.io/pleo/file-distributor",
-      "tagLatest": true
-    }
+    [
+      "docker",
+      {
+        "registry": "docker.io/pleo/file-distributor",
+        "tagLatest": true
+      }
+    ]
   ]
 }
