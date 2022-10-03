@@ -30,6 +30,7 @@ jobs:
         with:
           context: .
           load: true
+          tags: "file-distributor"
 
       - name: Release
         run: |
@@ -38,3 +39,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: "file-distributor"
