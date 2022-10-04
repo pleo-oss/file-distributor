@@ -38,7 +38,7 @@ const processPushEvent =
       app.log.debug(`Saw files changed in ${payload.after}:`)
       app.log.debug(filesChanged)
 
-      const configFileName = `${payload.repository.name}.yaml`
+      const configFileName = `${payload.repository.name}-templates.yaml`
 
       if (filesChanged.includes(configFileName)) {
         const parsed = await determineConfigurationChanges(app, context)(configFileName, repository, payload.after)

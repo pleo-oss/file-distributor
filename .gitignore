@@ -1,5 +1,4 @@
 .DS_Store
-private-key.pem
 release.zip
 node_modules
 npm-debug.log
