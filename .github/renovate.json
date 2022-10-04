@@ -20,5 +20,5 @@
     "automerge": true
   },
   "platformAutomerge": true,
-  "schedule": "after 8am and before 5pm every weekday",
+  "schedule": "after 8am and before 5pm every weekday"
 }
