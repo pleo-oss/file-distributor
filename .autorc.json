@@ -34,15 +34,5 @@
       "color": "#696969",
       "default": true
     }
-  ],
-  "plugins": [
-    [
-      "docker",
-      {
-        "registry": "docker.io/pleo/file-distributor",
-        "image": "file-distributor",
-        "tagLatest": true
-      }
-    ]
   ]
 }
