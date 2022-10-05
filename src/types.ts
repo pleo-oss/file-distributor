@@ -26,7 +26,7 @@ export interface Templates {
 }
 
 export interface TemplateInformation {
-  path: string
+  contents: ArrayBuffer
   version: string
 }
 
