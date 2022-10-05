@@ -20,7 +20,7 @@
   "dependencies": {
     "@types/node-fetch": "2.6.2",
     "axios": "0.27.2",
-    "dotenv": "16.0.1",
+    "dotenv": "16.0.3",
     "jsonwebtoken": "8.5.1",
     "jszip": "3.10.1",
     "mustache": "4.2.0",
