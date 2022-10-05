@@ -12,11 +12,9 @@
     "patch"
   ],
   "minor": {
-    "matchCurrentVersion": "!/^0/",
     "automerge": true
   },
   "patch": {
-    "matchCurrentVersion": "!/^0/",
     "automerge": true
   },
   "platformAutomerge": true,
