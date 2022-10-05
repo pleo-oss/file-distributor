@@ -18,9 +18,8 @@ const getOrCreateNewBranch =
       app.log.debug(`Failed to create a new branch with ref: '${fullBranchName}'.`)
       app.log.debug(`Fetching existing branch with ref: '${reducedBranchName}'.`)
 
-      const foundBranch = (await context.octokit.git.getRef({ ...repository, ref: reducedBranchName })).data
+      const { data: foundBranch } = await context.octokit.git.getRef({ ...repository, ref: reducedBranchName })
       app.log.debug(`Found new branch with ref: '${foundBranch.ref}'.`)
-      app.log.debug(`Updating branch to match '${baseBranchRef}'.`)
 
       return foundBranch
     }
@@ -195,7 +194,7 @@ export default (app: Probot, context: Context<'push'>) =>
     } = await getOrCreateNewBranch(app, context)(repository, baseBranchRef)
 
     app.log.debug('Determining current commit.')
-    const currentCommit = await context.octokit.git.getCommit({ ...repository, commit_sha: newBranch })
+    const currentCommit = await context.octokit.git.getCommit({ ...repository, commit_sha: baseBranchRef })
 
     app.log.debug(`Using base branch '${baseBranch}'.`)
     app.log.debug(`Using base commit '${currentCommit.data.sha}'.`)
