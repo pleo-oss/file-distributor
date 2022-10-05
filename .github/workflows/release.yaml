@@ -23,7 +23,7 @@ jobs:
         uses: docker/login-action@v2.0.0
         with:
           username: pleodeployments
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.PLEO_DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
         uses: docker/build-push-action@v3
