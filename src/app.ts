@@ -38,7 +38,7 @@ const processPushEvent =
       app.log.debug(`Saw files changed in ${payload.after}:`)
       app.log.debug(filesChanged)
 
-      const configFileName = `.pleo/templates.yaml`
+      const configFileName = `.config/templates.yaml`
 
       if (filesChanged.includes(configFileName)) {
         const parsed = await determineConfigurationChanges(app, context)(configFileName, repository, payload.after)
