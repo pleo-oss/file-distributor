@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@jest/globals": "29.0.1",
-    "@octokit/webhooks-types": "6.3.6",
+    "@octokit/webhooks-types": "6.4.0",
     "@swc/core": "1.2.220",
     "@swc/jest": "0.2.22",
     "@types/jest": "29.1.1",
