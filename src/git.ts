@@ -22,17 +22,7 @@ const getOrCreateNewBranch =
       app.log.debug(`Found new branch with ref: '${foundBranch.ref}'.`)
       app.log.debug(`Updating branch to match '${baseBranchRef}'.`)
 
-      const updatedRef = (
-        await context.octokit.git.updateRef({
-          ...repository,
-          ref: reducedBranchName,
-          sha: baseBranchRef,
-          force: true,
-        })
-      ).data
-      app.log.debug(`Updated '${reducedBranchName}' to '${updatedRef.ref}'.`)
-
-      return updatedRef
+      return foundBranch
     }
   }
 
@@ -40,7 +30,7 @@ const createTreeWithChanges =
   (app: Probot, context: Context<'push'>) =>
   (templates: Template[], repository: RepositoryDetails) =>
   async (treeSha: string) => {
-    const tree = templates.map(template => ({
+    const templateTree = templates.map(template => ({
       path: template.path,
       mode: '100644',
       type: 'blob',
@@ -48,10 +38,15 @@ const createTreeWithChanges =
     }))
 
     app.log.debug(`Fetching existing trees from '${treeSha}'.`)
-    const existingTree = (await context.octokit.git.getTree({ ...repository, tree_sha: treeSha })).data.tree
+    const {
+      data: { tree: existingTree },
+    } = await context.octokit.git.getTree({ ...repository, tree_sha: treeSha })
 
     app.log.debug('Creating git tree with modified templates.')
-    const createdTree = await context.octokit.git.createTree({ ...repository, tree: [...tree, ...existingTree] as any })
+    const createdTree = await context.octokit.git.createTree({
+      ...repository,
+      tree: [...templateTree, ...existingTree] as [],
+    })
     app.log.debug(`Created git tree with SHA '${createdTree.data.sha}'.`)
 
     return createdTree
@@ -107,19 +102,14 @@ const updatePullRequest =
   }
 
 const getExistingPullRequest = (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails) => {
-  const closedPullRequests = (
-    await context.octokit.pulls.list({
-      ...repository,
-      head: fullBranchName,
-      state: 'closed',
-    })
-  ).data
-  app.log.debug(`Found ${closedPullRequests.length} closed PRs.`)
+  const { data: openPullRequests } = await context.octokit.pulls.list({
+    ...repository,
+    head: fullBranchName,
+    state: 'open',
+  })
+  app.log.debug(`Found ${openPullRequests.length} open PRs.`)
 
-  const toUpdate = closedPullRequests
-    .filter(pr => !pr.merged_at)
-    .sort(pr => pr.number)
-    .shift()
+  const toUpdate = openPullRequests.sort(pr => pr.number).shift()
 
   return toUpdate
 }
@@ -154,15 +144,17 @@ const maintainPullRequest =
 
 const updateBranch =
   (app: Probot, context: Context<'push'>) =>
-  async (newBranch: { ref: string }, newCommit: { data: { sha: string } }, repository: RepositoryDetails) => {
-    app.log.debug(`Setting new branch ref '${newBranch.ref}' to commit '${newCommit.data.sha}'.`)
-    const updatedRef = await context.octokit.git.updateRef({
+  async (newBranch: string, newCommit: string, repository: RepositoryDetails) => {
+    app.log.debug(`Setting new branch ref '${newBranch}' to commit '${newCommit}'.`)
+    const {
+      data: { ref: updatedRef },
+    } = await context.octokit.git.updateRef({
       ...repository,
       ref: reducedBranchName,
-      sha: newCommit.data.sha,
+      sha: newCommit,
       force: true,
     })
-    app.log.debug(`Updated new branch ref '${updatedRef.data.ref}'.`)
+    return updatedRef
   }
 
 const generatePullRequestDescription = (version: string, templates: Template[]) => {
@@ -188,15 +180,22 @@ const generatePullRequestDescription = (version: string, templates: Template[]) 
 export default (app: Probot, context: Context<'push'>) =>
   async (repository: RepositoryDetails, version: string, templates: Template[]) => {
     app.log.debug('Fetching base branch.')
-    const baseBranch = (await context.octokit.repos.get({ ...repository })).data.default_branch
+    const {
+      data: { default_branch: baseBranch },
+    } = await context.octokit.repos.get({ ...repository })
     app.log.debug(`Fetching base branch ref 'heads/${baseBranch}'.`)
-    const baseBranchRef = (await context.octokit.git.getRef({ ...repository, ref: `heads/${baseBranch}` })).data.object
-      .sha
+    const {
+      data: {
+        object: { sha: baseBranchRef },
+      },
+    } = await context.octokit.git.getRef({ ...repository, ref: `heads/${baseBranch}` })
 
-    const newBranch = await getOrCreateNewBranch(app, context)(repository, baseBranchRef)
+    const {
+      object: { sha: newBranch },
+    } = await getOrCreateNewBranch(app, context)(repository, baseBranchRef)
 
     app.log.debug('Determining current commit.')
-    const currentCommit = await context.octokit.git.getCommit({ ...repository, commit_sha: newBranch.object.sha })
+    const currentCommit = await context.octokit.git.getCommit({ ...repository, commit_sha: newBranch })
 
     app.log.debug(`Using base branch '${baseBranch}'.`)
     app.log.debug(`Using base commit '${currentCommit.data.sha}'.`)
@@ -207,12 +206,15 @@ export default (app: Probot, context: Context<'push'>) =>
     }
 
     const createdTree = await createTreeWithChanges(app, context)(templates, repository)(baseBranchRef)
-    const newCommit = await createCommitWithChanges(app, context)(repository, prDetails.title)(
-      currentCommit,
-      createdTree,
-    )
-    await updateBranch(app, context)(newBranch, newCommit, repository)
-    const pullRequest = await maintainPullRequest(app, context)(repository, prDetails, baseBranch)
+    const {
+      data: { sha: newCommit },
+    } = await createCommitWithChanges(app, context)(repository, prDetails.title)(currentCommit, createdTree)
+    const updatedRef = await updateBranch(app, context)(newBranch, newCommit, repository)
+    app.log.debug(`Updated branch ref: ${updatedRef}`)
 
-    return pullRequest.data.number
+    const {
+      data: { number },
+    } = await maintainPullRequest(app, context)(repository, prDetails, baseBranch)
+
+    return number
   }

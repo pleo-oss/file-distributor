@@ -38,11 +38,11 @@ const processPushEvent =
       app.log.debug(`Saw files changed in ${payload.after}:`)
       app.log.debug(filesChanged)
 
-      const configFileName = `${payload.repository.name}.yaml`
+      const configFileName = `.config/templates.yaml`
 
       if (filesChanged.includes(configFileName)) {
         const parsed = await determineConfigurationChanges(app, context)(configFileName, repository, payload.after)
-        const { version, templates: processed } = await renderTemplates(app, context)(repository, parsed)
+        const { version, templates: processed } = await renderTemplates(app, context)(parsed)
         const pullRequestNumber = await commitFiles(app, context)(repository, version, processed)
         app.log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
         app.log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
@@ -53,8 +53,14 @@ const processPushEvent =
     }
   }
 
-export = (app: Probot) => {
+export = async (app: Probot) => {
   config()
+
+  const authenticated = await (await app.auth(Number(process.env.APP_ID))).apps.listInstallations()
+  if (!authenticated) {
+    app.log.error('The application is not installed with expected authentication. Exiting.')
+  }
+
   const branchesToProcess = findBranchesToProcess(app)
   app.on('push', async (context: Context<'push'>) => {
     await processPushEvent(branchesToProcess)(context.payload as PushEvent, context, app)

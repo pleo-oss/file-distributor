@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "command": "yarn start",
+            "name": "Start app",
+            "request": "launch",
+            "type": "node-terminal",
+            "preLaunchTask": "yarn: build"
+        },
+        {
             "name": "Debug Jest Tests",
             "type": "node",
             "request": "launch",

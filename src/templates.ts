@@ -1,37 +1,36 @@
 import { Context, Probot } from 'probot'
-import { createWriteStream, promises as fs } from 'fs'
-import axios from 'axios'
 import { loadAsync } from 'jszip'
 import { render } from 'mustache'
-import { RepositoryDetails, RepositoryConfiguration, Template, TemplateInformation, Templates } from './types'
+import { RepositoryDetails, RepositoryConfiguration, TemplateInformation, Templates } from './types'
+import { OctokitResponse } from '@octokit/types'
 
-export const extractZipContents = (app: Probot) => async (filePath: string, configuration: RepositoryConfiguration) => {
-  app.log.debug(`Extracting ZIP contents from ${filePath}.`)
-  const zipFile = await fs.readFile(filePath)
-  const loaded = await loadAsync(zipFile)
+export const extractZipContents =
+  (app: Probot) => async (contents: ArrayBuffer, configuration: RepositoryConfiguration) => {
+    app.log.debug(`Extracting ZIP contents.`)
+    const loaded = await loadAsync(contents)
 
-  const toProcess = Promise.all(
-    configuration.files?.map(async file => {
-      const found = loaded.file(new RegExp(file.source))
-      app.log.debug(`Found ${found.length} file(s) matching ${file.source}. `)
-      const picked = found.shift()
-      if (picked) app.log.debug(`Using ${picked.name} for ${file.source}. `)
+    const toProcess = Promise.all(
+      configuration.files?.map(async file => {
+        const found = loaded.file(new RegExp(file.source))
+        app.log.debug(`Found ${found.length} file(s) matching ${file.source}. `)
+        const picked = found.shift()
+        if (picked) app.log.debug(`Using ${picked.name} for ${file.source}. `)
 
-      const text = await picked?.async('text')
-      const contents = text?.replace(/#{{/gm, '{{')
+        const text = (await picked?.async('text')) ?? ''
+        const contents = text?.replace(/#{{/gm, '{{')
 
-      return {
-        path: file.destination,
-        contents,
-      }
-    }) ?? [],
-  )
+        return {
+          path: file.destination,
+          contents,
+        }
+      }) ?? [],
+    )
 
-  const templates = (await toProcess).filter(it => it?.contents) as Template[]
-  app.log.debug(`Extracted ${templates.length} ZIP templates.`)
+    const templates = (await toProcess).filter(it => it?.contents)
+    app.log.debug(`Extracted ${templates.length} ZIP templates.`)
 
-  return templates
-}
+    return templates
+  }
 
 const getReleaseFromTag = (context: Context<'push'>) => (tag?: string) => {
   const getLatestRelease = async (repository: RepositoryDetails) => {
@@ -56,35 +55,9 @@ const getReleaseFromTag = (context: Context<'push'>) => (tag?: string) => {
   return tag ? getRelease : getLatestRelease
 }
 
-const downloadFile = async (url: string, path: string) => {
-  const response = await axios({
-    method: 'get',
-    url,
-    responseType: 'stream',
-    headers: {
-      Accept: 'application/octet-stream',
-      'User-Agent': 'Pleo Template Fetch',
-    },
-  })
-
-  await new Promise((resolve, reject) => {
-    const dest = createWriteStream(path)
-    response.data
-      .on('end', () => {
-        resolve(path)
-      })
-      .on('error', (err: unknown) => {
-        reject(err)
-      })
-      .pipe(dest)
-  })
-
-  return path
-}
-
 export const downloadTemplates =
   (app: Probot, context: Context<'push'>) =>
-  async (repository: RepositoryDetails, templateVersion?: string): Promise<TemplateInformation> => {
+  async (templateVersion?: string): Promise<TemplateInformation> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
@@ -94,47 +67,33 @@ export const downloadTemplates =
     const release = await getReleaseFromTag(context)(templateVersion)(templateRepository)
     app.log.debug(`Fetching templates from URL: '${release.zipball_url}'.`)
 
-    const templatePath = `/tmp/${repository.repo}`
-    try {
-      await fs.mkdir(templatePath, { recursive: true })
-    } catch (e: unknown) {
-      app.log.error(`Failed to create temporary ZIP directory for '${repository.repo}'.`)
-      throw e
-    }
-
     if (!release.zipball_url) {
       app.log.error(`Release '${release.id}' has no zipball URL.`)
       throw Error(`Release '${release.id}' has no zipball URL.`)
     }
 
     app.log.debug(`Fetching release information from '${release.zipball_url}'.`)
-
-    const link: { url: string } = (await context.octokit.repos.downloadZipballArchive({
+    const { data: contents } = (await context.octokit.repos.downloadZipballArchive({
       ...templateRepository,
       ref: release.tag_name,
-    })) as { url: string }
-    app.log.debug('Fetching release ZIP from:')
-    app.log.debug(link)
-
-    const filePath = `${templatePath}/release.zip`
-    const path = await downloadFile(link.url, filePath)
-    app.log.debug('Fetched release ZIP.')
+    })) as OctokitResponse<ArrayBuffer>
+    app.log.debug('Fetched release contents.')
 
     return {
-      path,
+      contents,
       version: release.tag_name,
     }
   }
 
 export const renderTemplates =
   (app: Probot, context: Context<'push'>) =>
-  async (repository: RepositoryDetails, configuration: RepositoryConfiguration): Promise<Templates> => {
+  async (configuration: RepositoryConfiguration): Promise<Templates> => {
     app.log.debug('Processing configuration changes.')
     const { version } = configuration
     app.log.debug(`Configuration uses template version '${version}'.`)
 
-    const { path, version: fetchedVersion } = await downloadTemplates(app, context)(repository, version)
-    const templateContents = await extractZipContents(app)(path, configuration)
+    const { contents, version: fetchedVersion } = await downloadTemplates(app, context)(version)
+    const templateContents = await extractZipContents(app)(contents, configuration)
 
     const rendered = templateContents.map(template => ({
       ...template,
