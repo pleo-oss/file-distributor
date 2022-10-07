@@ -56,8 +56,6 @@ jobs:
       - name: Get latest release tag
         id: latest-tag
         uses: WyriHaximus/github-action-get-previous-tag@v1
-        with:
-          fallback: 1.0.0
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
