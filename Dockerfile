@@ -1,13 +1,21 @@
-FROM node:16-slim
+FROM node:18-alpine AS BUILD_IMAGE
 
 WORKDIR /usr/src/app
-COPY yarn.lock yarn.lock ./
-COPY package.json package.json ./
-COPY tsconfig.json tsconfig.json ./
+
+COPY yarn.lock package.json tsconfig.json .
 COPY src/ ./src
 
 RUN yarn && yarn build && rm -rf node_modules && yarn --production
 
-ENV NODE_ENV="production"
+###################
 
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+COPY --from=BUILD_IMAGE /usr/src/app/package.json .
+COPY --from=BUILD_IMAGE /usr/src/app/lib ./lib
+COPY --from=BUILD_IMAGE /usr/src/app/node_modules ./node_modules
+
+ENV NODE_ENV="production"
 CMD [ "yarn", "start" ]
