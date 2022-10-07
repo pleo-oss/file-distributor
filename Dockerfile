@@ -8,6 +8,8 @@ COPY src/ ./src
 
 RUN yarn
 RUN yarn build
+RUN rm -rf node_modules
+RUN yarn --production
 
 ENV NODE_ENV="production"
 
