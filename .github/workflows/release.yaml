@@ -57,6 +57,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Validate Docker metadata
+        uses: actions/github-script@v6
+        with: 
+          script: |
+            const parsed = JSON.parse('${{ steps.meta.outputs }}')
+            console.log(parsed)
 
       - name: Build Docker image
         uses: docker/build-push-action@v3
