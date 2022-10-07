@@ -6,10 +6,7 @@ COPY package.json package.json ./
 COPY tsconfig.json tsconfig.json ./
 COPY src/ ./src
 
-RUN yarn
-RUN yarn build
-RUN rm -rf node_modules
-RUN yarn --production
+RUN yarn && yarn build && rm -rf node_modules && yarn --production
 
 ENV NODE_ENV="production"
 
