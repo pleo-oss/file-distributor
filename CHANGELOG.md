@@ -1,3 +1,34 @@
+# v1.0.1 (Mon Oct 10 2022)
+
+#### 🐞 Fixes
+
+- Update dependency axios to v1.1.2 [#22](https://github.com/pleo-oss/file-distributor/pull/22) ([@renovate[bot]](https://github.com/renovate[bot]))
+- Update dependency @types/jest to v29.1.2 [#21](https://github.com/pleo-oss/file-distributor/pull/21) ([@renovate[bot]](https://github.com/renovate[bot]))
+- Update dependency yaml to v2.1.3 [#19](https://github.com/pleo-oss/file-distributor/pull/19) ([@renovate[bot]](https://github.com/renovate[bot]))
+
+#### ⚠️ Pushed to `main`
+
+- Use multi-stage builds ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Skip building redundant Docker layers ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Slim down Docker image ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Remove fallback tag ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Add missing tag fetch in Docker checkout ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Use latest tag for Docker image tags ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Revert "Add Docker metadata verification in release" ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Add Docker metadata verification in release ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Attempt to get tags pushed ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Add test workflow running on pushes [#20](https://github.com/pleo-oss/file-distributor/pull/20) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v1.0.0 (Wed Oct 05 2022)
 
 #### 💥 Major changes
