@@ -1,0 +1,64 @@
+name: Test
+on: 
+  push:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
+      
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          yarn
+
+      - name: Build
+        run: |
+          yarn build
+
+      - name: Test
+        run: |
+          yarn test
+  
+  coverage:
+    name: Test coverage
+    runs-on: ubuntu-22.04
+    needs: test
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: jwalton/gh-find-current-pr@v1
+        id: find-pr-number
+
+      - uses: ArtiomTr/jest-coverage-report-action@v2
+        id: test-coverage
+        with:
+          prnumber: ${{ steps.find-pr-number.outputs.number }}
+          output: report-markdown
+          package-manager: yarn
+
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: ${{ steps.test-coverage.outputs.report }}
+          number: ${{ steps.find-pr-number.outputs.number }}
