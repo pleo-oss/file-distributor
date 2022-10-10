@@ -7,17 +7,14 @@ jobs:
     name: Test
     runs-on: ubuntu-22.04
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 16
           cache: 'yarn'
-      
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-          fetch-depth: 0
 
       - name: Install dependencies
         run: |
@@ -36,17 +33,14 @@ jobs:
     runs-on: ubuntu-22.04
     needs: test
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 16
           cache: 'yarn'
-
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-          fetch-depth: 0
 
       - uses: jwalton/gh-find-current-pr@v1
         id: find-pr-number
