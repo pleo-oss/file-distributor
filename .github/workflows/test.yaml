@@ -51,8 +51,3 @@ jobs:
           prnumber: ${{ steps.find-pr-number.outputs.number }}
           output: report-markdown
           package-manager: yarn
-
-      - uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          message: ${{ steps.test-coverage.outputs.report }}
-          number: ${{ steps.find-pr-number.outputs.number }}
