@@ -1,3 +1,38 @@
+# v1.0.3 (Tue Oct 11 2022)
+
+#### 🐞 Fixes
+
+- Update dependency @swc/core to v1.3.6 [#23](https://github.com/pleo-oss/file-distributor/pull/23) ([@renovate[bot]](https://github.com/renovate[bot]))
+- Update dependency eslint to v8.25.0 [#24](https://github.com/pleo-oss/file-distributor/pull/24) ([@renovate[bot]](https://github.com/renovate[bot]))
+
+#### 🏠 Internal
+
+- Prefer console.log to Probot.log to avoid passing the app object around globally [#26](https://github.com/pleo-oss/file-distributor/pull/26) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
+# v1.0.2 (Tue Oct 11 2022)
+
+#### 🐞 Fixes
+
+- Ensure PR descriptions reflects changes made in PRs [#25](https://github.com/pleo-oss/file-distributor/pull/25) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### ⚠️ Pushed to `main`
+
+- Update CODEOWNERS ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Avoid running tests on the default branch ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v1.0.1 (Mon Oct 10 2022)
 
 #### 🐞 Fixes

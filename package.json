@@ -1,6 +1,6 @@
 {
   "name": "file-distributor",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "private": true,
   "description": "A GitHub App for distributing files/templates to configured repositories in an organisation.",
   "author": "pleo-oss",
@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "build:run": "tsc && yarn start",
+    "build:run": "yarn build && yarn start",
     "start": "probot run ./lib/app.js",
     "test": "jest"
   },
@@ -31,7 +31,7 @@
   "devDependencies": {
     "@jest/globals": "29.1.2",
     "@octokit/webhooks-types": "6.4.0",
-    "@swc/core": "1.3.4",
+    "@swc/core": "1.3.6",
     "@swc/jest": "0.2.23",
     "@types/jest": "29.1.2",
     "@types/mustache": "4.2.1",
@@ -39,7 +39,7 @@
     "@types/yauzl": "2.10.0",
     "@typescript-eslint/eslint-plugin": "5.39.0",
     "@typescript-eslint/parser": "5.39.0",
-    "eslint": "8.24.0",
+    "eslint": "8.25.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-import": "2.26.0",
     "eslint-plugin-prettier": "4.2.1",
