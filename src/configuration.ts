@@ -2,8 +2,8 @@ import { Context, Probot } from 'probot'
 import { parse } from 'yaml'
 import { RepositoryDetails, RepositoryConfiguration } from './types'
 
-export default (app: Probot, context: Context<'push'>) =>
-  async (fileName: string, repository: RepositoryDetails, sha: string) => {
+export const determineConfigurationChanges =
+  (app: Probot, context: Context<'push'>) => async (fileName: string, repository: RepositoryDetails, sha: string) => {
     app.log.debug(`Saw changes to ${fileName}.`)
     const fileContents = await context.octokit.repos.getContent({
       ...repository,

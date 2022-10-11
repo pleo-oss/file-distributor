@@ -1,9 +1,9 @@
 import { PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
-import determineConfigurationChanges from './configuration'
+import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
-import commitFiles from './git'
+import { commitFiles } from './git'
 
 const findBranchesToProcess = (app: Probot) => {
   const branches = process.env.BRANCHES_TO_PROCESS

@@ -87,12 +87,17 @@ const createPullRequest =
   }
 
 const updatePullRequest =
-  (app: Probot, context: Context<'push'>) => async (repository: RepositoryDetails, number: number) => {
+  (app: Probot, context: Context<'push'>) =>
+  async (repository: RepositoryDetails, details: PRDetails, number: number) => {
+    const { title, description } = details
+
     app.log.debug(`Updating PR #${number}.`)
     const updated = await context.octokit.pulls.update({
       ...repository,
       pull_number: number,
       head: fullBranchName,
+      body: description,
+      title: title,
       state: 'open',
     })
     app.log.debug(`Updated PR #${updated.data.number}.`)
@@ -132,7 +137,7 @@ const maintainPullRequest =
     const currentPullRequest = await getExistingPullRequest(app, context)(repository)
 
     const pr = currentPullRequest
-      ? await updatePullRequest(app, context)(repository, currentPullRequest.number)
+      ? await updatePullRequest(app, context)(repository, details, currentPullRequest.number)
       : await createPullRequest(app, context)(repository, details, baseBranch)
 
     if (automerge) {
@@ -176,7 +181,8 @@ const generatePullRequestDescription = (version: string, templates: Template[]) 
   `
 }
 
-export default (app: Probot, context: Context<'push'>) =>
+export const commitFiles =
+  (app: Probot, context: Context<'push'>) =>
   async (repository: RepositoryDetails, version: string, templates: Template[]) => {
     app.log.debug('Fetching base branch.')
     const {
