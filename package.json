@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "build:run": "tsc && yarn start",
+    "build:run": "yarn build && yarn start",
     "start": "probot run ./lib/app.js",
     "test": "jest"
   },
