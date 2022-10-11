@@ -4636,7 +4636,7 @@ slash@^3.0.0:
   resolved "https://registry.yarnpkg.com/slash/-/slash-3.0.0.tgz#6539be870c165adbd5240220dbe361f1bc4d4634"
   integrity sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==
 
-smee-client@1.2.3:
+smee-client@^1.2.3:
   version "1.2.3"
   resolved "https://registry.yarnpkg.com/smee-client/-/smee-client-1.2.3.tgz#a0ef5e86e3640870f19f3953aaf228fa478b082c"
   integrity sha512-uDrU8u9/Ln7aRXyzGHgVaNUS8onHZZeSwQjCdkMoSL7U85xI+l+Y2NgjibkMJAyXkW7IAbb8rw9RMHIjS6lAwA==

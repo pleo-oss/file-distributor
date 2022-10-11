@@ -1,4 +1,4 @@
-import { PushEvent } from '@octokit/webhooks-types'
+import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
 import determineConfigurationChanges from './configuration'
@@ -13,6 +13,21 @@ const findBranchesToProcess = (app: Probot) => {
   }
 
   return new RegExp(branches)
+}
+
+const processPullRequest = () => async (context: Context<'pull_request'>, app: Probot) => {
+  const payload = context.payload as PullRequestEvent
+  const repository = {
+    owner: payload.repository.owner.login,
+    repo: payload.repository.name,
+  }
+  app.log(`Pull request event happened on '${context.payload.pull_request}'`)
+
+  const filesChanged = await context.octokit.pulls.listFiles({
+    ...repository,
+    pull_number: payload.number
+  })
+  filesChanged.data.find(x => x.filename == 'test')
 }
 
 const processPushEvent =
@@ -31,6 +46,7 @@ const processPushEvent =
         ...repository,
         ref: payload.after,
       })
+
       app.log.debug('Fetched commit:')
       app.log.debug(commit)
 
@@ -64,5 +80,9 @@ export = async (app: Probot) => {
   const branchesToProcess = findBranchesToProcess(app)
   app.on('push', async (context: Context<'push'>) => {
     await processPushEvent(branchesToProcess)(context.payload as PushEvent, context, app)
+  })
+
+  app.on('pull_request', async (context: Context<'pull_request'>) => {
+    await processPullRequest()(context, app)
   })
 }
