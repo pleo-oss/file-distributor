@@ -1,3 +1,21 @@
+# v1.0.3 (Tue Oct 11 2022)
+
+#### 🐞 Fixes
+
+- Update dependency @swc/core to v1.3.6 [#23](https://github.com/pleo-oss/file-distributor/pull/23) ([@renovate[bot]](https://github.com/renovate[bot]))
+- Update dependency eslint to v8.25.0 [#24](https://github.com/pleo-oss/file-distributor/pull/24) ([@renovate[bot]](https://github.com/renovate[bot]))
+
+#### 🏠 Internal
+
+- Prefer console.log to Probot.log to avoid passing the app object around globally [#26](https://github.com/pleo-oss/file-distributor/pull/26) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v1.0.2 (Tue Oct 11 2022)
 
 #### 🐞 Fixes
