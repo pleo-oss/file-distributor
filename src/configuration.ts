@@ -1,10 +1,10 @@
-import { Context, Probot } from 'probot'
+import { Context } from 'probot'
 import { parse } from 'yaml'
 import { RepositoryDetails, RepositoryConfiguration } from './types'
 
 export const determineConfigurationChanges =
-  (app: Probot, context: Context<'push'>) => async (fileName: string, repository: RepositoryDetails, sha: string) => {
-    app.log.debug(`Saw changes to ${fileName}.`)
+  (context: Context<'push'>) => async (fileName: string, repository: RepositoryDetails, sha: string) => {
+    console.debug(`Saw changes to ${fileName}.`)
     const fileContents = await context.octokit.repos.getContent({
       ...repository,
       path: fileName,
@@ -13,8 +13,8 @@ export const determineConfigurationChanges =
 
     const { content } = fileContents.data as { content: string }
     const decodedContent = Buffer.from(content, 'base64').toString()
-    app.log.debug(`'${fileName}' contains:`)
-    app.log.debug(decodedContent)
+    console.debug(`'${fileName}' contains:`)
+    console.debug(decodedContent)
 
     const parsed: RepositoryConfiguration = parse(decodedContent)
     return parsed
