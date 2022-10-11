@@ -83,18 +83,23 @@ const createPullRequest =
     return created
   }
 
-const updatePullRequest = (context: Context<'push'>) => async (repository: RepositoryDetails, number: number) => {
-  console.debug(`Updating PR #${number}.`)
-  const updated = await context.octokit.pulls.update({
-    ...repository,
-    pull_number: number,
-    head: fullBranchName,
-    state: 'open',
-  })
-  console.debug(`Updated PR #${updated.data.number}.`)
+const updatePullRequest =
+  (context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, number: number) => {
+    const { title, description } = details
 
-  return updated
-}
+    console.debug(`Updating PR #${number}.`)
+    const updated = await context.octokit.pulls.update({
+      ...repository,
+      pull_number: number,
+      head: fullBranchName,
+      body: description,
+      title: title,
+      state: 'open',
+    })
+    console.debug(`Updated PR #${updated.data.number}.`)
+
+    return updated
+  }
 
 const getExistingPullRequest = (context: Context<'push'>) => async (repository: RepositoryDetails) => {
   const { data: openPullRequests } = await context.octokit.pulls.list({
@@ -127,7 +132,7 @@ const maintainPullRequest =
     const currentPullRequest = await getExistingPullRequest(context)(repository)
 
     const pr = currentPullRequest
-      ? await updatePullRequest(context)(repository, currentPullRequest.number)
+      ? await updatePullRequest(context)(repository, details, currentPullRequest.number)
       : await createPullRequest(context)(repository, details, baseBranch)
 
     if (automerge) {
@@ -170,8 +175,8 @@ const generatePullRequestDescription = (version: string, templates: Template[]) 
   `
 }
 
-export default (context: Context<'push'>) =>
-  async (repository: RepositoryDetails, version: string, templates: Template[]) => {
+export const commitFiles =
+  (context: Context<'push'>) => async (repository: RepositoryDetails, version: string, templates: Template[]) => {
     console.debug('Fetching base branch.')
     const {
       data: { default_branch: baseBranch },

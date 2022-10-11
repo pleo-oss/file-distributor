@@ -1,3 +1,20 @@
+# v1.0.2 (Tue Oct 11 2022)
+
+#### 🐞 Fixes
+
+- Ensure PR descriptions reflects changes made in PRs [#25](https://github.com/pleo-oss/file-distributor/pull/25) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### ⚠️ Pushed to `main`
+
+- Update CODEOWNERS ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Avoid running tests on the default branch ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v1.0.1 (Mon Oct 10 2022)
 
 #### 🐞 Fixes
