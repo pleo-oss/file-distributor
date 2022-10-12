@@ -31,7 +31,7 @@ export const extractZipContents = async (contents: ArrayBuffer, configuration: R
 }
 
 const getReleaseFromTag =
-  (tag: string | undefined, repository: RepositoryDetails) => async (octokit: OctokitInstance) => {
+  (tag: string | undefined, repository: RepositoryDetails) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
     const getLatestRelease = async () => {
       const latestRelease = await octokit.repos.getLatestRelease({
         ...repository,
@@ -56,7 +56,7 @@ const getReleaseFromTag =
 
 export const downloadTemplates =
   (templateVersion?: string) =>
-  async (octokit: OctokitInstance): Promise<TemplateInformation> => {
+  async (octokit: Pick<OctokitInstance, 'repos'>): Promise<TemplateInformation> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
@@ -86,7 +86,7 @@ export const downloadTemplates =
 
 export const renderTemplates =
   (configuration: RepositoryConfiguration) =>
-  async (octokit: OctokitInstance): Promise<Templates> => {
+  async (octokit: Pick<OctokitInstance, 'repos'>): Promise<Templates> => {
     console.debug('Processing configuration changes.')
     const { version } = configuration
     console.debug(`Configuration uses template version '${version}'.`)

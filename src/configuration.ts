@@ -2,7 +2,7 @@ import { parse } from 'yaml'
 import { RepositoryDetails, RepositoryConfiguration, OctokitInstance } from './types'
 
 export const determineConfigurationChanges =
-  (fileName: string, repository: RepositoryDetails, sha: string) => async (octokit: OctokitInstance) => {
+  (fileName: string, repository: RepositoryDetails, sha: string) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
     console.debug(`Saw changes to ${fileName}.`)
     const fileContents = await octokit.repos.getContent({
       ...repository,
