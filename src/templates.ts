@@ -1,7 +1,6 @@
-import { Context } from 'probot'
 import { loadAsync } from 'jszip'
 import { render } from 'mustache'
-import { RepositoryDetails, RepositoryConfiguration, TemplateInformation, Templates } from './types'
+import { RepositoryDetails, RepositoryConfiguration, TemplateInformation, Templates, OctokitInstance } from './types'
 import { OctokitResponse } from '@octokit/types'
 
 export const extractZipContents = async (contents: ArrayBuffer, configuration: RepositoryConfiguration) => {
@@ -31,39 +30,40 @@ export const extractZipContents = async (contents: ArrayBuffer, configuration: R
   return templates
 }
 
-const getReleaseFromTag = (context: Context<'push'>) => (tag?: string) => {
-  const getLatestRelease = async (repository: RepositoryDetails) => {
-    const latestRelease = await context.octokit.repos.getLatestRelease({
-      ...repository,
-    })
-    return latestRelease.data
-  }
-
-  const getRelease = async (repository: RepositoryDetails) => {
-    if (!tag) {
-      throw Error('A release tag is missing.')
+const getReleaseFromTag =
+  (tag: string | undefined, repository: RepositoryDetails) => async (octokit: OctokitInstance) => {
+    const getLatestRelease = async () => {
+      const latestRelease = await octokit.repos.getLatestRelease({
+        ...repository,
+      })
+      return latestRelease.data
     }
 
-    const release = await context.octokit.repos.getReleaseByTag({
-      ...repository,
-      tag,
-    })
-    return release.data
+    const getRelease = async () => {
+      if (!tag) {
+        throw Error('A release tag is missing.')
+      }
+
+      const release = await octokit.repos.getReleaseByTag({
+        ...repository,
+        tag,
+      })
+      return release.data
+    }
+
+    return tag ? getRelease() : getLatestRelease()
   }
 
-  return tag ? getRelease : getLatestRelease
-}
-
 export const downloadTemplates =
-  (context: Context<'push'>) =>
-  async (templateVersion?: string): Promise<TemplateInformation> => {
+  (templateVersion?: string) =>
+  async (octokit: OctokitInstance): Promise<TemplateInformation> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
     console.debug(`Fetching templates from '${templateRepository.owner}/${templateRepository.repo}.`)
-    const release = await getReleaseFromTag(context)(templateVersion)(templateRepository)
+    const release = await getReleaseFromTag(templateVersion, templateRepository)(octokit)
     console.debug(`Fetching templates from URL: '${release.zipball_url}'.`)
 
     if (!release.zipball_url) {
@@ -72,7 +72,7 @@ export const downloadTemplates =
     }
 
     console.debug(`Fetching release information from '${release.zipball_url}'.`)
-    const { data: contents } = (await context.octokit.repos.downloadZipballArchive({
+    const { data: contents } = (await octokit.repos.downloadZipballArchive({
       ...templateRepository,
       ref: release.tag_name,
     })) as OctokitResponse<ArrayBuffer>
@@ -85,13 +85,13 @@ export const downloadTemplates =
   }
 
 export const renderTemplates =
-  (context: Context<'push'>) =>
-  async (configuration: RepositoryConfiguration): Promise<Templates> => {
+  (configuration: RepositoryConfiguration) =>
+  async (octokit: OctokitInstance): Promise<Templates> => {
     console.debug('Processing configuration changes.')
     const { version } = configuration
     console.debug(`Configuration uses template version '${version}'.`)
 
-    const { contents, version: fetchedVersion } = await downloadTemplates(context)(version)
+    const { contents, version: fetchedVersion } = await downloadTemplates(version)(octokit)
     const templateContents = await extractZipContents(contents, configuration)
 
     const rendered = templateContents.map(template => ({

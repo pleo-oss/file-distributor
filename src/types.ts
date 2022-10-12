@@ -1,3 +1,4 @@
+import { ProbotOctokit } from 'probot'
 interface PathConfiguration {
   source: string
   destination: string
@@ -34,3 +35,5 @@ export interface PRDetails {
   title: string
   description: string
 }
+
+export type OctokitInstance = InstanceType<typeof ProbotOctokit>
