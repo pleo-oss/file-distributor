@@ -36,4 +36,4 @@ export interface PRDetails {
   description: string
 }
 
-export type OctokitInterface = InstanceType<typeof ProbotOctokit>
+export type OctokitInstance = InstanceType<typeof ProbotOctokit>

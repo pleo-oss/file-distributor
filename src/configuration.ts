@@ -1,8 +1,8 @@
 import { parse } from 'yaml'
-import { RepositoryDetails, RepositoryConfiguration, OctokitInterface } from './types'
+import { RepositoryDetails, RepositoryConfiguration, OctokitInstance } from './types'
 
 export const determineConfigurationChanges =
-  (octokit: OctokitInterface) => async (fileName: string, repository: RepositoryDetails, sha: string) => {
+  (fileName: string, repository: RepositoryDetails, sha: string) => async (octokit: OctokitInstance) => {
     console.debug(`Saw changes to ${fileName}.`)
     const fileContents = await octokit.repos.getContent({
       ...repository,

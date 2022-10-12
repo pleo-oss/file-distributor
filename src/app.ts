@@ -42,9 +42,9 @@ const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEven
     const configFileName = `.config/templates.yaml`
 
     if (filesChanged.includes(configFileName)) {
-      const parsed = await determineConfigurationChanges(octokit)(configFileName, repository, payload.after)
-      const { version, templates: processed } = await renderTemplates(octokit)(parsed)
-      const pullRequestNumber = await commitFiles(octokit)(repository, version, processed)
+      const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)(octokit)
+      const { version, templates: processed } = await renderTemplates(parsed)(octokit)
+      const pullRequestNumber = await commitFiles(repository, version, processed)(octokit)
       console.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
       console.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
     }
