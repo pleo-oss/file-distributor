@@ -18,7 +18,9 @@ const findBranchesToProcess = () => {
 const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEvent, context: Context<'push'>) => {
   if (!branchesToProcess.test(payload.ref)) return
 
+  const { octokit } = context
   console.log(`${context.name} event happened on '${payload.ref}'`)
+
   try {
     const repository = {
       owner: payload.repository.owner.login,
@@ -26,7 +28,7 @@ const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEven
     }
     console.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
-    const commit = await context.octokit.repos.getCommit({
+    const commit = await octokit.repos.getCommit({
       ...repository,
       ref: payload.after,
     })
@@ -40,9 +42,9 @@ const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEven
     const configFileName = `.config/templates.yaml`
 
     if (filesChanged.includes(configFileName)) {
-      const parsed = await determineConfigurationChanges(context)(configFileName, repository, payload.after)
-      const { version, templates: processed } = await renderTemplates(context)(parsed)
-      const pullRequestNumber = await commitFiles(context)(repository, version, processed)
+      const parsed = await determineConfigurationChanges(octokit)(configFileName, repository, payload.after)
+      const { version, templates: processed } = await renderTemplates(octokit)(parsed)
+      const pullRequestNumber = await commitFiles(octokit)(repository, version, processed)
       console.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
       console.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
     }

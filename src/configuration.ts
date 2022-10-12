@@ -1,11 +1,10 @@
-import { Context } from 'probot'
 import { parse } from 'yaml'
-import { RepositoryDetails, RepositoryConfiguration } from './types'
+import { RepositoryDetails, RepositoryConfiguration, OctokitInterface } from './types'
 
 export const determineConfigurationChanges =
-  (context: Context<'push'>) => async (fileName: string, repository: RepositoryDetails, sha: string) => {
+  (octokit: OctokitInterface) => async (fileName: string, repository: RepositoryDetails, sha: string) => {
     console.debug(`Saw changes to ${fileName}.`)
-    const fileContents = await context.octokit.repos.getContent({
+    const fileContents = await octokit.repos.getContent({
       ...repository,
       path: fileName,
       ref: sha,

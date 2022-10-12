@@ -1,24 +1,21 @@
-import { Context } from 'probot'
-import { PRDetails, RepositoryDetails, Template } from './types'
+import { OctokitInterface, PRDetails, RepositoryDetails, Template } from './types'
 
 const baseBranchName = 'centralized-templates'
 const reducedBranchName = `heads/${baseBranchName}`
 const fullBranchName = `refs/${reducedBranchName}`
 
 const getOrCreateNewBranch =
-  (context: Context<'push'>) => async (repository: RepositoryDetails, baseBranchRef: string) => {
+  (octokit: OctokitInterface) => async (repository: RepositoryDetails, baseBranchRef: string) => {
     try {
       console.debug(`Creating new branch on SHA: '${baseBranchRef}'.`)
-      const newBranch = (
-        await context.octokit.git.createRef({ ...repository, ref: fullBranchName, sha: baseBranchRef })
-      ).data
+      const newBranch = (await octokit.git.createRef({ ...repository, ref: fullBranchName, sha: baseBranchRef })).data
       console.debug(`Created new branch with ref: '${newBranch.ref}'.`)
       return newBranch
     } catch {
       console.debug(`Failed to create a new branch with ref: '${fullBranchName}'.`)
       console.debug(`Fetching existing branch with ref: '${reducedBranchName}'.`)
 
-      const { data: foundBranch } = await context.octokit.git.getRef({ ...repository, ref: reducedBranchName })
+      const { data: foundBranch } = await octokit.git.getRef({ ...repository, ref: reducedBranchName })
       console.debug(`Found new branch with ref: '${foundBranch.ref}'.`)
 
       return foundBranch
@@ -26,7 +23,7 @@ const getOrCreateNewBranch =
   }
 
 const createTreeWithChanges =
-  (context: Context<'push'>) => (templates: Template[], repository: RepositoryDetails) => async (treeSha: string) => {
+  (octokit: OctokitInterface) => (templates: Template[], repository: RepositoryDetails) => async (treeSha: string) => {
     const templateTree = templates.map(template => ({
       path: template.path,
       mode: '100644',
@@ -37,10 +34,10 @@ const createTreeWithChanges =
     console.debug(`Fetching existing trees from '${treeSha}'.`)
     const {
       data: { tree: existingTree },
-    } = await context.octokit.git.getTree({ ...repository, tree_sha: treeSha })
+    } = await octokit.git.getTree({ ...repository, tree_sha: treeSha })
 
     console.debug('Creating git tree with modified templates.')
-    const createdTree = await context.octokit.git.createTree({
+    const createdTree = await octokit.git.createTree({
       ...repository,
       tree: [...templateTree, ...existingTree] as [],
     })
@@ -50,12 +47,12 @@ const createTreeWithChanges =
   }
 
 const createCommitWithChanges =
-  (context: Context<'push'>) =>
+  (octokit: OctokitInterface) =>
   (repository: RepositoryDetails, title: string) =>
   async (currentCommit: { data: { sha: string } }, createdTree: { data: { sha: string } }) => {
     console.debug('Creating git commit with modified templates.')
 
-    const newCommit = await context.octokit.git.createCommit({
+    const newCommit = await octokit.git.createCommit({
       ...repository,
       message: title,
       tree: createdTree.data.sha,
@@ -67,11 +64,11 @@ const createCommitWithChanges =
   }
 
 const createPullRequest =
-  (context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string) => {
+  (octokit: OctokitInterface) => async (repository: RepositoryDetails, details: PRDetails, baseBranch: string) => {
     const { title, description } = details
 
     console.debug('Creating PR.')
-    const created = await context.octokit.pulls.create({
+    const created = await octokit.pulls.create({
       ...repository,
       title,
       body: description,
@@ -84,11 +81,11 @@ const createPullRequest =
   }
 
 const updatePullRequest =
-  (context: Context<'push'>) => async (repository: RepositoryDetails, details: PRDetails, number: number) => {
+  (octokit: OctokitInterface) => async (repository: RepositoryDetails, details: PRDetails, number: number) => {
     const { title, description } = details
 
     console.debug(`Updating PR #${number}.`)
-    const updated = await context.octokit.pulls.update({
+    const updated = await octokit.pulls.update({
       ...repository,
       pull_number: number,
       head: fullBranchName,
@@ -101,8 +98,8 @@ const updatePullRequest =
     return updated
   }
 
-const getExistingPullRequest = (context: Context<'push'>) => async (repository: RepositoryDetails) => {
-  const { data: openPullRequests } = await context.octokit.pulls.list({
+const getExistingPullRequest = (octokit: OctokitInterface) => async (repository: RepositoryDetails) => {
+  const { data: openPullRequests } = await octokit.pulls.list({
     ...repository,
     head: fullBranchName,
     state: 'open',
@@ -114,9 +111,9 @@ const getExistingPullRequest = (context: Context<'push'>) => async (repository: 
   return toUpdate
 }
 
-const mergePullRequest = (context: Context<'push'>) => async (number: number, repository: RepositoryDetails) => {
+const mergePullRequest = (octokit: OctokitInterface) => async (number: number, repository: RepositoryDetails) => {
   console.debug(`Attempting automerge of PR #${number}.`)
-  const merged = await context.octokit.rest.pulls.merge({
+  const merged = await octokit.rest.pulls.merge({
     ...repository,
     pull_number: number,
     merge_method: 'squash',
@@ -127,26 +124,26 @@ const mergePullRequest = (context: Context<'push'>) => async (number: number, re
 }
 
 const maintainPullRequest =
-  (context: Context<'push'>) =>
+  (octokit: OctokitInterface) =>
   async (repository: RepositoryDetails, details: PRDetails, baseBranch: string, automerge?: boolean) => {
-    const currentPullRequest = await getExistingPullRequest(context)(repository)
+    const currentPullRequest = await getExistingPullRequest(octokit)(repository)
 
     const pr = currentPullRequest
-      ? await updatePullRequest(context)(repository, details, currentPullRequest.number)
-      : await createPullRequest(context)(repository, details, baseBranch)
+      ? await updatePullRequest(octokit)(repository, details, currentPullRequest.number)
+      : await createPullRequest(octokit)(repository, details, baseBranch)
 
     if (automerge) {
-      await mergePullRequest(context)(pr.data.number, repository)
+      await mergePullRequest(octokit)(pr.data.number, repository)
     }
     return pr
   }
 
 const updateBranch =
-  (context: Context<'push'>) => async (newBranch: string, newCommit: string, repository: RepositoryDetails) => {
+  (octokit: OctokitInterface) => async (newBranch: string, newCommit: string, repository: RepositoryDetails) => {
     console.debug(`Setting new branch ref '${newBranch}' to commit '${newCommit}'.`)
     const {
       data: { ref: updatedRef },
-    } = await context.octokit.git.updateRef({
+    } = await octokit.git.updateRef({
       ...repository,
       ref: reducedBranchName,
       sha: newCommit,
@@ -176,24 +173,24 @@ const generatePullRequestDescription = (version: string, templates: Template[]) 
 }
 
 export const commitFiles =
-  (context: Context<'push'>) => async (repository: RepositoryDetails, version: string, templates: Template[]) => {
+  (octokit: OctokitInterface) => async (repository: RepositoryDetails, version: string, templates: Template[]) => {
     console.debug('Fetching base branch.')
     const {
       data: { default_branch: baseBranch },
-    } = await context.octokit.repos.get({ ...repository })
+    } = await octokit.repos.get({ ...repository })
     console.debug(`Fetching base branch ref 'heads/${baseBranch}'.`)
     const {
       data: {
         object: { sha: baseBranchRef },
       },
-    } = await context.octokit.git.getRef({ ...repository, ref: `heads/${baseBranch}` })
+    } = await octokit.git.getRef({ ...repository, ref: `heads/${baseBranch}` })
 
     const {
       object: { sha: newBranch },
-    } = await getOrCreateNewBranch(context)(repository, baseBranchRef)
+    } = await getOrCreateNewBranch(octokit)(repository, baseBranchRef)
 
     console.debug('Determining current commit.')
-    const currentCommit = await context.octokit.git.getCommit({ ...repository, commit_sha: baseBranchRef })
+    const currentCommit = await octokit.git.getCommit({ ...repository, commit_sha: baseBranchRef })
 
     console.debug(`Using base branch '${baseBranch}'.`)
     console.debug(`Using base commit '${currentCommit.data.sha}'.`)
@@ -203,16 +200,16 @@ export const commitFiles =
       description: generatePullRequestDescription(version, templates),
     }
 
-    const createdTree = await createTreeWithChanges(context)(templates, repository)(baseBranchRef)
+    const createdTree = await createTreeWithChanges(octokit)(templates, repository)(baseBranchRef)
     const {
       data: { sha: newCommit },
-    } = await createCommitWithChanges(context)(repository, prDetails.title)(currentCommit, createdTree)
-    const updatedRef = await updateBranch(context)(newBranch, newCommit, repository)
+    } = await createCommitWithChanges(octokit)(repository, prDetails.title)(currentCommit, createdTree)
+    const updatedRef = await updateBranch(octokit)(newBranch, newCommit, repository)
     console.debug(`Updated branch ref: ${updatedRef}`)
 
     const {
       data: { number },
-    } = await maintainPullRequest(context)(repository, prDetails, baseBranch)
+    } = await maintainPullRequest(octokit)(repository, prDetails, baseBranch)
 
     return number
   }
