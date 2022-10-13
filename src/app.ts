@@ -47,7 +47,7 @@ const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEven
 export = async (app: Probot) => {
   config()
 
-  const authenticated = await (await app.auth(Number(process.env.APP_ID))).apps.listInstallations()
+  const authenticated = await app.auth(Number(process.env.APP_ID))
   if (!authenticated) {
     console.error('The application is not installed with expected authentication. Exiting.')
   }
