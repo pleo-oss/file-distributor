@@ -3,7 +3,7 @@ import { render } from 'mustache'
 import { RepositoryDetails, RepositoryConfiguration, TemplateInformation, Templates, OctokitInstance } from './types'
 import { OctokitResponse } from '@octokit/types'
 
-export const extractZipContents = async (contents: ArrayBuffer, configuration: RepositoryConfiguration) => {
+const extractZipContents = async (contents: ArrayBuffer, configuration: RepositoryConfiguration) => {
   console.debug(`Extracting ZIP contents.`)
   const loaded = await loadAsync(contents)
 
