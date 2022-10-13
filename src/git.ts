@@ -143,7 +143,7 @@ const getExistingPullRequest =
   (repository: RepositoryDetails) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'pulls'>) => {
     const { data: openPullRequests } = await octokit.pulls.list({
       ...repository,
-      head: fullBranchName,
+      head: `${repository.owner}:${baseBranchName}`,
       state: 'open',
     })
     log.debug(`Found ${openPullRequests.length} open PRs.`)
