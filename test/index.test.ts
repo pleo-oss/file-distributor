@@ -29,6 +29,7 @@ describe('Probot Tests', () => {
     probot = new Probot({
       appId: 123,
       privateKey,
+      githubToken: 'testToken',
       // disable request throttling and retries for testing
       Octokit: ProbotOctokit.defaults({
         retry: { enabled: false },
@@ -39,35 +40,7 @@ describe('Probot Tests', () => {
   })
 
   test('can authenticate', async () => {
-    const mock = nock('https://api.github.com')
-      .post('/app/installations/v2/access_tokens')
-      .reply(200, {
-        token: 'test',
-        permissions: {
-          push: 'read',
-        },
-      })
-
-    probot.on('push', () => ({}))
-
-    expect(mock.pendingMocks()).toStrictEqual(['POST https://api.github.com:443/app/installations/v2/access_tokens'])
-  })
-
-  test('can read repository configuration', async () => {
-    const mock = nock('https://api.github.com')
-      .get('/repos/pleo-io/probot-test/probot-test.yaml')
-      .reply(200, configuration)
-      .post('/repos/pleo-io/probot-test/commit', body => body)
-      .reply(200)
-
-    const pushPayload = {}
-
-    await probot.receive({ name: 'push', id: '', payload: pushPayload as PushEvent })
-
-    expect(mock.activeMocks()).toStrictEqual([
-      'GET https://api.github.com:443/repos/pleo-io/probot-test/probot-test.yaml',
-      'POST https://api.github.com:443/repos/pleo-io/probot-test/commit',
-    ])
+    nock('https://api.github.com').post('/app/installations/2/access_tokens').reply(200, { token: 'test' })
   })
 
   afterEach(() => {
