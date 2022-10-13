@@ -3,7 +3,7 @@ import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
 import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
-import { commitFiles } from './git'
+import { commitFiles, getCommitFiles } from './git'
 
 const findBranchesToProcess = () => {
   const branches = process.env.BRANCHES_TO_PROCESS
@@ -28,18 +28,8 @@ const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEven
     }
     console.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
-    const commit = await octokit.repos.getCommit({
-      ...repository,
-      ref: payload.after,
-    })
-    console.debug('Fetched commit:')
-    console.debug(commit)
-
-    const filesChanged = commit.data.files?.map(c => c.filename) ?? []
-    console.debug(`Saw files changed in ${payload.after}:`)
-    console.debug(filesChanged)
-
     const configFileName = `.config/templates.yaml`
+    const filesChanged = await getCommitFiles(repository, payload.after)(octokit)
 
     if (filesChanged.includes(configFileName)) {
       const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)(octokit)
