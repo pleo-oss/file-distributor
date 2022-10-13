@@ -78,13 +78,6 @@ export const downloadTemplates =
     })) as OctokitResponse<ArrayBuffer>
     console.debug('Fetched release contents.')
 
-    if (typeof contents === 'string') {
-      return {
-        contents: Uint8Array.from(JSON.parse(contents)).buffer,
-        version: release.tag_name,
-      }
-    }
-
     return {
       contents,
       version: release.tag_name,
