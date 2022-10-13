@@ -1,3 +1,29 @@
+# v1.0.4 (Thu Oct 13 2022)
+
+#### 🐞 Fixes
+
+- Update typescript-eslint monorepo to v5.40.0 [#29](https://github.com/pleo-oss/file-distributor/pull/29) ([@renovate[bot]](https://github.com/renovate[bot]))
+- Update docker/login-action action to v2.1.0 [#33](https://github.com/pleo-oss/file-distributor/pull/33) ([@renovate[bot]](https://github.com/renovate[bot]))
+- Update dependency @swc/core to v1.3.7 [#32](https://github.com/pleo-oss/file-distributor/pull/32) ([@renovate[bot]](https://github.com/renovate[bot]))
+
+#### ⚠️ Pushed to `main`
+
+- Create opslevel.yml ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Allow receiving pull_request webhook events ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Refactor functions to use Octokit directly instead of passing Context parameters [#30](https://github.com/pleo-oss/file-distributor/pull/30) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Include IntelliJ .idea run and test configurations [#27](https://github.com/pleo-oss/file-distributor/pull/27) ([@dpotyralski](https://github.com/dpotyralski) [@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 3
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+
+---
+
 # v1.0.3 (Tue Oct 11 2022)
 
 #### 🐞 Fixes
