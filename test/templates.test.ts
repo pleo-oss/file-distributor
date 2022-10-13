@@ -14,8 +14,8 @@ const stubTemplates = async (): Promise<ArrayBuffer> => {
 
 const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
 
-describe('should be able to render templates successfully', () => {
-  test('should render basic json and toml template', async () => {
+describe('Template rendering', () => {
+  test('renders basic json and toml template', async () => {
     //given
     const mockedOctokit = {
       repos: {
