@@ -1,3 +1,26 @@
+# v1.0.5 (Thu Oct 13 2022)
+
+#### 🐞 Fixes
+
+- Update docker/metadata-action action to v4.1.0 [#36](https://github.com/pleo-oss/file-distributor/pull/36) ([@renovate[bot]](https://github.com/renovate[bot]) [@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### ⚠️ Pushed to `main`
+
+- Ensure concurrency policy is in place for release ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Ensure Jest configuration for testing [#34](https://github.com/pleo-oss/file-distributor/pull/34) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Reduce Octokit type across all function parameters [#31](https://github.com/pleo-oss/file-distributor/pull/31) ([@andersfischernielsen](https://github.com/andersfischernielsen) [@dpotyralski](https://github.com/dpotyralski))
+
+#### Authors: 3
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+
+---
+
 # v1.0.4 (Thu Oct 13 2022)
 
 #### 🐞 Fixes
