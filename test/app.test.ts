@@ -54,7 +54,7 @@ describe('Probot Tests', () => {
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
   })
 
-  test('will exit early on push event from non-default branch', async () => {
+  test('can exit early on push event from non-default branch', async () => {
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
 
     const pushEvent = {
@@ -67,7 +67,7 @@ describe('Probot Tests', () => {
     await probot.receive(pushEvent as unknown as EmitterWebhookEvent)
   })
 
-  test('will handle empty files in commit', async () => {
+  test('can handle empty files in commit', async () => {
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [] })
 
@@ -86,7 +86,7 @@ describe('Probot Tests', () => {
     await probot.receive(pushEvent as unknown as EmitterWebhookEvent)
   })
 
-  test('will handle non-config files in commit', async () => {
+  test('can handle non-config files in commit', async () => {
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [{ filename: 'somefile.txt' }] })
 
@@ -105,7 +105,7 @@ describe('Probot Tests', () => {
     await probot.receive(pushEvent as unknown as EmitterWebhookEvent)
   })
 
-  test('will handle error requests when fetching commit changes', async () => {
+  test('can handle error requests', async () => {
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(500, {})
 
@@ -130,7 +130,7 @@ describe('Probot Tests', () => {
     errorSpy.mockRestore()
   })
 
-  test('will fetch changes, fetch configuration changes, render templates, create PR (smoke test)', async () => {
+  test('can fetch changes, fetch configuration changes, render templates, create PR (smoke test)', async () => {
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [{ filename: '.config/templates.yaml' }] })
     baseNock
