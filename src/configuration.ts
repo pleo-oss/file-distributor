@@ -4,13 +4,13 @@ import { RepositoryDetails, RepositoryConfiguration, OctokitInstance } from './t
 export const determineConfigurationChanges =
   (fileName: string, repository: RepositoryDetails, sha: string) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
     console.debug(`Saw changes to ${fileName}.`)
-    const fileContents = await octokit.repos.getContent({
+    const { data: fileContents } = await octokit.repos.getContent({
       ...repository,
       path: fileName,
       ref: sha,
     })
 
-    const { content } = fileContents.data as { content: string }
+    const { content } = fileContents as { content: string }
     const decodedContent = Buffer.from(content, 'base64').toString()
     console.debug(`'${fileName}' contains:`)
     console.debug(decodedContent)
