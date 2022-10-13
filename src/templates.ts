@@ -2,33 +2,35 @@ import { loadAsync } from 'jszip'
 import { render } from 'mustache'
 import { RepositoryDetails, RepositoryConfiguration, TemplateInformation, Templates, OctokitInstance } from './types'
 import { OctokitResponse } from '@octokit/types'
+import { Logger } from 'probot'
 
-export const extractZipContents = async (contents: ArrayBuffer, configuration: RepositoryConfiguration) => {
-  console.debug(`Extracting ZIP contents.`)
-  const loaded = await loadAsync(contents)
+export const extractZipContents =
+  (contents: ArrayBuffer, configuration: RepositoryConfiguration) => async (log: Logger) => {
+    log.debug(`Extracting ZIP contents.`)
+    const loaded = await loadAsync(contents)
 
-  const toProcess = Promise.all(
-    configuration.files?.map(async file => {
-      const found = loaded.file(new RegExp(file.source))
-      console.debug(`Found ${found.length} file(s) matching ${file.source}. `)
-      const picked = found.shift()
-      if (picked) console.debug(`Using ${picked.name} for ${file.source}. `)
+    const toProcess = Promise.all(
+      configuration.files?.map(async file => {
+        const found = loaded.file(new RegExp(file.source))
+        log.debug(`Found ${found.length} file(s) matching ${file.source}. `)
+        const picked = found.shift()
+        if (picked) log.debug(`Using ${picked.name} for ${file.source}. `)
 
-      const text = (await picked?.async('text')) ?? ''
-      const contents = text?.replace(/#{{/gm, '{{')
+        const text = (await picked?.async('text')) ?? ''
+        const contents = text?.replace(/#{{/gm, '{{')
 
-      return {
-        path: file.destination,
-        contents,
-      }
-    }) ?? [],
-  )
+        return {
+          path: file.destination,
+          contents,
+        }
+      }) ?? [],
+    )
 
-  const templates = (await toProcess).filter(it => it?.contents)
-  console.debug(`Extracted ${templates.length} ZIP templates.`)
+    const templates = (await toProcess).filter(it => it?.contents)
+    log.debug(`Extracted ${templates.length} ZIP templates.`)
 
-  return templates
-}
+    return templates
+  }
 
 const getReleaseFromTag =
   (tag: string | undefined, repository: RepositoryDetails) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
@@ -56,27 +58,28 @@ const getReleaseFromTag =
 
 export const downloadTemplates =
   (templateVersion?: string) =>
+  (log: Logger) =>
   async (octokit: Pick<OctokitInstance, 'repos'>): Promise<TemplateInformation> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
-    console.debug(`Fetching templates from '${templateRepository.owner}/${templateRepository.repo}.`)
+    log.debug(`Fetching templates from '${templateRepository.owner}/${templateRepository.repo}.`)
     const release = await getReleaseFromTag(templateVersion, templateRepository)(octokit)
-    console.debug(`Fetching templates from URL: '${release.zipball_url}'.`)
+    log.debug(`Fetching templates from URL: '${release.zipball_url}'.`)
 
     if (!release.zipball_url) {
-      console.error(`Release '${release.id}' has no zipball URL.`)
+      log.error(`Release '${release.id}' has no zipball URL.`)
       throw Error(`Release '${release.id}' has no zipball URL.`)
     }
 
-    console.debug(`Fetching release information from '${release.zipball_url}'.`)
+    log.debug(`Fetching release information from '${release.zipball_url}'.`)
     const { data: contents } = (await octokit.repos.downloadZipballArchive({
       ...templateRepository,
       ref: release.tag_name,
     })) as OctokitResponse<ArrayBuffer>
-    console.debug('Fetched release contents.')
+    log.debug('Fetched release contents.')
 
     return {
       contents,
@@ -86,19 +89,20 @@ export const downloadTemplates =
 
 export const renderTemplates =
   (configuration: RepositoryConfiguration) =>
+  (log: Logger) =>
   async (octokit: Pick<OctokitInstance, 'repos'>): Promise<Templates> => {
-    console.debug('Processing configuration changes.')
+    log.debug('Processing configuration changes.')
     const { version } = configuration
-    console.debug(`Configuration uses template version '${version}'.`)
+    log.debug(`Configuration uses template version '${version}'.`)
 
-    const { contents, version: fetchedVersion } = await downloadTemplates(version)(octokit)
-    const templateContents = await extractZipContents(contents, configuration)
+    const { contents, version: fetchedVersion } = await downloadTemplates(version)(log)(octokit)
+    const templateContents = await extractZipContents(contents, configuration)(log)
 
     const rendered = templateContents.map(template => ({
       ...template,
       contents: render(template.contents, configuration.values),
     }))
-    console.debug(`Processed ${rendered.length} templates.`)
+    log.debug(`Processed ${rendered.length} templates.`)
 
     return { version: fetchedVersion, templates: rendered }
   }

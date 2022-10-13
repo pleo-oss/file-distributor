@@ -19,28 +19,30 @@ const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEven
   if (!branchesToProcess.test(payload.ref)) return
 
   const { octokit } = context
-  console.log(`${context.name} event happened on '${payload.ref}'`)
+  const { log } = context
+
+  log.info(`${context.name} event happened on '${payload.ref}'`)
 
   try {
     const repository = {
       owner: payload.repository.owner.login,
       repo: payload.repository.name,
     }
-    console.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
+    log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
     const configFileName = `.config/templates.yaml`
-    const filesChanged = await getCommitFiles(repository, payload.after)(octokit)
+    const filesChanged = await getCommitFiles(repository, payload.after)(log)(octokit)
 
     if (filesChanged.includes(configFileName)) {
-      const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)(octokit)
-      const { version, templates: processed } = await renderTemplates(parsed)(octokit)
-      const pullRequestNumber = await commitFiles(repository, version, processed)(octokit)
-      console.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
-      console.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
+      const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)(log)(octokit)
+      const { version, templates: processed } = await renderTemplates(parsed)(log)(octokit)
+      const pullRequestNumber = await commitFiles(repository, version, processed)(log)(octokit)
+      log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
+      log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
     }
   } catch (e: unknown) {
-    console.error(`Failed to process commit '${payload.after}' with error:`)
-    console.error(e as never)
+    log.error(`Failed to process commit '${payload.after}' with error:`)
+    log.error(e as never)
   }
 }
 
@@ -49,7 +51,7 @@ export = async (app: Probot) => {
 
   const authenticated = await app.auth(Number(process.env.APP_ID))
   if (!authenticated) {
-    console.error('The application is not installed with expected authentication. Exiting.')
+    app.log.error('The application is not installed with expected authentication. Exiting.')
   }
 
   const branchesToProcess = findBranchesToProcess()
