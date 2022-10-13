@@ -4,6 +4,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+  
 jobs:
   release:
     name: Release
@@ -47,7 +51,7 @@ jobs:
           fetch-depth: 0
 
       - name: Log in to the GitHub Container registry
-        uses: docker/login-action@v2.0.0
+        uses: docker/login-action@v2.1.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
