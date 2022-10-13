@@ -6,6 +6,8 @@ import path from 'path'
 import probotApp from '../src/app'
 import { EmitterWebhookEvent } from '@octokit/webhooks'
 import { RepositoryConfiguration } from '../src/types'
+import { Stream } from 'stream'
+import { pino } from 'pino'
 
 const privateKey = fs.readFileSync(path.join(__dirname, 'fixtures/mock-cert.pem'), 'utf-8')
 
@@ -105,9 +107,18 @@ const configuration: RepositoryConfiguration = {
 }
 
 describe('Probot Tests', () => {
+  let logOutput: { level: number; msg: string }[] = []
+  const streamLogsToOutput = new Stream.Writable({ objectMode: true })
+  streamLogsToOutput._write = (object, _, done) => {
+    logOutput.push(JSON.parse(object))
+    done()
+  }
+
   let probot: Probot
 
   beforeEach(async () => {
+    logOutput = []
+
     process.env['BRANCHES_TO_PROCESS'] = 'main'
     process.env['TEMPLATE_REPOSITORY_OWNER'] = 'pleo-oss'
     process.env['TEMPLATE_REPOSITORY_NAME'] = 'template-repository'
@@ -118,6 +129,7 @@ describe('Probot Tests', () => {
       appId: 123,
       privateKey,
       githubToken: 'testToken',
+      log: pino(streamLogsToOutput),
       // disable request throttling and retries for testing
       Octokit: ProbotOctokit.defaults({
         retry: { enabled: false },
@@ -187,8 +199,6 @@ describe('Probot Tests', () => {
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(500, {})
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation()
-
     const pushEvent = {
       name: 'push',
       payload: {
@@ -202,10 +212,7 @@ describe('Probot Tests', () => {
     }
 
     await probot.receive(pushEvent as unknown as EmitterWebhookEvent)
-    expect(errorSpy).toHaveBeenCalledTimes(2)
-    expect(errorSpy).toHaveBeenCalledWith(`Failed to process commit '${pushEvent.payload.after}' with error:`)
-
-    errorSpy.mockRestore()
+    expect(logOutput.filter(log => log.level === 50)).toHaveLength(2)
   })
 
   test('can fetch changes, fetch configuration changes, render templates, create PR (smoke test)', async () => {
