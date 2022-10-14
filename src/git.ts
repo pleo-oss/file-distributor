@@ -58,7 +58,7 @@ const createTreeWithChanges =
   (log: Logger) =>
   async (octokit: Pick<OctokitInstance, 'git'>) => {
     const templateTree = templates.map(template => ({
-      path: template.path,
+      path: template.destinationPath,
       mode: '100644',
       type: 'blob',
       content: template.contents,
@@ -204,7 +204,7 @@ const updateBranch =
   }
 
 const generatePullRequestDescription = (version: string, templates: Template[]) => {
-  const stringifiedTemplateNames = templates.map(t => `- \`${t.path}\``).join('\n')
+  const stringifiedTemplateNames = templates.map(t => `- \`${t.destinationPath}\``).join('\n')
 
   return `
   ---
