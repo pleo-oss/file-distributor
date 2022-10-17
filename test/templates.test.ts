@@ -56,7 +56,7 @@ const getRepositoryConfiguration = (
 })
 
 describe('Template rendering', () => {
-  test('should renders basic json and toml template', async () => {
+  test('should render basic json and toml template', async () => {
     //given
     const mockedOctokit = createMockedOctokit([
       { path: 'templates/test_template.json', data: '{"owner": "pleo", "repo": "{{appName}}"}' },
