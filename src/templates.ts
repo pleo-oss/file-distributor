@@ -1,5 +1,5 @@
-import JSZip, { loadAsync } from 'jszip'
-import { render } from 'mustache'
+import JSZip, {loadAsync} from 'jszip'
+import {render} from 'mustache'
 import {
   ExtractedContent,
   OctokitInstance,
@@ -9,10 +9,10 @@ import {
   TemplateInformation,
   Templates,
 } from './types'
-import { OctokitResponse } from '@octokit/types'
-import { Logger } from 'probot'
+import {OctokitResponse} from '@octokit/types'
+import {Logger} from 'probot'
 
-import { matchFile, parse } from 'codeowners-utils'
+import {matchFile, parse} from 'codeowners-utils'
 
 const extract =
   (loaded: JSZip, source: string) =>
@@ -123,15 +123,11 @@ const enrichWithPrePendingHeader =
     const codeOwnersEntries = parse(codeowners)
     const matchedWithCodeOwner = matchFile(template.sourcePath, codeOwnersEntries)
 
-    let prependingHeader: string
-
     if (typeof process.env.PREPENDING_HEADER_TEMPLATE != 'undefined' && process.env.PREPENDING_HEADER_TEMPLATE) {
-      prependingHeader = `${process.env.PREPENDING_HEADER_TEMPLATE + matchedWithCodeOwner?.owners}\n\n`
-    } else {
-      prependingHeader = `#OWNER: ${matchedWithCodeOwner?.owners}\n\n`
+      return `${process.env.PREPENDING_HEADER_TEMPLATE + matchedWithCodeOwner?.owners}\n\n` + mustacheRenderedContent
     }
 
-    return prependingHeader + mustacheRenderedContent
+    return `#OWNER: ${matchedWithCodeOwner?.owners}\n\n` + mustacheRenderedContent
   }
 
 export const renderTemplates =
