@@ -114,7 +114,7 @@ const enrichWithPrePendingHeader =
 
       // TODO Check if file extensions fits together
       const templateExtension = template.destinationPath.split('.').pop() as string;
-      if (!(templateExtension == "yaml" || templateExtension == "toml")) {
+      if (!(templateExtension == "yaml" || templateExtension == "toml" || templateExtension == "yml")) {
         log.debug(`File extension: ${templateExtension} with not supported comments`);
         return mustacheRenderedContent;
       }
