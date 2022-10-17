@@ -50,8 +50,8 @@ const extractZipContents =
     log.debug(`Extracted ${templates.length} ZIP templates.`)
 
     return {
-      codeOwners: codeOwners,
-      templates: templates,
+      codeOwners,
+      templates,
     }
   }
 
