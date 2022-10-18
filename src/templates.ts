@@ -1,5 +1,5 @@
-import JSZip, {loadAsync} from 'jszip'
-import {render} from 'mustache'
+import JSZip, { loadAsync } from 'jszip'
+import { render } from 'mustache'
 import {
   ExtractedContent,
   OctokitInstance,
@@ -9,10 +9,10 @@ import {
   TemplateInformation,
   Templates,
 } from './types'
-import {OctokitResponse} from '@octokit/types'
-import {Logger} from 'probot'
+import { OctokitResponse } from '@octokit/types'
+import { Logger } from 'probot'
 
-import {matchFile, parse} from 'codeowners-utils'
+import { matchFile, parse } from 'codeowners-utils'
 
 const extract =
   (loaded: JSZip, source: string) =>
@@ -32,7 +32,7 @@ const extractZipContents =
     log.debug(`Extracting ZIP contents.`)
     const loaded = await loadAsync(contents)
 
-    const toProcess = Promise.all(
+    const extractTemplates: Promise<Template>[] =
       configuration.files?.map(async file => {
         const contents = await extract(loaded, file.source)(log)
         return {
@@ -40,13 +40,14 @@ const extractZipContents =
           destinationPath: file.destination,
           contents,
         }
-      }) ?? [],
-    )
+      }) ?? []
 
-    const templates = (await toProcess).filter(it => it?.contents)
-    //TODO include in the promise all
-    const codeOwners = await extract(loaded, 'CODEOWNERS')(log)
+    const extractCodeOwners: Promise<string> = extract(loaded, 'CODEOWNERS')(log)
 
+    const toProcess: [string, Template[]] = await Promise.all([extractCodeOwners, Promise.all(extractTemplates)])
+
+    const codeOwners = toProcess[0]
+    const templates = toProcess[1].filter(it => it?.contents)
     log.debug(`Extracted ${templates.length} ZIP templates.`)
 
     return {
@@ -124,7 +125,7 @@ const enrichWithPrePendingHeader =
     const matchedWithCodeOwner = matchFile(template.sourcePath, codeOwnersEntries)
 
     const header = process.env.PREPENDING_HEADER_TEMPLATE ? process.env.PREPENDING_HEADER_TEMPLATE : '#OWNER: '
-    if (!header) log.info("Prepending header template not defined, using default.")
+    if (!header) log.info('Prepending header template not defined, using default.')
     return `${header}${matchedWithCodeOwner?.owners}\n\n${mustacheRenderedContent}`
   }
 
