@@ -36,8 +36,11 @@ const extractZipContents =
       configuration.files
         ?.filter(file => {
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
-          if (!extensionMatches)
-            log.warn(`Template configuration seems to be invalid, file extensions mismatch! Skipping: ${file}`)
+          if (!extensionMatches) {
+            log.warn(
+              `Template configuration seems to be invalid, file extension mismatch between source: '${file.source}' and destination: '${ file.destination}'. Skipping!`,
+            )
+          }
           return extensionMatches
         })
         .map(async file => {
