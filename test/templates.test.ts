@@ -7,8 +7,8 @@ import { OctokitInstance } from '../src/types'
 const stubTemplates = async (): Promise<ArrayBuffer> => {
   const zip = new JSZip()
   return zip
-    .file('templates/test_template.json', '{"owner": "pleo", "repo": "{{appName}}"}')
-    .file('templates/test_template.toml', 'owner = "pleo" repo = "{{appName}}"')
+    .file('templates/test_template.json', '{"owner": "pleo", "repo": "<<<appName>>>"}')
+    .file('templates/test_template.toml', 'owner = "pleo" repo = "<<<appName>>>"')
     .generateAsync({ type: 'arraybuffer', streamFiles: true })
 }
 
