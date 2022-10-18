@@ -1,5 +1,5 @@
-import JSZip, {loadAsync} from 'jszip'
-import {render} from 'mustache'
+import JSZip, { loadAsync } from 'jszip'
+import { render } from 'mustache'
 import {
   ExtractedContent,
   OctokitInstance,
@@ -9,10 +9,10 @@ import {
   TemplateInformation,
   Templates,
 } from './types'
-import {OctokitResponse} from '@octokit/types'
-import {Logger} from 'probot'
+import { OctokitResponse } from '@octokit/types'
+import { Logger } from 'probot'
 
-import {matchFile, parse} from 'codeowners-utils'
+import { matchFile, parse } from 'codeowners-utils'
 
 const extract =
   (loaded: JSZip, source: string) =>
@@ -35,8 +35,9 @@ const extractZipContents =
     const extractTemplates: Promise<Template>[] =
       configuration.files
         ?.filter(file => {
-          const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop();
-          if (!extensionMatches) log.warn(`Template configuration seems to be invalid, file extensions mismatch! Skipping: ${file}`)
+          const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
+          if (!extensionMatches)
+            log.warn(`Template configuration seems to be invalid, file extensions mismatch! Skipping: ${file}`)
           return extensionMatches
         })
         .map(async file => {
