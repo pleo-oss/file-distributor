@@ -155,9 +155,10 @@ export const renderTemplates =
 
     const { contents, version: fetchedVersion } = await downloadTemplates(version)(log)(octokit)
     const extractedContent = await extractZipContents(contents, configuration)(log)
-
+  
+    const delimiters: [string, string] = ['<<<', '>>>']
     const rendered = extractedContent.templates.map(template => {
-      const mustacheRenderedContent = render(template.contents, configuration.values)
+      const mustacheRenderedContent = render(template.contents, configuration.values, {}, delimiters)
 
       if (!extractedContent.codeOwners) {
         return { ...template, contents: mustacheRenderedContent }

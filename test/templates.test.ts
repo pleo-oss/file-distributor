@@ -59,8 +59,8 @@ describe('Template rendering', () => {
   test('should render basic json and toml template', async () => {
     //given
     const mockedOctokit = createMockedOctokit([
-      { path: 'templates/test_template.json', data: '{"owner": "pleo", "repo": "{{appName}}"}' },
-      { path: 'templates/test_template.toml', data: 'owner = "pleo" repo = "{{appName}}"' },
+      { path: 'templates/test_template.json', data: '{"owner": "pleo", "repo": "<<<appName>>>"}' },
+      { path: 'templates/test_template.toml', data: 'owner = "pleo" repo = "<<<appName>>>"' },
     ])
 
     const configuration = getRepositoryConfiguration([
@@ -82,7 +82,7 @@ describe('Template rendering', () => {
   test('should skip prepending header for json file when CODEOWNERS defined', async () => {
     //given
     const mockedOctokit = createMockedOctokit([
-      { path: 'templates/test_template.json', data: '{"owner": "pleo", "repo": "{{appName}}"}' },
+      { path: 'templates/test_template.json', data: '{"owner": "pleo", "repo": "<<<appName>>>"}' },
       testCodeOwnersFile(),
     ])
 
@@ -100,7 +100,7 @@ describe('Template rendering', () => {
   test('should add default prepending header for `toml` file when CODEOWNERS defined', async () => {
     //given
     const mockedOctokit = createMockedOctokit([
-      { path: 'templates/test_template.toml', data: 'owner = "pleo" repo = "{{appName}}"' },
+      { path: 'templates/test_template.toml', data: 'owner = "pleo" repo = "<<<appName>>>"' },
       testCodeOwnersFile(),
     ])
 
@@ -128,7 +128,7 @@ describe('Template rendering', () => {
     process.env.TEMPLATE_REPOSITORY_NAME = 'magic-templates'
 
     const mockedOctokit = createMockedOctokit([
-      { path: 'templates/test_template.toml', data: 'repo = "{{appName}}"' },
+      { path: 'templates/test_template.toml', data: 'repo = "<<<appName>>>"' },
       testCodeOwnersFile(),
     ])
 
@@ -153,7 +153,7 @@ repo = "expected-app-name"`,
   test('should assign global CODEOWNERS when not defined explicitly for file', async () => {
     //given
     const mockedOctokit = createMockedOctokit([
-      { path: 'templates/global_template.toml', data: 'repo = "{{appName}}"' },
+      { path: 'templates/global_template.toml', data: 'repo = "<<<appName>>>"' },
       testCodeOwnersFile(),
     ])
 
@@ -171,8 +171,8 @@ repo = "expected-app-name"`,
   test('should assign pattern CODEOWNERS when not defined explicitly for file', async () => {
     //given
     const mockedOctokit = createMockedOctokit([
-      { path: 'templates/pattern_template_1.toml', data: 'repo = "{{appName}}"' },
-      { path: 'templates/pattern_template_2.yaml', data: 'appVersion = "{{appVersion}}"' },
+      { path: 'templates/pattern_template_1.toml', data: 'repo = "<<<appName>>>"' },
+      { path: 'templates/pattern_template_2.yaml', data: 'appVersion = "<<<appVersion>>>"' },
       testCodeOwnersFile(),
     ])
 
