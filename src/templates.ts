@@ -35,6 +35,15 @@ const extractZipContents =
     const extractTemplates: Promise<Template>[] =
       configuration.files?.map(async file => {
         const contents = await extract(loaded, file.source)(log)
+
+        const sourceTemplateExtension = file.source.split('.').pop()
+        const destinationTemplateExtension = file.destination.split('.').pop()
+
+        if (sourceTemplateExtension !== destinationTemplateExtension) {
+          log.error('Template configuration seems to be invalid, file extensions mismatch!')
+          throw Error('Template configuration seems to be invalid, file extensions mismatch!')
+        }
+
         return {
           sourcePath: file.source,
           destinationPath: file.destination,
@@ -114,7 +123,6 @@ const downloadTemplates =
 const enrichWithPrePendingHeader =
   (mustacheRenderedContent: string, template: Template, codeowners: string) =>
   (log: Logger): string => {
-    // TODO Check if file extensions fits together
     const templateExtension = template.destinationPath.split('.').pop() as string
     if (!(templateExtension == 'yaml' || templateExtension == 'toml' || templateExtension == 'yml')) {
       log.debug(`File extension: ${templateExtension} with not supported comments`)
