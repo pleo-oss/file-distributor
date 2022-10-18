@@ -98,9 +98,10 @@ export const renderTemplates =
     const { contents, version: fetchedVersion } = await downloadTemplates(version)(log)(octokit)
     const templateContents = await extractZipContents(contents, configuration)(log)
 
+    const delimiters: [string, string] = ['<<<', '>>>']
     const rendered = templateContents.map(template => ({
       ...template,
-      contents: render(template.contents, configuration.values),
+      contents: render(template.contents, configuration.values, {}, delimiters),
     }))
     log.debug(`Processed ${rendered.length} templates.`)
 

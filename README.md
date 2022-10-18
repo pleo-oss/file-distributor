@@ -38,7 +38,7 @@ The app then pulls the repository configuration, downloads templates and process
 Processed templates are then submitted to the repository as a PR. If `automerge` is enabled, the PR is merged automatically.
 
 ## Templates
-Templates support the full [Mustache template language](https://mustache.github.io) tags. 
+Templates support the full [Mustache template language](https://mustache.github.io) tags with the delimiters `<<<` and `>>>`.
 
 Logic is handled as follows using a `YAML` template as an example:
 ```yaml
@@ -48,19 +48,19 @@ on:
 jobs:
   build:
     steps:
-      - name: Checkout {{repositoryName}}
+      - name: Checkout <<<repositoryName>>>
         uses: actions/checkout@v3.0.2
-        #{{^shouldCheckoutCode}}
+        #<<<^shouldCheckoutCode>>>
         if: false
-        #{{/shouldCheckoutCode}}
+        #<<</shouldCheckoutCode>>>
 
-      #{{#shouldLoginToDockerHub}}
+      #<<<#shouldLoginToDockerHub>>>
       - name: Login to DockerHub
         uses: docker/login-action@v2.0.0
         with:
           username: pleodeployments
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      #{{/shouldLoginToDockerHub}}
+          password: $<<< secrets.DOCKERHUB_TOKEN >>>
+      #<<</shouldLoginToDockerHub>>>
 ```
 
 See the [Mustache manual](https://mustache.github.io/mustache.5.html) for more information on the template syntax.
