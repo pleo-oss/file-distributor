@@ -1,5 +1,5 @@
-import JSZip, { loadAsync } from 'jszip'
-import { render } from 'mustache'
+import JSZip, {loadAsync} from 'jszip'
+import {render} from 'mustache'
 import {
   ExtractedContent,
   OctokitInstance,
@@ -9,10 +9,10 @@ import {
   TemplateInformation,
   Templates,
 } from './types'
-import { OctokitResponse } from '@octokit/types'
-import { Logger } from 'probot'
+import {OctokitResponse} from '@octokit/types'
+import {Logger} from 'probot'
 
-import { matchFile, parse } from 'codeowners-utils'
+import {matchFile, parse} from 'codeowners-utils'
 
 const extract =
   (loaded: JSZip, source: string) =>
@@ -33,23 +33,21 @@ const extractZipContents =
     const loaded = await loadAsync(contents)
 
     const extractTemplates: Promise<Template>[] =
-      configuration.files?.map(async file => {
-        const contents = await extract(loaded, file.source)(log)
+      configuration.files
+        ?.filter(file => {
+          const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop();
+          if (!extensionMatches) log.warn(`Template configuration seems to be invalid, file extensions mismatch! Skipping: ${file}`)
+          return extensionMatches
+        })
+        .map(async file => {
+          const contents = await extract(loaded, file.source)(log)
 
-        const sourceTemplateExtension = file.source.split('.').pop()
-        const destinationTemplateExtension = file.destination.split('.').pop()
-
-        if (sourceTemplateExtension !== destinationTemplateExtension) {
-          log.error('Template configuration seems to be invalid, file extensions mismatch!')
-          throw Error('Template configuration seems to be invalid, file extensions mismatch!')
-        }
-
-        return {
-          sourcePath: file.source,
-          destinationPath: file.destination,
-          contents,
-        }
-      }) ?? []
+          return {
+            sourcePath: file.source,
+            destinationPath: file.destination,
+            contents,
+          }
+        }) ?? []
 
     const extractCodeOwners: Promise<string> = extract(loaded, 'CODEOWNERS')(log)
 
@@ -153,7 +151,7 @@ export const renderTemplates =
 
     const { contents, version: fetchedVersion } = await downloadTemplates(version)(log)(octokit)
     const extractedContent = await extractZipContents(contents, configuration)(log)
-  
+
     const delimiters: [string, string] = ['<<<', '>>>']
     const rendered = extractedContent.templates.map(template => {
       const mustacheRenderedContent = render(template.contents, configuration.values, {}, delimiters)
