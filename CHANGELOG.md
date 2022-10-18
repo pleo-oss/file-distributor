@@ -1,3 +1,27 @@
+# v2.0.0 (Tue Oct 18 2022)
+
+#### 💥 Major changes
+
+- Use GitHub Action-compatible delimiters for template rendering [#40](https://github.com/pleo-oss/file-distributor/pull/40) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### ⚠️ Pushed to `main`
+
+- Set Renovate labels to 'internal' by default ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Pin dependency pino to 8.6.1 [#38](https://github.com/pleo-oss/file-distributor/pull/38) ([@renovate[bot]](https://github.com/renovate[bot]))
+- Use Pino JSON logging [#37](https://github.com/pleo-oss/file-distributor/pull/37) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Adds basic template rendering test [#35](https://github.com/pleo-oss/file-distributor/pull/35) ([@andersfischernielsen](https://github.com/andersfischernielsen) [@dpotyralski](https://github.com/dpotyralski))
+
+#### Authors: 3
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+
+---
+
 # v1.0.5 (Thu Oct 13 2022)
 
 #### 🐞 Fixes
