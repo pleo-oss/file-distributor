@@ -123,7 +123,7 @@ const downloadTemplates =
 const enrichWithPrePendingHeader =
   (mustacheRenderedContent: string, template: Template, codeowners: string) =>
   (log: Logger): string => {
-    const templateExtension = template.destinationPath.split('.').pop() as string
+    const templateExtension = template.destinationPath.split('.').pop()
     if (!(templateExtension == 'yaml' || templateExtension == 'toml' || templateExtension == 'yml')) {
       log.debug(`File extension: ${templateExtension} with not supported comments`)
       return mustacheRenderedContent
