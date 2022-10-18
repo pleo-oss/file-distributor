@@ -132,9 +132,7 @@ const enrichWithPrePendingHeader =
     const codeOwnersEntries = parse(codeowners)
     const matchedCodeOwner = matchFile(template.sourcePath, codeOwnersEntries)
 
-    const header = process.env.PREPENDING_HEADER_TEMPLATE
-      ? process.env.PREPENDING_HEADER_TEMPLATE
-      : '#OWNER: {{{stewards}}}'
+    const header = process.env.PREPENDING_HEADER_TEMPLATE || '#OWNER: {{{stewards}}}'
     if (!header) log.info('Prepending header template not defined, using default.')
 
     const renderedPrePendingHeader = render(header, {
