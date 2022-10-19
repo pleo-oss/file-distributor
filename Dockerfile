@@ -1,4 +1,4 @@
-FROM node:18-alpine AS BUILD_IMAGE
+FROM node:19-alpine AS BUILD_IMAGE
 
 WORKDIR /usr/src/app
 
@@ -9,7 +9,7 @@ RUN yarn && yarn build && rm -rf node_modules && yarn --production
 
 ###################
 
-FROM node:18-alpine
+FROM node:19-alpine
 
 WORKDIR /usr/src/app
 
