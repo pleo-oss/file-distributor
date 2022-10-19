@@ -1,35 +1,69 @@
-import { loadAsync } from 'jszip'
+import JSZip, { loadAsync } from 'jszip'
 import { render } from 'mustache'
-import { RepositoryDetails, RepositoryConfiguration, TemplateInformation, Templates, OctokitInstance } from './types'
+import {
+  ExtractedContent,
+  OctokitInstance,
+  RepositoryConfiguration,
+  RepositoryDetails,
+  Template,
+  TemplateInformation,
+  Templates,
+} from './types'
 import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 
-export const extractZipContents =
-  (contents: ArrayBuffer, configuration: RepositoryConfiguration) => async (log: Logger) => {
+import { matchFile, parse } from 'codeowners-utils'
+const extract =
+  (loaded: JSZip, source: string) =>
+  async (log: Logger): Promise<string> => {
+    const found = loaded.file(new RegExp(source, 'i'))
+    log.debug(`Found ${found.length} file(s) matching ${source}. `)
+    const picked = found.shift()
+    if (picked) log.debug(`Using ${picked.name} for ${source}. `)
+
+    const text = (await picked?.async('text')) ?? ''
+    return text?.replace(/#<<</gm, '<<<')
+  }
+
+const extractZipContents =
+  (contents: ArrayBuffer, configuration: RepositoryConfiguration) =>
+  async (log: Logger): Promise<ExtractedContent> => {
     log.debug(`Extracting ZIP contents.`)
     const loaded = await loadAsync(contents)
 
-    const toProcess = Promise.all(
-      configuration.files?.map(async file => {
-        const found = loaded.file(new RegExp(file.source))
-        log.debug(`Found ${found.length} file(s) matching ${file.source}. `)
-        const picked = found.shift()
-        if (picked) log.debug(`Using ${picked.name} for ${file.source}. `)
+    const extractTemplates: Promise<Template>[] =
+      configuration.files
+        ?.filter(file => {
+          const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
+          if (!extensionMatches) {
+            log.warn(
+              `Template configuration seems to be invalid, file extension mismatch between source: '${file.source}' and destination: '${file.destination}'. Skipping!`,
+            )
+          }
+          return extensionMatches
+        })
+        .map(async file => {
+          const contents = await extract(loaded, file.source)(log)
 
-        const text = (await picked?.async('text')) ?? ''
-        const contents = text?.replace(/#<<</gm, '<<<')
+          return {
+            sourcePath: file.source,
+            destinationPath: file.destination,
+            contents,
+          }
+        }) ?? []
 
-        return {
-          path: file.destination,
-          contents,
-        }
-      }) ?? [],
-    )
+    const extractCodeOwners: Promise<string> = extract(loaded, 'CODEOWNERS')(log)
 
-    const templates = (await toProcess).filter(it => it?.contents)
+    const toProcess: [string, Template[]] = await Promise.all([extractCodeOwners, Promise.all(extractTemplates)])
+
+    const codeOwners = toProcess[0]
+    const templates = toProcess[1].filter(it => it?.contents)
     log.debug(`Extracted ${templates.length} ZIP templates.`)
 
-    return templates
+    return {
+      codeOwners,
+      templates,
+    }
   }
 
 const getReleaseFromTag =
@@ -56,7 +90,7 @@ const getReleaseFromTag =
     return tag ? getRelease() : getLatestRelease()
   }
 
-export const downloadTemplates =
+const downloadTemplates =
   (templateVersion?: string) =>
   (log: Logger) =>
   async (octokit: Pick<OctokitInstance, 'repos'>): Promise<TemplateInformation> => {
@@ -87,6 +121,29 @@ export const downloadTemplates =
     }
   }
 
+const enrichWithPrePendingHeader =
+  (mustacheRenderedContent: string, template: Template, codeowners: string) =>
+  (log: Logger): string => {
+    const templateExtension = template.destinationPath.split('.').pop()
+    if (!(templateExtension === 'yaml' || templateExtension === 'toml' || templateExtension === 'yml')) {
+      log.debug(`File extension: ${templateExtension} with not supported comments`)
+      return mustacheRenderedContent
+    }
+
+    const codeOwnersEntries = parse(codeowners)
+    const matchedCodeOwner = matchFile(template.sourcePath, codeOwnersEntries)
+
+    const header = process.env.PREPENDING_HEADER_TEMPLATE || '#OWNER: {{{stewards}}}'
+    if (!header) log.info('Prepending header template not defined, using default.')
+
+    const renderedPrePendingHeader = render(header, {
+      'template-repository': process.env.TEMPLATE_REPOSITORY_NAME ?? '',
+      stewards: matchedCodeOwner?.owners,
+    })
+
+    return `${renderedPrePendingHeader}\n\n${mustacheRenderedContent}`
+  }
+
 export const renderTemplates =
   (configuration: RepositoryConfiguration) =>
   (log: Logger) =>
@@ -96,14 +153,20 @@ export const renderTemplates =
     log.debug(`Configuration uses template version '${version}'.`)
 
     const { contents, version: fetchedVersion } = await downloadTemplates(version)(log)(octokit)
-    const templateContents = await extractZipContents(contents, configuration)(log)
+    const extractedContent = await extractZipContents(contents, configuration)(log)
 
     const delimiters: [string, string] = ['<<<', '>>>']
-    const rendered = templateContents.map(template => ({
-      ...template,
-      contents: render(template.contents, configuration.values, {}, delimiters),
-    }))
-    log.debug(`Processed ${rendered.length} templates.`)
+    const rendered = extractedContent.templates.map(template => {
+      const mustacheRenderedContent = render(template.contents, configuration.values, {}, delimiters)
 
+      if (!extractedContent.codeOwners) {
+        return { ...template, contents: mustacheRenderedContent }
+      }
+      return {
+        ...template,
+        contents: enrichWithPrePendingHeader(mustacheRenderedContent, template, extractedContent.codeOwners)(log),
+      }
+    })
+    log.debug(`Processed ${rendered.length} templates.`)
     return { version: fetchedVersion, templates: rendered }
   }

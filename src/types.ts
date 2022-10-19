@@ -1,4 +1,5 @@
 import { ProbotOctokit } from 'probot'
+
 export interface PathConfiguration {
   source: string
   destination: string
@@ -17,8 +18,14 @@ export interface RepositoryDetails {
   defaultBranch?: string
 }
 
+export interface ExtractedContent {
+  codeOwners?: string
+  templates: Template[]
+}
+
 export interface Template {
-  path: string
+  sourcePath: string
+  destinationPath: string
   contents: string
 }
 
