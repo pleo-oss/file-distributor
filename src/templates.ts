@@ -17,7 +17,7 @@ export const extractZipContents =
         if (picked) log.debug(`Using ${picked.name} for ${file.source}. `)
 
         const text = (await picked?.async('text')) ?? ''
-        const contents = text?.replace(/#{{/gm, '{{')
+        const contents = text?.replace(/#<<</gm, '<<<')
 
         return {
           path: file.destination,
