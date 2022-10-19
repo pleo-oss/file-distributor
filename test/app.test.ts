@@ -258,6 +258,42 @@ describe('Probot Tests', () => {
     errorSpy.mockRestore()
   })
 
+  test('can receive a pull request event', async () => {
+
+    baseNock.get('/repos/pleo-oss/test/pulls/27/files')
+      .reply(200, [
+          {
+            filename: '.config/templates.yaml'
+          }
+        ])
+    baseNock.get('/repos/pleo-oss/test/contents/.config%2Ftemplates.yaml?ref=sha')
+      .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
+
+    
+    baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)
+    baseNock.patch('/repos/pleo-oss/test/check-runs/').reply(200)
+
+      
+
+    const pullRequestEvent = {
+      name: 'pull_request',
+      payload: {
+        repository: {
+          owner: { login: 'pleo-oss' },
+          name: 'test',
+        },
+        number: 27,
+        pull_request: {
+          head: { 
+            ref: "sha"
+          }
+        }
+      }
+    }
+
+    await probot.receive(pullRequestEvent as unknown as EmitterWebhookEvent)
+  })
+
   const existingEnv = process.env
   afterEach(() => {
     nock.cleanAll()
