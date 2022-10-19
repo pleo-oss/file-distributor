@@ -1,42 +1,25 @@
 import { PushEvent } from '@octokit/webhooks-types'
-import { Context, Logger, Probot } from 'probot'
+import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
 import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
-import { commitFiles, getCommitFiles, getDefaultBranch } from './git'
-import { OctokitInstance, RepositoryDetails } from './types'
+import { commitFiles, getCommitFiles } from './git'
 
 const extractRepositoryInformation = (payload: PushEvent) => {
   const {
     repository: {
       owner: { login },
       name,
+      default_branch,
     },
   } = payload
 
   return {
     owner: login,
     repo: name,
+    defaultBranch: default_branch,
   }
 }
-
-const defaultBranchCache = new Map<string, string>()
-
-const getCachedDefaultBranch =
-  (repository: Omit<RepositoryDetails, 'defaultBranch'>) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'repos'>) => {
-    const key = `${repository.owner}/${repository.repo}`
-    const fromCache = defaultBranchCache.get(key)
-
-    if (fromCache) return fromCache
-
-    log.debug(`Default branch for '${key}' is not cached.`)
-    const fetched = await getDefaultBranch(repository)(log)(octokit)
-    defaultBranchCache.set(key, fetched)
-    log.debug(`Cached default branch '${fetched}' for '${key}'.`)
-    return fetched
-  }
 
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
   const { octokit } = context
@@ -45,13 +28,10 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   log.info(`${context.name} event happened on '${payload.ref}'`)
 
   try {
-    const payloadInformation = extractRepositoryInformation(payload)
-    const defaultBranch = await getCachedDefaultBranch(payloadInformation)(log)(octokit)
+    const repository = extractRepositoryInformation(payload)
+    const branchRegex = new RegExp(repository.defaultBranch)
 
-    const branchRegex = new RegExp(defaultBranch)
     if (!branchRegex.test(payload.ref)) return
-
-    const repository = { ...payloadInformation, defaultBranch }
 
     log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 

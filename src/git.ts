@@ -272,18 +272,3 @@ export const commitFiles =
 
     return await maintainPullRequest(repository, prDetails, baseBranch)(log)(octokit)
   }
-
-export const getDefaultBranch =
-  (repository: Omit<RepositoryDetails, 'defaultBranch'>) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'repos'>) => {
-    const { owner, repo } = repository
-
-    log.debug(`Fetching default branch for ${owner}/${repo}`)
-    const {
-      data: { default_branch },
-    } = await octokit.repos.get({ ...repository })
-    log.debug(`Got default branch name: ${default_branch}`)
-
-    return default_branch
-  }
