@@ -1,3 +1,15 @@
+# v2.2.0 (Wed Oct 19 2022)
+
+#### 🎁 Features
+
+- Extract and provide basic repository information for template values [#41](https://github.com/pleo-oss/file-distributor/pull/41) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v2.1.0 (Wed Oct 19 2022)
 
 #### 🎁 Features
