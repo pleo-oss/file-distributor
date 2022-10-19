@@ -42,7 +42,7 @@ const processPullRequest = () => async (context: Context<'pull_request'>, app: P
       ...repository,
       pull_number: payload.number
     })
-    const configFile = filesChanged.data.find(x => x.filename === configFileName)
+    const configFile = filesChanged.data.find(file => file.filename === configFileName)
     if (configFile) {
 
       app.log.debug(`Found file ${configFile.filename}`)
