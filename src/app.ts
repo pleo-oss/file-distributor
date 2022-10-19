@@ -29,23 +29,24 @@ const extractRepositoryInformation = (payload: PushEvent) => {
   }
 }
 
-const processPullRequest = () => async (context: Context<'pull_request'>, app: Probot) => {
-  const payload = context.payload as PullRequestEvent
+const processPullRequest = () => async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
+  const { log, octokit } = context
+
   const repository = {
     owner: payload.repository.owner.login,
     repo: payload.repository.name,
   }
-  app.log(`Pull request event happened on '${context.payload.pull_request}'`)
+  log(`Pull request event happened on '${context.payload.pull_request}'`)
 
   try {
-    const filesChanged = await context.octokit.pulls.listFiles({
+    const filesChanged = await octokit.pulls.listFiles({
       ...repository,
       pull_number: payload.number
     })
     const configFile = filesChanged.data.find(file => file.filename === configFileName)
     if (configFile) {
 
-      app.log.debug(`Found file ${configFile.filename}`)
+      log.debug(`Found file ${configFile.filename}`)
       const checkRun = await createCheckRun(
         context.octokit,
         {
@@ -55,7 +56,7 @@ const processPullRequest = () => async (context: Context<'pull_request'>, app: P
         }
       )
 
-      const fileContent = await context.octokit.repos.getContent({
+      const fileContent = await octokit.repos.getContent({
         ...repository,
         path: configFile.filename,
         ref: payload.pull_request.head.ref
@@ -63,13 +64,13 @@ const processPullRequest = () => async (context: Context<'pull_request'>, app: P
 
       const { content } = fileContent.data as { content: string }
       const decodedContent = Buffer.from(content, 'base64').toString()
-      app.log.debug(`decoded content ${decodedContent}`)
+      log.debug(`decoded content ${decodedContent}`)
 
 
       const result = validator(schema as JSONSchemaType<TemplateConfig>, decodedContent)
       const resultString = (result) ? "success" : "failure"
 
-      await resolveCheckRun(context.octokit, {
+      await resolveCheckRun(octokit, {
         owner: repository.owner,
         repo: repository.repo,
         sha: context.payload.pull_request.head.sha,
@@ -78,7 +79,7 @@ const processPullRequest = () => async (context: Context<'pull_request'>, app: P
       })
     }
   } catch (error) {
-    app.log.error(`There has been an error ${error}`);
+    log.error(`There has been an error ${error}`);
     return error
   }
 }
@@ -126,6 +127,6 @@ export = async (app: Probot) => {
   })
 
   app.on('pull_request', async (context: Context<'pull_request'>) => {
-    await processPullRequest()(context, app)
+    await processPullRequest()(context.payload as PullRequestEvent, context)
   })
 }
