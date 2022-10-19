@@ -20,19 +20,19 @@ const extractRepositoryInformation = (payload: PushEvent) => {
   }
 }
 
-const cache: { [key: string]: string | undefined } = {}
+const cache = new Map<string, string>()
 
 const getCachedDefaultBranch =
   (repository: Omit<RepositoryDetails, 'defaultBranch'>) =>
   (log: Logger) =>
   async (octokit: Pick<OctokitInstance, 'repos'>) => {
     const key = `${repository.owner}/${repository.repo}`
-    const fromCache = cache[key]
+    const fromCache = cache.get(key)
 
     if (fromCache) return fromCache
 
     const fetched = await getDefaultBranch(repository)(log)(octokit)
-    cache[key] = fetched
+    cache.set(key, fetched)
     return fetched
   }
 
