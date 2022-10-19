@@ -1,5 +1,6 @@
 import { ProbotOctokit } from 'probot'
-interface PathConfiguration {
+
+export interface PathConfiguration {
   source: string
   destination: string
 }
@@ -16,8 +17,14 @@ export interface RepositoryDetails {
   repo: string
 }
 
+export interface ExtractedContent {
+  codeOwners?: string
+  templates: Template[]
+}
+
 export interface Template {
-  path: string
+  sourcePath: string
+  destinationPath: string
   contents: string
 }
 
