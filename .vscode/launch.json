@@ -18,7 +18,21 @@
             "runtimeArgs": [
                 "--inspect-brk",
                 "${workspaceRoot}/node_modules/.bin/jest",
-                "--runInBand"
+                "--runInBand",
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "preLaunchTask": "yarn: build"
+        },
+        {
+            "name": "Debug opened file Jest Tests",
+            "type": "node",
+            "request": "launch",
+            "runtimeArgs": [
+                "--inspect-brk",
+                "${workspaceRoot}/node_modules/.bin/jest",
+                "--runInBand",
+                "${fileBasenameNoExtension}",
             ],
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
