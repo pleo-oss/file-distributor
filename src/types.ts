@@ -9,12 +9,13 @@ export interface RepositoryConfiguration {
   version?: string
   automerge?: boolean
   files?: PathConfiguration[]
-  values?: { [key: string]: string }
+  values?: { [key: string]: string | undefined }
 }
 
 export interface RepositoryDetails {
   owner: string
   repo: string
+  defaultBranch?: string
 }
 
 export interface ExtractedContent {

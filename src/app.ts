@@ -5,29 +5,34 @@ import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
 import { commitFiles, getCommitFiles } from './git'
 
-const findBranchesToProcess = () => {
-  const branches = process.env.BRANCHES_TO_PROCESS
-  if (!branches) {
-    console.error('Environment variable BRANCHES_TO_PROCESS is not set.')
-    throw Error('Environment variable BRANCHES_TO_PROCESS is not set.')
-  }
+const extractRepositoryInformation = (payload: PushEvent) => {
+  const {
+    repository: {
+      owner: { login },
+      name,
+      default_branch,
+    },
+  } = payload
 
-  return new RegExp(branches)
+  return {
+    owner: login,
+    repo: name,
+    defaultBranch: default_branch,
+  }
 }
 
-const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEvent, context: Context<'push'>) => {
-  if (!branchesToProcess.test(payload.ref)) return
-
+const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
   const { octokit } = context
   const { log } = context
 
   log.info(`${context.name} event happened on '${payload.ref}'`)
 
   try {
-    const repository = {
-      owner: payload.repository.owner.login,
-      repo: payload.repository.name,
-    }
+    const repository = extractRepositoryInformation(payload)
+    const branchRegex = new RegExp(repository.defaultBranch)
+
+    if (!branchRegex.test(payload.ref)) return
+
     log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
     const configFileName = `.config/templates.yaml`
@@ -54,8 +59,7 @@ export = async (app: Probot) => {
     app.log.error('The application is not installed with expected authentication. Exiting.')
   }
 
-  const branchesToProcess = findBranchesToProcess()
   app.on('push', async (context: Context<'push'>) => {
-    await processPushEvent(branchesToProcess)(context.payload as PushEvent, context)
+    await processPushEvent(context.payload as PushEvent, context)
   })
 }

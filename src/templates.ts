@@ -13,7 +13,6 @@ import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 
 import { matchFile, parse } from 'codeowners-utils'
-
 const extract =
   (loaded: JSZip, source: string) =>
   async (log: Logger): Promise<string> => {
@@ -23,7 +22,7 @@ const extract =
     if (picked) log.debug(`Using ${picked.name} for ${source}. `)
 
     const text = (await picked?.async('text')) ?? ''
-    return text?.replace(/#{{/gm, '{{')
+    return text?.replace(/#<<</gm, '<<<')
   }
 
 const extractZipContents =
@@ -38,7 +37,7 @@ const extractZipContents =
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
           if (!extensionMatches) {
             log.warn(
-              `Template configuration seems to be invalid, file extension mismatch between source: '${file.source}' and destination: '${ file.destination}'. Skipping!`,
+              `Template configuration seems to be invalid, file extension mismatch between source: '${file.source}' and destination: '${file.destination}'. Skipping!`,
             )
           }
           return extensionMatches
