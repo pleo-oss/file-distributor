@@ -31,8 +31,10 @@ const getCachedDefaultBranch =
 
     if (fromCache) return fromCache
 
+    log.debug(`Default branch for '${key}' is not cached.`)
     const fetched = await getDefaultBranch(repository)(log)(octokit)
     cache.set(key, fetched)
+    log.debug(`Cached default branch '${fetched}' for '${key}'.`)
     return fetched
   }
 
