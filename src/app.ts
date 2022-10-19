@@ -1,33 +1,56 @@
 import { PushEvent } from '@octokit/webhooks-types'
-import { Context, Probot } from 'probot'
+import { Context, Logger, Probot } from 'probot'
 import { config } from 'dotenv'
 import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
-import { commitFiles, getCommitFiles } from './git'
+import { commitFiles, getCommitFiles, getDefaultBranch } from './git'
+import { OctokitInstance, RepositoryDetails } from './types'
 
-const findBranchesToProcess = () => {
-  const branches = process.env.BRANCHES_TO_PROCESS
-  if (!branches) {
-    console.error('Environment variable BRANCHES_TO_PROCESS is not set.')
-    throw Error('Environment variable BRANCHES_TO_PROCESS is not set.')
+const extractRepositoryInformation = (payload: PushEvent) => {
+  const {
+    repository: {
+      owner: { login },
+      name,
+    },
+  } = payload
+
+  return {
+    owner: login,
+    repo: name,
   }
-
-  return new RegExp(branches)
 }
 
-const processPushEvent = (branchesToProcess: RegExp) => async (payload: PushEvent, context: Context<'push'>) => {
-  if (!branchesToProcess.test(payload.ref)) return
+const cache: { [key: string]: string | undefined } = {}
 
+const getCachedDefaultBranch =
+  (repository: Omit<RepositoryDetails, 'defaultBranch'>) =>
+  (log: Logger) =>
+  async (octokit: Pick<OctokitInstance, 'repos'>) => {
+    const key = `${repository.owner}/${repository.repo}`
+    const fromCache = cache[key]
+
+    if (fromCache) return fromCache
+
+    const fetched = await getDefaultBranch(repository)(log)(octokit)
+    cache[key] = fetched
+    return fetched
+  }
+
+const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
   const { octokit } = context
   const { log } = context
 
   log.info(`${context.name} event happened on '${payload.ref}'`)
 
   try {
-    const repository = {
-      owner: payload.repository.owner.login,
-      repo: payload.repository.name,
-    }
+    const payloadInformation = extractRepositoryInformation(payload)
+    const defaultBranch = await getCachedDefaultBranch(payloadInformation)(log)(octokit)
+
+    const branchRegex = new RegExp(defaultBranch)
+    if (!branchRegex.test(payload.ref)) return
+
+    const repository = { ...payloadInformation, defaultBranch }
+
     log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
     const configFileName = `.config/templates.yaml`
@@ -54,8 +77,7 @@ export = async (app: Probot) => {
     app.log.error('The application is not installed with expected authentication. Exiting.')
   }
 
-  const branchesToProcess = findBranchesToProcess()
   app.on('push', async (context: Context<'push'>) => {
-    await processPushEvent(branchesToProcess)(context.payload as PushEvent, context)
+    await processPushEvent(context.payload as PushEvent, context)
   })
 }

@@ -19,5 +19,15 @@ export const determineConfigurationChanges =
     log.debug(decodedContent)
 
     const parsed: RepositoryConfiguration = parse(decodedContent)
-    return parsed
+
+    const combinedConfiguration: RepositoryConfiguration = {
+      ...parsed,
+      values: {
+        ...parsed.values,
+        repositoryName: repository.repo,
+        defaultBranch: repository.defaultBranch,
+      },
+    }
+
+    return combinedConfiguration
   }
