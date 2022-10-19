@@ -1,3 +1,16 @@
+# v2.1.0 (Wed Oct 19 2022)
+
+#### 🎁 Features
+
+- Prepending headers support [#39](https://github.com/pleo-oss/file-distributor/pull/39) ([@dpotyralski](https://github.com/dpotyralski) [@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+
+---
+
 # v2.0.0 (Tue Oct 18 2022)
 
 #### 💥 Major changes
