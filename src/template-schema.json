@@ -13,6 +13,7 @@
     },
     "files": {
       "type": "array",
+      "nullable": true,
       "items": {
         "type": "object",
         "properties": {
@@ -27,7 +28,7 @@
           "source",
           "destination"
         ]
-      }    
+      }
     },
     "values": {
       "type": "object"

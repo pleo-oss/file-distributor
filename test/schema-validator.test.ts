@@ -5,8 +5,9 @@ const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknow
 
 describe('Schema Tests', () => {
   test('returns false for an invalid input', async () => {
-    const validation = validateTemplateConfiguration('DFds')(log)
-    expect(validation).toBeFalsy()
+    const { result, errors } = validateTemplateConfiguration('DFds')(log)
+    expect(result).toBeFalsy()
+    expect(errors?.length).not.toEqual(0)
   })
 
   test('returns false for a null value on a non nullable type', async () => {
@@ -22,8 +23,9 @@ describe('Schema Tests', () => {
           - source: null
             destination: path/to/template-destination/filename.yaml
         `
-    const validation = validateTemplateConfiguration(input)(log)
-    expect(validation).toBeFalsy()
+    const { result, errors } = validateTemplateConfiguration(input)(log)
+    expect(result).toBeFalsy()
+    expect(errors?.length).not.toEqual(0)
   })
 
   test('returns true for a null value on a nullable type', async () => {
@@ -39,8 +41,9 @@ describe('Schema Tests', () => {
           - source: path/to/template/filename.yaml
             destination: path/to/template-destination/filename.yaml
         `
-    const validation = validateTemplateConfiguration(input)(log)
-    expect(validation).toBeTruthy()
+    const { result, errors } = validateTemplateConfiguration(input)(log)
+    expect(result).toBeTruthy()
+    expect(errors?.length).toBeUndefined()
   })
 
   test('returns true for a valid schema', async () => {
@@ -56,7 +59,8 @@ describe('Schema Tests', () => {
           - source: path/to/template/filename.yaml
             destination: path/to/template-destination/filename.yaml
         `
-    const validation = validateTemplateConfiguration(input)(log)
-    expect(validation).toBeTruthy()
+    const { result, errors } = validateTemplateConfiguration(input)(log)
+    expect(result).toBeTruthy()
+    expect(errors?.length).toBeUndefined()
   })
 })
