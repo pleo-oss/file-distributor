@@ -47,7 +47,12 @@ describe('Github api calls', () => {
     })
 
     test('can call GitHub with a proper check', async () => {
-      await createCheckRun(testRepository, testSha)(log)(octokitMock)
+      const testInput = {
+        ...testRepository,
+        sha: testSha
+      }
+
+      await createCheckRun(testInput)(log)(octokitMock)
 
       expect(octokitMock.checks.create).toBeCalledTimes(1)
       expect(octokitMock.checks.create).toHaveBeenCalledWith({
@@ -66,7 +71,11 @@ describe('Github api calls', () => {
     })
 
     test('will not call GitHub multiple times with different checks', async () => {
-      await createCheckRun(testRepository, testSha)(log)(octokitMock)
+      const testInput = {
+        ...testRepository,
+        sha: testSha
+      }
+      await createCheckRun(testInput)(log)(octokitMock)
 
       expect(octokitMock.checks.create).toBeCalledTimes(1)
       expect(octokitMock.checks.create).not.toHaveBeenCalledWith({
@@ -82,19 +91,25 @@ describe('Github api calls', () => {
     })
 
     test('will throw check exception when check creation throws', async () => {
+      const testInput = {
+        owner: 'pleo',
+        repo: 'workflow',
+        sha: testSha
+      }
+
       expect.assertions(1)
       return createCheckRun(
-        testRepository,
-        testSha,
+        testInput
       )(log)(throwingOctokit).catch(e => expect(e.message).toMatch('Error'))
     })
   })
 
   describe('Update check calls', () => {
     const testInput = {
+      ...testRepository,
       sha: testSha,
       conclusion: 'failure',
-      check_run_id: 98,
+      checkRunId: 98,
     }
 
     beforeEach(() => {
@@ -102,16 +117,19 @@ describe('Github api calls', () => {
     })
 
     test('can resolve GitHub checks', async () => {
-      await resolveCheckRun(testRepository, testInput)(log)(octokitMock)
+      await resolveCheckRun(testInput)(log)(octokitMock)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
+        headers: {
+          accept: 'application/vnd.github.v3+json',
+        },
+        check_run_id: testInput.checkRunId,
+        conclusion: testInput.conclusion,
         ...testRepository,
-        ...testInput,
-        sha: undefined,
+        head_sha: testInput.sha,
         name: 'Template Config Validation',
         status: 'completed',
-        head_sha: testSha,
         output: {
           title: 'Template schema validation',
           summary: testInput.conclusion,
@@ -120,7 +138,14 @@ describe('Github api calls', () => {
     })
 
     test('will not call GitHub multiple times with different checks', async () => {
-      await resolveCheckRun(testRepository, testInput)(log)(octokitMock)
+      const testInput = {
+        ...testRepository,
+        sha: testSha,
+        conclusion: 'failure',
+        checkRunId: 98,
+      }
+
+      await resolveCheckRun(testInput)(log)(octokitMock)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).not.toHaveBeenCalledWith({
@@ -128,8 +153,9 @@ describe('Github api calls', () => {
           accept: 'application/vnd.github.v3+json',
         },
         owner: 'not-pleo',
-        repo: testRepository.repo,
-        ...testInput,
+        repo: testInput.repo,
+        head_sha: testInput.sha,
+        check_run_id: testInput.checkRunId,
         status: 'completed',
         output: {
           title: 'Template schema validation',
@@ -139,10 +165,16 @@ describe('Github api calls', () => {
     })
 
     test('will throw check exception when updating checks throws', async () => {
+      const testInput = {
+        ...testRepository,
+        sha: testSha,
+        conclusion: 'failure',
+        checkRunId: 98,
+      }
+
       expect.assertions(1)
       await resolveCheckRun(
-        testRepository,
-        testInput,
+        testInput
       )(log)(throwingOctokit).catch(e => expect(e.message).toMatch('Error'))
     })
   })

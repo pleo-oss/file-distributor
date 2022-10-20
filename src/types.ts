@@ -44,10 +44,14 @@ export interface PRDetails {
   description: string
 }
 
-export interface CheckUpdate {
+export interface CreateCheckInput {
+  owner: string
+  repo: string
   sha: string
+}
+export type UpdateCheckInput = CreateCheckInput & {
   conclusion: string
-  check_run_id: number
+  checkRunId: number
 }
 
 export type OctokitInstance = InstanceType<typeof ProbotOctokit>

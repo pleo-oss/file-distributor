@@ -57,7 +57,13 @@ const processPullRequest = () => async (payload: PullRequestEvent, context: Cont
     if (!configFile) return
 
     log.debug(`Found repository configuration file: ${configFile}.`)
-    const checkId = await createCheckRun(repository, sha)(log)(octokit)
+
+    const createCheckInput = {
+      ...repository,
+      sha: sha
+    }
+
+    const checkId = await createCheckRun(createCheckInput)(log)(octokit)
 
     const fileContent = await octokit.repos.getContent({
       ...repository,
@@ -75,11 +81,12 @@ const processPullRequest = () => async (payload: PullRequestEvent, context: Cont
 
 
     const checkToResolve = {
-      sha,
-      conclusion,
-      check_run_id: checkId,
+      ...repository,
+      sha: sha,
+      conclusion: conclusion,
+      checkRunId: checkId,
     }
-    const checkConclusion = await resolveCheckRun(repository, checkToResolve)(log)(octokit)
+    const checkConclusion = await resolveCheckRun(checkToResolve)(log)(octokit)
 
     log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
   } catch (error) {
