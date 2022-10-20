@@ -43,7 +43,6 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   try {
     const filesChanged = await getFilesChanged(repository, number)(log)(octokit)
-
     const configFile = filesChanged.find(filename => filename === configFileName)
 
     if (!configFile) return
@@ -52,7 +51,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
     const createCheckInput = {
       ...repository,
-      sha: sha
+      sha: sha,
     }
 
     const checkId = await createCheckRun(createCheckInput)(log)(octokit)
