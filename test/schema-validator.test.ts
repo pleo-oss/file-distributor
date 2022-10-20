@@ -1,21 +1,17 @@
+import Ajv from 'ajv'
+import { Logger } from 'probot'
+import { validateTemplateConfiguration } from '../src/schema-validator'
 
-import Ajv from "ajv";
-import { RepositoryConfiguration } from "../src/types";
-import templateSchema from "../src/template-schema.json";
-import { validateTemplateConfiguration } from "../src/schema-validator";
-
-const ajv = new Ajv()
-const validateTemplate = ajv.compile<RepositoryConfiguration>(templateSchema)
+const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
 
 describe('Schema Tests', () => {
+  test('returns false for an invalid input', async () => {
+    const validation = validateTemplateConfiguration('DFds')(log)
+    expect(validation).toBeFalsy()
+  })
 
-    test('returns false for an invalid input', async () => {
-        const validation = validateTemplateConfiguration(validateTemplate, "DFds")
-        expect(validation).toBeFalsy()
-    })
-
-    test('returns false for a null value on a non nullable type', async () => {
-        const input = `
+  test('returns false for a null value on a non nullable type', async () => {
+    const input = `
         # The template version to use (optional).
         version: null
         
@@ -27,12 +23,12 @@ describe('Schema Tests', () => {
           - source: null
             destination: path/to/template-destination/filename.yaml
         `
-        const validation = validateTemplateConfiguration(validateTemplate, input)
-        expect(validation).toBeFalsy()
-    })
+    const validation = validateTemplateConfiguration(input)(log)
+    expect(validation).toBeFalsy()
+  })
 
-    test('returns true for a null value on a nullable type', async () => {
-        const input = `
+  test('returns true for a null value on a nullable type', async () => {
+    const input = `
         # The template version to use (optional).
         version: v10.7.0
         
@@ -44,12 +40,12 @@ describe('Schema Tests', () => {
           - source: path/to/template/filename.yaml
             destination: path/to/template-destination/filename.yaml
         `
-        const validation = validateTemplateConfiguration(validateTemplate, input)
-        expect(validation).toBeTruthy()
-    })
+    const validation = validateTemplateConfiguration(input)(log)
+    expect(validation).toBeTruthy()
+  })
 
-    test('returns true for a valid schema', async () => {
-        const input = `
+  test('returns true for a valid schema', async () => {
+    const input = `
         # The template version to use (optional).
         version: v10.7.0
         
@@ -61,7 +57,7 @@ describe('Schema Tests', () => {
           - source: path/to/template/filename.yaml
             destination: path/to/template-destination/filename.yaml
         `
-        const validation = validateTemplateConfiguration(validateTemplate, input)
-        expect(validation).toBeTruthy()
-    })
+    const validation = validateTemplateConfiguration(input)(log)
+    expect(validation).toBeTruthy()
+  })
 })
