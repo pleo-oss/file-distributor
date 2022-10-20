@@ -33,7 +33,7 @@ const extractRepositoryInformation = (payload: PushEvent) => {
   }
 }
 
-const processPullRequest = () => async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
+const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
   const { log, octokit } = context
 
   const repository = {
@@ -138,6 +138,6 @@ export = async (app: Probot) => {
   })
 
   app.on('pull_request', async (context: Context<'pull_request'>) => {
-    await processPullRequest()(context.payload as PullRequestEvent, context)
+    await processPullRequest(context.payload as PullRequestEvent, context)
   })
 }
