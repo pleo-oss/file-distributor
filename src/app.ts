@@ -3,13 +3,12 @@ import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
 import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
-import { commitFiles, getCommitFiles } from './git'
-import validator from "./schema-validator";
+import { commitFiles, getCommitFiles, getFilesChanged } from './git'
+import { validateTemplateConfiguration } from './schema-validator'
 import schema from './template-schema.json'
-import { JSONSchemaType } from "ajv";
+import { JSONSchemaType } from 'ajv'
 import { TemplateConfig } from './types'
-import { createCheckRun, resolveCheckRun } from './github'
-
+import { createCheckRun, resolveCheckRun } from './checks'
 
 const configFileName = '.config/templates.yaml'
 
@@ -36,51 +35,51 @@ const processPullRequest = () => async (payload: PullRequestEvent, context: Cont
     owner: payload.repository.owner.login,
     repo: payload.repository.name,
   }
-  log(`Pull request event happened on '${context.payload.pull_request}'`)
+  const {
+    number,
+    pull_request: {
+      head: { ref, sha },
+    },
+  } = payload
+
+  log.info(`Pull request event happened on #${number}`)
 
   try {
-    const filesChanged = await octokit.pulls.listFiles({
+    const filesChanged = await getFilesChanged(repository, number)(log)(octokit)
+
+    const configFile = filesChanged.find(filename => filename === configFileName)
+
+    if (!configFile) return
+
+    log.debug(`Found repository configuration file: ${configFile}.`)
+    const checkId = await createCheckRun(repository, sha)(log)(octokit)
+
+    const fileContent = await octokit.repos.getContent({
       ...repository,
-      pull_number: payload.number
+      path: configFile,
+      ref,
     })
-    const configFile = filesChanged.data.find(file => file.filename === configFileName)
-    if (configFile) {
 
-      log.debug(`Found file ${configFile.filename}`)
-      const checkRun = await createCheckRun(
-        context.octokit,
-        {
-          owner: repository.owner,
-          repo: repository.repo,
-          sha: payload.pull_request.head.sha
-        }
-      )
+    const { content } = fileContent.data as { content: string }
+    const decodedContent = Buffer.from(content, 'base64').toString()
+    log.debug(`Saw configuration file contents:`)
+    log.debug(decodedContent)
 
-      const fileContent = await octokit.repos.getContent({
-        ...repository,
-        path: configFile.filename,
-        ref: payload.pull_request.head.ref
-      })
+    const validationSchema = schema as JSONSchemaType<TemplateConfig>
+    const validationResult = validateTemplateConfiguration(validationSchema, decodedContent)(log)
+    const conclusion = validationResult ? 'success' : 'failure'
 
-      const { content } = fileContent.data as { content: string }
-      const decodedContent = Buffer.from(content, 'base64').toString()
-      log.debug(`decoded content ${decodedContent}`)
-
-
-      const result = validator(schema as JSONSchemaType<TemplateConfig>, decodedContent)
-      const resultString = (result) ? "success" : "failure"
-
-      await resolveCheckRun(octokit, {
-        owner: repository.owner,
-        repo: repository.repo,
-        sha: context.payload.pull_request.head.sha,
-        result: resultString,
-        check_run_id: checkRun.data.id
-      })
+    const checkToResolve = {
+      sha,
+      conclusion,
+      check_run_id: checkId,
     }
+    const checkConclusion = await resolveCheckRun(repository, checkToResolve)(log)(octokit)
+
+    log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
   } catch (error) {
-    log.error(`There has been an error ${error}`);
-    return error
+    log.error(`Failed to process PR #${number}' with error:`)
+    log.error(error as never)
   }
 }
 

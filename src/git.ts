@@ -24,6 +24,21 @@ export const getCommitFiles =
     return filenames
   }
 
+export const getFilesChanged =
+  (repository: RepositoryDetails, pullRequestNumber: number) =>
+  (log: Logger) =>
+  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+    log.debug(`Fetching files changed for PR #${pullRequestNumber}.`)
+    const { data: filesChanged } = await octokit.pulls.listFiles({
+      ...repository,
+      pull_number: pullRequestNumber,
+    })
+    const filenames = filesChanged.map(file => file.filename)
+    log.debug(`Saw files changed in #${pullRequestNumber}:`)
+    log.debug(filenames)
+    return filenames
+  }
+
 const getOrCreateNewBranch =
   (repository: RepositoryDetails, baseBranchRef: string) =>
   (log: Logger) =>

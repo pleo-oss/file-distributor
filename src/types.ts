@@ -44,31 +44,21 @@ export interface PRDetails {
   description: string
 }
 interface File {
-  source: string,
+  source: string
   destination: string
 }
 
 export interface TemplateConfig {
-  version: string,
-  automerge: boolean,
-  files: Array<File>,
+  version: string
+  automerge: boolean
+  files: Array<File>
   values: object
 }
 
-export interface CreateCheckInput {
-  owner: string,
-  repo: string,
+export interface CheckUpdate {
   sha: string
-}
-
-export interface UpdateCheckInput {
-  owner: string,
-  repo: string,
-  sha: string,
-  result: string,
+  conclusion: string
   check_run_id: number
 }
 
 export type OctokitInstance = InstanceType<typeof ProbotOctokit>
-
-
