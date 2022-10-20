@@ -296,7 +296,7 @@ export const requestPullRequestChanges =
 🤖 It looks like your changes are invalid. 
 
 Validating the changes in this PR resulted in the following errors: 
-${errors}
+${errors.join('\n')}
 `
     log.debug(`Creating change request review on PR #${pullRequestNumber}.`)
     const {
