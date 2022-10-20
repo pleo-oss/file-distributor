@@ -1,4 +1,3 @@
-import Ajv from 'ajv'
 import { Logger } from 'probot'
 import { validateTemplateConfiguration } from '../src/schema-validator'
 
