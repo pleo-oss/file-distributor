@@ -56,7 +56,7 @@ export type UpdateCheckInput = CreateCheckInput & {
 
 export interface TemplateValidation {
   result: boolean
-  errors?: (string | undefined)[]
+  errors: (string | undefined)[]
 }
 
 export type OctokitInstance = InstanceType<typeof ProbotOctokit>

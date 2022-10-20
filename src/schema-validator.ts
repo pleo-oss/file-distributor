@@ -13,8 +13,7 @@ export const validateTemplateConfiguration =
     const parsed = parse(input)
     const isValid = validate(parsed)
 
-    const fullErrors = validate.errors
-    const errors = fullErrors?.map(error => error?.message)
+    const errors = validate.errors?.map(error => error?.message)?.filter(error => error) ?? []
 
     if (!isValid) {
       log.debug(`Saw validation errors:`)

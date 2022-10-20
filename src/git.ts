@@ -287,3 +287,46 @@ export const commitFiles =
 
     return await maintainPullRequest(repository, prDetails, baseBranch)(log)(octokit)
   }
+
+export const requestPullRequestChanges =
+  (repository: RepositoryDetails, pullRequestNumber: number, errors: (string | undefined)[]) =>
+  (log: Logger) =>
+  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+    const body = `
+🤖 It looks like your changes are invalid. 
+
+Validating the changes in this PR resulted in the following errors: 
+${errors}
+`
+    log.debug(`Creating change request review on PR #${pullRequestNumber}.`)
+    const {
+      data: { id },
+    } = await octokit.pulls.createReview({
+      ...repository,
+      pull_number: pullRequestNumber,
+      event: 'REQUEST_CHANGES',
+      body,
+    })
+    log.debug(`Created change request review '${id}'.`)
+
+    return id
+  }
+
+export const approvePullRequestChanges =
+  (repository: RepositoryDetails, pullRequestNumber: number) =>
+  (log: Logger) =>
+  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+    const body = `🤖 Well done!`
+    log.debug(`Creating approved review on PR #${pullRequestNumber}.`)
+    const {
+      data: { id },
+    } = await octokit.pulls.createReview({
+      ...repository,
+      pull_number: pullRequestNumber,
+      event: 'APPROVE',
+      body,
+    })
+    log.debug(`Created approved review '${id}'.`)
+
+    return id
+  }

@@ -43,7 +43,7 @@ describe('Schema Tests', () => {
         `
     const { result, errors } = validateTemplateConfiguration(input)(log)
     expect(result).toBeTruthy()
-    expect(errors?.length).toBeUndefined()
+    expect(errors?.length).toEqual(0)
   })
 
   test('returns true for a valid schema', async () => {
@@ -61,6 +61,6 @@ describe('Schema Tests', () => {
         `
     const { result, errors } = validateTemplateConfiguration(input)(log)
     expect(result).toBeTruthy()
-    expect(errors?.length).toBeUndefined()
+    expect(errors?.length).toEqual(0)
   })
 })

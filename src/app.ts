@@ -3,7 +3,13 @@ import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
 import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
-import { commitFiles, getCommitFiles, getFilesChanged } from './git'
+import {
+  approvePullRequestChanges,
+  commitFiles,
+  getCommitFiles,
+  getFilesChanged,
+  requestPullRequestChanges,
+} from './git'
 import { validateTemplateConfiguration } from './schema-validator'
 import { createCheckRun, resolveCheckRun } from './checks'
 
@@ -66,7 +72,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     const decodedContent = Buffer.from(content, 'base64').toString()
     log.debug(`Saw configuration file contents:`)
     log.debug(decodedContent)
-    const { result } = validateTemplateConfiguration(decodedContent)(log)
+    const { result, errors } = validateTemplateConfiguration(decodedContent)(log)
     const conclusion = result ? 'success' : 'failure'
 
     const checkToResolve = {
@@ -75,7 +81,15 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
       conclusion: conclusion,
       checkRunId: checkId,
     }
-    const checkConclusion = await resolveCheckRun(checkToResolve)(log)(octokit)
+    const checkConclusion = resolveCheckRun(checkToResolve)(log)(octokit)
+
+    if (!result) {
+      const changeRequestId = await requestPullRequestChanges(repository, number, errors)(log)(octokit)
+      log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
+    } else {
+      const approvedReviewId = await approvePullRequestChanges(repository, number)(log)(octokit)
+      log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
+    }
 
     log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
   } catch (error) {
