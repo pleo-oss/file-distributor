@@ -25,7 +25,7 @@
             "preLaunchTask": "yarn: build"
         },
         {
-            "name": "Debug opened file Jest Tests",
+            "name": "Debug current Jest Test file",
             "type": "node",
             "request": "launch",
             "runtimeArgs": [
