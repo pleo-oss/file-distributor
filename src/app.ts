@@ -95,6 +95,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   } catch (error) {
     log.error(`Failed to process PR #${number}' with error:`)
     log.error(error as never)
+    throw error
   }
 }
 
@@ -112,7 +113,6 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
     log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
-    const configFileName = `.config/templates.yaml`
     const filesChanged = await getCommitFiles(repository, payload.after)(log)(octokit)
 
     if (filesChanged.includes(configFileName)) {
