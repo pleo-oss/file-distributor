@@ -5,17 +5,9 @@ import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
 import { commitFiles, getCommitFiles, getFilesChanged } from './git'
 import { validateTemplateConfiguration } from './schema-validator'
-import Ajv from 'ajv'
-import { RepositoryConfiguration } from './types'
 import { createCheckRun, resolveCheckRun } from './checks'
-import templateSchema from "./template-schema.json";
-
-
-const ajv = new Ajv()
-const validateTemplate = ajv.compile<RepositoryConfiguration>(templateSchema)
 
 const configFileName = '.config/templates.yaml'
-
 
 const extractRepositoryInformation = (payload: PushEvent) => {
   const {
@@ -75,10 +67,8 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     const decodedContent = Buffer.from(content, 'base64').toString()
     log.debug(`Saw configuration file contents:`)
     log.debug(decodedContent)
-    const validationSchema = validateTemplate
-    const validationResult = validateTemplateConfiguration(validationSchema, decodedContent)
-    const conclusion = validationResult ? 'success' : 'failure'
-
+    const { result } = validateTemplateConfiguration(decodedContent)(log)
+    const conclusion = result ? 'success' : 'failure'
 
     const checkToResolve = {
       ...repository,

@@ -4,24 +4,19 @@ module.exports = {
     es2021: true,
     jest: true,
   },
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'prettier',
-  ],
+  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
   parser: '@typescript-eslint/parser',
-  plugins: [
-    '@typescript-eslint',
-  ],
+  plugins: ['@typescript-eslint'],
   root: true,
   rules: {
     'import/extensions': 0,
     'import/no-unresolved': 0,
     'max-len': 0,
+    'no-console': 2,
   },
   settings: {
-    "import/resolver": {
-      "typescript": {}
-    }
-  }
-};
+    'import/resolver': {
+      typescript: {},
+    },
+  },
+}

@@ -1,9 +1,27 @@
-import { ValidateFunction } from "ajv";
-import { parse } from "yaml";
-import { RepositoryConfiguration } from "./types";
+import { parse } from 'yaml'
+import { RepositoryConfiguration, TemplateValidation } from './types'
+import Ajv from 'ajv'
+import templateSchema from './template-schema.json'
+import { Logger } from 'probot'
 
-export const validateTemplateConfiguration = (validate: ValidateFunction<RepositoryConfiguration>, input: string): boolean => {
-    const valid = validate(parse(input))
-    if (!valid) console.log(validate.errors)
-    return valid
-}
+const ajv = new Ajv()
+
+export const validateTemplateConfiguration =
+  (input: string) =>
+  (log: Logger): TemplateValidation => {
+    const validate = ajv.compile<RepositoryConfiguration>(templateSchema)
+    const parsed = parse(input)
+    const isValid = validate(parsed)
+
+    const errors = validate.errors?.map(error => error?.message)
+
+    if (!isValid) {
+      log.debug(`Saw validation errors:`)
+      log.debug(errors)
+    }
+
+    return {
+      result: isValid,
+      errors,
+    }
+  }
