@@ -1,54 +1,56 @@
-import { OctokitInstance, RepositoryDetails, CheckUpdate } from './types'
+import { OctokitInstance, CreateCheckInput, UpdateCheckInput } from './types'
 import { Logger } from 'probot'
 
 export const createCheckRun =
-  (repository: RepositoryDetails, sha: string) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'checks'>) => {
-    log.debug(`Creating queued check run on ${sha}.`)
+  (input: CreateCheckInput) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'checks'>) => {
+    log.debug(`Creating queued check run on ${input.sha}.`)
     const {
       data: { id },
     } = await octokit.checks.create({
       headers: {
         accept: 'application/vnd.github.v3+json',
       },
-      ...repository,
+      owner: input.owner,
+      repo: input.repo,
       name: 'Template Config Validation',
-      head_sha: sha,
+      head_sha: input.sha,
       status: 'queued',
       output: {
         title: 'Template schema validation',
         summary: 'Validation is queued',
       },
     })
-    log.debug(`Queued check run ${sha} with ID '${id}'.`)
+    log.debug(`Queued check run ${input.sha} with ID '${id}'.`)
 
     return id
   }
 
 export const resolveCheckRun =
-  (repository: RepositoryDetails, update: CheckUpdate) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'checks'>) => {
-    const { checkRunId, sha, conclusion } = update
+  (input: UpdateCheckInput) =>
+    (log: Logger) =>
+      async (octokit: Pick<OctokitInstance, 'checks'>) => {
+        const { checkRunId, sha, conclusion: result } = input
 
-    log.debug(`Updating check run ${checkRunId}.`)
-    const {
-      data: { conclusion: checkConclusion },
-    } = await octokit.checks.update({
-      headers: {
-        accept: 'application/vnd.github.v3+json',
-      },
-      ...repository,
-      name: 'Template Config Validation',
-      check_run_id: checkRunId,
-      status: 'completed',
-      head_sha: sha,
-      conclusion,
-      output: {
-        title: 'Template schema validation',
-        summary: conclusion,
-      },
-    })
-    log.debug(`Updated check run ${checkRunId} with conclusion '${checkConclusion}'.`)
+        log.debug(`Updating check run ${checkRunId}.`)
+        const {
+          data: { conclusion },
+        } = await octokit.checks.update({
+          headers: {
+            accept: 'application/vnd.github.v3+json',
+          },
+          owner: input.owner,
+          repo: input.repo,
+          name: 'Template Config Validation',
+          check_run_id: checkRunId,
+          status: 'completed',
+          head_sha: sha,
+          conclusion: result,
+          output: {
+            title: 'Template schema validation',
+            summary: result,
+          },
+        })
+        log.debug(`Updated check run ${checkRunId} with conclusion '${conclusion}'.`)
 
-    return checkConclusion
-  }
+        return conclusion
+      }

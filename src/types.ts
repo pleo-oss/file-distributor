@@ -44,8 +44,12 @@ export interface PRDetails {
   description: string
 }
 
-export type CheckUpdate = {
+export interface CreateCheckInput {
+  owner: string
+  repo: string
   sha: string
+}
+export type UpdateCheckInput = CreateCheckInput & {
   conclusion: string
   checkRunId: number
 }
