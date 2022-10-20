@@ -81,7 +81,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
       conclusion: conclusion,
       checkRunId: checkId,
     }
-    const checkConclusion = resolveCheckRun(checkToResolve)(log)(octokit)
+    const checkConclusion = await resolveCheckRun(checkToResolve)(log)(octokit)
 
     if (!result) {
       const changeRequestId = await requestPullRequestChanges(repository, number, errors)(log)(octokit)
