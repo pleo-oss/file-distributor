@@ -43,17 +43,6 @@ export interface PRDetails {
   title: string
   description: string
 }
-interface File {
-  source: string
-  destination: string
-}
-
-export interface TemplateConfig {
-  version: string
-  automerge: boolean
-  files: Array<File>
-  values: object
-}
 
 export interface CheckUpdate {
   sha: string

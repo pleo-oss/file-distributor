@@ -4,10 +4,12 @@
   "properties": {
     "version": {
       "type": "string",
-      "pattern": "^v\\d+.\\d+.\\d+$"
+      "pattern": "^v\\d+.\\d+.\\d+$",
+      "nullable": true
     },
     "automerge": {
-      "type": "boolean"
+      "type": "boolean",
+      "nullable": true
     },
     "files": {
       "type": "array",
@@ -31,5 +33,6 @@
       "type": "object"
     }
   },
-  "required": []
+  "required": [],
+  "additionalProperties": false
 }
