@@ -34,6 +34,35 @@ const extractRepositoryInformation = (payload: PushEvent) => {
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
   const { log, octokit } = context
 
+  const createCheck = async (result: boolean, errors: string[], approve: boolean) => {
+    const conclusion = result ? 'success' : 'failure'
+
+    const createCheckInput = {
+      ...repository,
+      sha: sha,
+    }
+
+    const checkId = await createCheckRun(createCheckInput)(log)(octokit)
+
+    const checkToResolve = {
+      ...repository,
+      sha: sha,
+      conclusion: conclusion,
+      checkRunId: checkId,
+    }
+    const checkConclusion = await resolveCheckRun(checkToResolve)(log)(octokit)
+
+    if (!result) {
+      const changeRequestId = await requestPullRequestChanges(repository, number, errors)(log)(octokit)
+      log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
+    } else if (approve) {
+      const approvedReviewId = await approvePullRequestChanges(repository, number)(log)(octokit)
+      log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
+    }
+
+    return checkConclusion
+  }
+
   const repository = {
     owner: payload.repository.owner.login,
     repo: payload.repository.name,
@@ -55,43 +84,29 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
     log.debug(`Found repository configuration file: ${configFile}.`)
 
-    const createCheckInput = {
-      ...repository,
-      sha: sha,
-    }
-
-    const checkId = await createCheckRun(createCheckInput)(log)(octokit)
     const configuration = await determineConfigurationChanges(configFileName, repository, sha)(log)(octokit)
+    const { result, errors } = validateTemplateConfiguration(configuration)(log)
+
+    const checkConclusion = await createCheck(result, errors, false)
+    log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
+    if (!result) return
+
     const defaultValues = await getTemplateDefaultValues(configuration.version)(log)(octokit)
     const defaultValueSchema = generateSchema(defaultValues.values)(log)
 
     const combined = combineConfigurations(defaultValues, configuration)
     if (!combined) return
 
-    const { result, errors } = validateTemplateConfiguration(combined, defaultValueSchema)(log)
-    const conclusion = result ? 'success' : 'failure'
+    const { result: configurationResult, errors: configurationErrors } = validateTemplateConfiguration(
+      combined,
+      defaultValueSchema,
+    )(log)
 
-    const checkToResolve = {
-      ...repository,
-      sha: sha,
-      conclusion: conclusion,
-      checkRunId: checkId,
-    }
-    const checkConclusion = await resolveCheckRun(checkToResolve)(log)(octokit)
-
-    if (!result) {
-      const changeRequestId = await requestPullRequestChanges(repository, number, errors)(log)(octokit)
-      log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
-    } else {
-      const approvedReviewId = await approvePullRequestChanges(repository, number)(log)(octokit)
-      log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
-    }
-
-    log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
+    const configurationConclusion = await createCheck(configurationResult, configurationErrors, true)
+    log.info(`Validated configuration changes in #${number} with conclusion: ${configurationConclusion}.`)
   } catch (error) {
     log.error(`Failed to process PR #${number}' with error:`)
     log.error(error as never)
-    throw error
   }
 }
 

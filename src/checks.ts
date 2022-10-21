@@ -12,7 +12,7 @@ export const createCheckRun =
       },
       owner: input.owner,
       repo: input.repo,
-      name: 'Template Config Validation',
+      name: 'Configuration validation',
       head_sha: input.sha,
       status: 'queued',
       output: {
@@ -38,7 +38,7 @@ export const resolveCheckRun =
       },
       owner: input.owner,
       repo: input.repo,
-      name: 'Template Config Validation',
+      name: 'Configuration validation',
       check_run_id: checkRunId,
       status: 'completed',
       head_sha: sha,

@@ -60,7 +60,7 @@ describe('Github api calls', () => {
           accept: 'application/vnd.github.v3+json',
         },
         ...testRepository,
-        name: 'Template Config Validation',
+        name: 'Configuration validation',
         head_sha: testSha,
         status: 'queued',
         output: {
@@ -80,7 +80,7 @@ describe('Github api calls', () => {
       expect(octokitMock.checks.create).toBeCalledTimes(1)
       expect(octokitMock.checks.create).not.toHaveBeenCalledWith({
         ...testRepository,
-        name: 'Template Config Validation',
+        name: 'Configuration validation',
         head_sha: testSha,
         status: 'queued',
         output: {
@@ -126,7 +126,7 @@ describe('Github api calls', () => {
         conclusion: testInput.conclusion,
         ...testRepository,
         head_sha: testInput.sha,
-        name: 'Template Config Validation',
+        name: 'Configuration validation',
         status: 'completed',
         output: {
           title: 'Template schema validation',
