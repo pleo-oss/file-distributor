@@ -52,7 +52,7 @@ Validating the changes in this PR resulted in the following errors:
     })
 
     test('can approve PRs', async () => {
-      const expectedBody = `🤖 Well done!`
+      const expectedBody = '🤖 Well done!'
       const result = await approvePullRequestChanges(testRepository, testPullRequestNumber)(log)(octokitMock)
 
       expect(octokitMock.pulls.createReview).toBeCalledTimes(1)

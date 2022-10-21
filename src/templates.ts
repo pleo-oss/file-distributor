@@ -29,7 +29,7 @@ const extract =
 const extractZipContents =
   (contents: ArrayBuffer, configuration: RepositoryConfiguration) =>
   async (log: Logger): Promise<ExtractedContent> => {
-    log.debug(`Extracting ZIP contents.`)
+    log.debug('Extracting ZIP contents.')
     const loaded = await loadAsync(contents)
 
     const extractTemplates: Promise<Template>[] =

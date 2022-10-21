@@ -75,8 +75,8 @@ describe('Template rendering', () => {
     expect(renderedTemplates.templates.length).toBe(2)
 
     //and
-    expect(renderedTemplates.templates[0].contents).toBe(`{"owner": "pleo", "repo": "expected-app-name"}`)
-    expect(renderedTemplates.templates[1].contents).toBe(`owner = "pleo" repo = "expected-app-name"`)
+    expect(renderedTemplates.templates[0].contents).toBe('{"owner": "pleo", "repo": "expected-app-name"}')
+    expect(renderedTemplates.templates[1].contents).toBe('owner = "pleo" repo = "expected-app-name"')
   })
 
   test('should skip prepending header for json file when CODEOWNERS defined', async () => {
@@ -94,7 +94,7 @@ describe('Template rendering', () => {
     const renderedTemplates = await renderTemplates(configuration)(log)(mockedOctokit)
 
     //then
-    expect(renderedTemplates.templates[0].contents).toBe(`{"owner": "pleo", "repo": "expected-app-name"}`)
+    expect(renderedTemplates.templates[0].contents).toBe('{"owner": "pleo", "repo": "expected-app-name"}')
   })
 
   test('should add default prepending header for `toml` file when CODEOWNERS defined', async () => {

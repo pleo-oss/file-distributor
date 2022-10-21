@@ -16,7 +16,8 @@
     "build:run": "yarn build && yarn start",
     "start": "probot run ./lib/app.js",
     "test": "jest",
-    "format": "prettier --write **/*.ts && eslint --fix"
+    "lint": "prettier --check src/**/*.ts test/**/*.ts && eslint --ext .ts src && eslint --ext .ts test",
+    "format": "prettier --write src/**/*.ts test/**/*.ts && eslint --fix --ext .ts src && eslint --fix --ext .ts test"
   },
   "dependencies": {
     "@types/node-fetch": "2.6.2",
