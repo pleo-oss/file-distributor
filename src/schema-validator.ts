@@ -28,8 +28,7 @@ export const schemaValidator = (log: Logger) => {
     const valueErrors = prettifyErrors(validateValues.errors)
 
     if (!isValidConfiguration || !hasValidValues) {
-      log.debug('Saw validation errors:')
-      log.debug(configurationErrors)
+      log.debug('Saw validation errors: %s', configurationErrors.join(','))
     }
 
     return {

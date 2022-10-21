@@ -11,36 +11,35 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       ...repository,
       ref: sha,
     })
-    log.debug('Fetched commit:')
-    log.debug(commit)
+    log.debug('Fetched commit: %o', commit)
+
     const {
       data: { files },
     } = commit
 
     const filenames = files?.map(f => f.filename) ?? []
-    log.debug(`Saw changed files in ${sha}:`)
-    log.debug(filenames)
+    log.debug('Saw changed files in commit %s: %s', sha, filenames.join(','))
 
     return filenames
   }
 
   const getFilesChanged = async (repository: RepositoryDetails, pullRequestNumber: number) => {
-    log.debug(`Fetching files changed for PR #${pullRequestNumber}.`)
+    log.debug('Fetching files changed for PR #%d.', pullRequestNumber)
     const { data: filesChanged } = await octokit.pulls.listFiles({
       ...repository,
       pull_number: pullRequestNumber,
     })
     const filenames = filesChanged.map(file => file.filename)
-    log.debug(`Saw files changed in #${pullRequestNumber}:`)
-    log.debug(filenames)
+
+    log.debug('Saw files changed in #%d: %s', pullRequestNumber, filenames.join(','))
     return filenames
   }
 
   const getOrCreateNewBranch = async (repository: RepositoryDetails, baseBranchRef: string) => {
     try {
-      log.debug(`Creating new branch on SHA: '${baseBranchRef}'.`)
+      log.debug('Creating new branch on SHA: %s.', baseBranchRef)
       const newBranch = (await octokit.git.createRef({ ...repository, ref: fullBranchName, sha: baseBranchRef })).data
-      log.debug(`Created new branch with ref: '${newBranch.ref}'.`)
+      log.debug('Created new branch with ref: %s.', newBranch.ref)
 
       const {
         object: { sha },
@@ -48,11 +47,11 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
 
       return sha
     } catch {
-      log.debug(`Failed to create a new branch with ref: '${fullBranchName}'.`)
-      log.debug(`Fetching existing branch with ref: '${reducedBranchName}'.`)
+      log.debug('Failed to create a new branch with ref: %s.', fullBranchName)
+      log.debug('Fetching existing branch with ref: %s.', reducedBranchName)
 
       const { data: foundBranch } = await octokit.git.getRef({ ...repository, ref: reducedBranchName })
-      log.debug(`Found new branch with ref: '${foundBranch.ref}'.`)
+      log.debug('Found new branch with ref: %s.', foundBranch.ref)
 
       const {
         object: { sha },
@@ -70,7 +69,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       content: template.contents,
     }))
 
-    log.debug(`Fetching existing trees from '${treeSha}'.`)
+    log.debug('Fetching existing trees from %s.', treeSha)
     const {
       data: { tree: existingTree },
     } = await octokit.git.getTree({ ...repository, tree_sha: treeSha })
@@ -82,7 +81,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       ...repository,
       tree: [...templateTree, ...existingTree] as [],
     })
-    log.debug(`Created git tree with SHA '${createdTreeSha}'.`)
+    log.debug('Created git tree with SHA %s.', createdTreeSha)
 
     return createdTreeSha
   }
@@ -103,7 +102,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       tree: createdTreeSha,
       parents: [currentCommitSha],
     })
-    log.debug(`Created git commit with SHA '${newCommitSha}'.`)
+    log.debug('Created git commit with SHA %s.', newCommitSha)
 
     return newCommitSha
   }
@@ -119,7 +118,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       head: fullBranchName,
       base: baseBranch,
     })
-    log.debug(`Created PR #${created.data.number}.`)
+    log.debug('Created PR #%d.', created.data.number)
 
     return created
   }
@@ -127,7 +126,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   const updatePullRequest = async (repository: RepositoryDetails, details: PRDetails, number: number) => {
     const { title, description } = details
 
-    log.debug(`Updating PR #${number}.`)
+    log.debug('Updating PR #%d.', number)
     const updated = await octokit.pulls.update({
       ...repository,
       pull_number: number,
@@ -136,7 +135,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       title: title,
       state: 'open',
     })
-    log.debug(`Updated PR #${updated.data.number}.`)
+    log.debug('Updated PR #%d.', updated.data.number)
 
     return updated
   }
@@ -147,7 +146,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       head: `${repository.owner}:${baseBranchName}`,
       state: 'open',
     })
-    log.debug(`Found ${openPullRequests.length} open PRs.`)
+    log.debug('Found %s open PRs.', openPullRequests.length)
 
     const toUpdate = openPullRequests.sort(pr => pr.number).shift()
 
@@ -155,13 +154,13 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   }
 
   const mergePullRequest = async (number: number, repository: RepositoryDetails) => {
-    log.debug(`Attempting automerge of PR #${number}.`)
+    log.debug('Attempting automerge of PR #%d.', number)
     const merged = await octokit.pulls.merge({
       ...repository,
       pull_number: number,
       merge_method: 'squash',
     })
-    log.debug(`Merged PR #${number}.`)
+    log.debug('Merged PR #%d.', number)
 
     return merged
   }
@@ -188,7 +187,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   }
 
   const updateBranch = async (newBranch: string, newCommit: string, repository: RepositoryDetails) => {
-    log.debug(`Setting new branch ref '${newBranch}' to commit '${newCommit}'.`)
+    log.debug('Setting new branch ref %s to commit %s.', newBranch, newCommit)
     const {
       data: { ref: updatedRef },
     } = await octokit.git.updateRef({
@@ -223,9 +222,9 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     const {
       data: { default_branch: baseBranch },
     } = await octokit.repos.get({ ...repository })
-    log.debug(`Using base branch '${baseBranch}'.`)
+    log.debug('Using base branch %s.', baseBranch)
 
-    log.debug(`Fetching base branch ref 'heads/${baseBranch}'.`)
+    log.debug('Fetching base branch ref heads/%s.', baseBranch)
     const {
       data: {
         object: { sha: baseBranchRef },
@@ -239,7 +238,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       data: { sha: currentCommitSha },
     } = await octokit.git.getCommit({ ...repository, commit_sha: baseBranchRef })
 
-    log.debug(`Using base commit '${currentCommitSha}'.`)
+    log.debug('Using base commit %s.', currentCommitSha)
 
     return { baseBranch, currentCommitSha, newBranch, baseBranchRef }
   }
@@ -255,7 +254,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     const createdTree = await createTreeWithChanges(templates, repository, baseBranchRef)
     const newCommit = await createCommitWithChanges(repository, prDetails.title, currentCommitSha, createdTree)
     const updatedRef = await updateBranch(newBranch, newCommit, repository)
-    log.debug(`Updated branch ref: ${updatedRef}`)
+    log.debug('Updated branch ref: %s', updatedRef)
 
     return await maintainPullRequest(repository, prDetails, baseBranch)
   }
@@ -272,7 +271,7 @@ Validating the changes in this PR resulted in the following errors:
 
 ${errors.map(error => `- ${error}`).join('\n')}
 `
-    log.debug(`Creating change request review on PR #${pullRequestNumber}.`)
+    log.debug('Creating change request review on PR #%d.', pullRequestNumber)
     const {
       data: { id },
     } = await octokit.pulls.createReview({
@@ -281,14 +280,14 @@ ${errors.map(error => `- ${error}`).join('\n')}
       event: 'REQUEST_CHANGES',
       body,
     })
-    log.debug(`Created change request review '${id}'.`)
+    log.debug('Created change request review %d.', id)
 
     return id
   }
 
   const approvePullRequestChanges = async (repository: RepositoryDetails, pullRequestNumber: number) => {
     const body = '🤖 Well done!'
-    log.debug(`Creating approved review on PR #${pullRequestNumber}.`)
+    log.debug('Creating approved review on PR #%d.', pullRequestNumber)
     const {
       data: { id },
     } = await octokit.pulls.createReview({
@@ -297,7 +296,7 @@ ${errors.map(error => `- ${error}`).join('\n')}
       event: 'APPROVE',
       body,
     })
-    log.debug(`Created approved review '${id}'.`)
+    log.debug('Created approved review %d.', id)
 
     return id
   }
