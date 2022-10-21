@@ -84,7 +84,8 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     }
     const [checkId, configuration] = await Promise.all([
       createCheckRun(createCheckInput)(log)(octokit),
-      determineConfigurationChanges(configFileName, repository, sha)(log)(octokit)])
+      determineConfigurationChanges(configFileName, repository, sha)(log)(octokit),
+    ])
 
     const defaultValues = await getTemplateDefaultValues(configuration.version)(log)(octokit)
     const defaultValueSchema = generateSchema(defaultValues.values)(log)
