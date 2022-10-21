@@ -1,7 +1,7 @@
 import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
-import { determineConfigurationChanges } from './configuration'
+import { combineConfigurations, determineConfigurationChanges } from './configuration'
 import { getTemplateDefaultValues, renderTemplates } from './templates'
 import {
   approvePullRequestChanges,
@@ -62,11 +62,13 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
     const checkId = await createCheckRun(createCheckInput)(log)(octokit)
     const configuration = await determineConfigurationChanges(configFileName, repository, sha)(log)(octokit)
+    const defaultValues = await getTemplateDefaultValues(configuration.version)(log)(octokit)
+    const defaultValueSchema = generateSchema(defaultValues.values)(log)
 
-    const defaultValues = await getTemplateDefaultValues(configuration)(log)(octokit)
-    const defaultValueSchema = generateSchema(defaultValues)(log)
+    const combined = combineConfigurations(defaultValues, configuration)
+    if (!combined) return
 
-    const { result, errors } = validateTemplateConfiguration(configuration, defaultValueSchema)(log)
+    const { result, errors } = validateTemplateConfiguration(combined, defaultValueSchema)(log)
     const conclusion = result ? 'success' : 'failure'
 
     const checkToResolve = {
@@ -111,9 +113,12 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
     if (!filesChanged.includes(configFileName)) return
 
     const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)(log)(octokit)
-    if (!parsed) return
+    const defaultValues = await getTemplateDefaultValues(parsed.version)(log)(octokit)
 
-    const { version, templates: processed } = await renderTemplates(parsed)(log)(octokit)
+    const combined = combineConfigurations(defaultValues, parsed)
+    if (!combined) return
+
+    const { version, templates: processed } = await renderTemplates(combined)(log)(octokit)
     const pullRequestNumber = await commitFiles(repository, version, processed)(log)(octokit)
     log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
     log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)

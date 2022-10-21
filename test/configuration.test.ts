@@ -1,6 +1,7 @@
 import { determineConfigurationChanges } from '../lib/configuration'
 import { Logger } from 'probot'
-import { OctokitInstance } from '../src/types'
+import { OctokitInstance, RepositoryConfiguration } from '../src/types'
+import { combineConfigurations } from '../src/configuration'
 
 describe('Configuration', () => {
   const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
@@ -34,6 +35,34 @@ values:
     }
 
     const result = await determineConfigurationChanges('', repositoryDetails, '')(log)(mockedOctokit)
+
+    expect(result).toEqual(expected)
+  })
+
+  test('combines configurations as expected', () => {
+    const base: RepositoryConfiguration = {
+      version: 'v2.0.0',
+      files: [{ destination: 'destination', source: 'source' }],
+      values: { someValue: '42' },
+    }
+
+    const override: Omit<RepositoryConfiguration, 'version'> = {
+      files: [
+        { destination: 'destination', source: 'source' },
+        { destination: 'destination2', source: 'source2' },
+      ],
+      values: { someValue: 'hello', someOtherValue: '43' },
+    }
+
+    const result = combineConfigurations(base, override)
+    const expected = {
+      version: 'v2.0.0',
+      files: [
+        { destination: 'destination', source: 'source' },
+        { destination: 'destination2', source: 'source2' },
+      ],
+      values: { someValue: 'hello', someOtherValue: '43' },
+    }
 
     expect(result).toEqual(expected)
   })

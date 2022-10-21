@@ -5,7 +5,7 @@
     "version": {
       "type": "string",
       "pattern": "^v\\d+.\\d+.\\d+$",
-      "nullable": true
+      "nullable": false
     },
     "automerge": {
       "type": "boolean",
