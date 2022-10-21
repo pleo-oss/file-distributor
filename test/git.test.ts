@@ -51,7 +51,7 @@ world
     })
 
     test('can approve PRs', async () => {
-      const expectedBody = `🤖 Well done!`
+      const expectedBody = '🤖 Well done!'
       const result = await approvePullRequestChanges(testRepository, testPullRequestNumber)(log)(octokitMock)
 
       expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
