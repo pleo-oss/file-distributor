@@ -3,10 +3,8 @@ import { Logger } from 'probot'
 
 export const createCheckRun =
   (input: CreateCheckInput) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'checks'>) => {
-    log.debug(`Creating queued check run on ${input.sha}.`)
-    const {
-      data: { id },
-    } = await octokit.checks.create({
+    log.debug('Creating queued check run on %s.', input.sha)
+    return octokit.checks.create({
       headers: {
         accept: 'application/vnd.github.v3+json',
       },
@@ -19,20 +17,18 @@ export const createCheckRun =
         title: 'Template schema validation',
         summary: 'Validation is queued',
       },
+    }).then(result => {
+      log.debug('Queued check run %s with ID \'%d\'.', input.sha, result.data.id)
+      return result.data.id
     })
-    log.debug(`Queued check run ${input.sha} with ID '${id}'.`)
-
-    return id
   }
 
 export const resolveCheckRun =
   (input: UpdateCheckInput) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'checks'>) => {
     const { checkRunId, sha, conclusion: result } = input
 
-    log.debug(`Updating check run ${checkRunId}.`)
-    const {
-      data: { conclusion },
-    } = await octokit.checks.update({
+    log.debug('Updating check run %d.', checkRunId)
+    return octokit.checks.update({
       headers: {
         accept: 'application/vnd.github.v3+json',
       },
@@ -47,8 +43,8 @@ export const resolveCheckRun =
         title: 'Template schema validation',
         summary: result,
       },
+    }).then(result => {
+      log.debug('Updated check run %d with conclusion \'%s\'.', checkRunId, result.data.conclusion)
+      return result.data.conclusion
     })
-    log.debug(`Updated check run ${checkRunId} with conclusion '${conclusion}'.`)
-
-    return conclusion
   }
