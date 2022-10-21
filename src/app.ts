@@ -2,7 +2,7 @@ import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
 import { determineConfigurationChanges } from './configuration'
-import { renderTemplates } from './templates'
+import { getTemplateDefaultValues, renderTemplates } from './templates'
 import {
   approvePullRequestChanges,
   commitFiles,
@@ -10,7 +10,7 @@ import {
   getFilesChanged,
   requestPullRequestChanges,
 } from './git'
-import { validateTemplateConfiguration } from './schema-validator'
+import { generateSchema, validateTemplateConfiguration } from './schema-validator'
 import { createCheckRun, resolveCheckRun } from './checks'
 
 const configFileName = '.config/templates.yaml'
@@ -41,7 +41,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const {
     number,
     pull_request: {
-      head: { ref, sha },
+      head: { sha },
     },
   } = payload
 
@@ -61,18 +61,12 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     }
 
     const checkId = await createCheckRun(createCheckInput)(log)(octokit)
+    const configuration = await determineConfigurationChanges(configFileName, repository, sha)(log)(octokit)
 
-    const fileContent = await octokit.repos.getContent({
-      ...repository,
-      path: configFile,
-      ref,
-    })
+    const defaultValues = await getTemplateDefaultValues(configuration)(log)(octokit)
+    const defaultValueSchema = generateSchema(defaultValues)(log)
 
-    const { content } = fileContent.data as { content: string }
-    const decodedContent = Buffer.from(content, 'base64').toString()
-    log.debug(`Saw configuration file contents:`)
-    log.debug(decodedContent)
-    const { result, errors } = validateTemplateConfiguration(decodedContent)(log)
+    const { result, errors } = validateTemplateConfiguration(configuration, defaultValueSchema)(log)
     const conclusion = result ? 'success' : 'failure'
 
     const checkToResolve = {
@@ -114,14 +108,15 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
     log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
     const filesChanged = await getCommitFiles(repository, payload.after)(log)(octokit)
+    if (!filesChanged.includes(configFileName)) return
 
-    if (filesChanged.includes(configFileName)) {
-      const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)(log)(octokit)
-      const { version, templates: processed } = await renderTemplates(parsed)(log)(octokit)
-      const pullRequestNumber = await commitFiles(repository, version, processed)(log)(octokit)
-      log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
-      log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
-    }
+    const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)(log)(octokit)
+    if (!parsed) return
+
+    const { version, templates: processed } = await renderTemplates(parsed)(log)(octokit)
+    const pullRequestNumber = await commitFiles(repository, version, processed)(log)(octokit)
+    log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
+    log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
   } catch (e: unknown) {
     log.error(`Failed to process commit '${payload.after}' with error:`)
     log.error(e as never)
