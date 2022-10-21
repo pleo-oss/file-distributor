@@ -15,7 +15,7 @@ The app expects repositories to contain a `<repository-name>.yaml` file containi
 The configuration has the following format: 
 
 ``` yaml
-# The template version to use (optional).
+# The template version to use.
 version: v10.7.0
 
 # Whether to merge template changes automatically (optional).
