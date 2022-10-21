@@ -172,12 +172,15 @@ export const renderTemplates =
     return { version: fetchedVersion, templates: rendered }
   }
 
+const versionRegex = /v\d+.\d+.\d+/
 export const getTemplateDefaultValues =
   (version: string) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
+    const versionToFetch = versionRegex.test(version) ? version : undefined
+
     log.debug(`Configuration uses template version '${version}'.`)
 
     log.debug(`Downloading templates with version '${version}'.`)
-    const { contents } = await downloadTemplates(version)(log)(octokit)
+    const { contents } = await downloadTemplates(versionToFetch)(log)(octokit)
 
     log.debug('Extracting ZIP contents.')
     const loaded = await loadAsync(contents)

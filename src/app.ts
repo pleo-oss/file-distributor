@@ -34,7 +34,7 @@ const extractRepositoryInformation = (payload: PushEvent) => {
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
   const { log, octokit } = context
 
-  const createCheck = async (result: boolean, errors: string[], approve: boolean) => {
+  const createCheck = async (result: boolean, errors: string[]) => {
     const conclusion = result ? 'success' : 'failure'
 
     const createCheckInput = {
@@ -55,7 +55,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     if (!result) {
       const changeRequestId = await requestPullRequestChanges(repository, number, errors)(log)(octokit)
       log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
-    } else if (approve) {
+    } else {
       const approvedReviewId = await approvePullRequestChanges(repository, number)(log)(octokit)
       log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
     }
@@ -85,12 +85,6 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     log.debug(`Found repository configuration file: ${configFile}.`)
 
     const configuration = await determineConfigurationChanges(configFileName, repository, sha)(log)(octokit)
-    const { result, errors } = validateTemplateConfiguration(configuration)(log)
-
-    const checkConclusion = await createCheck(result, errors, false)
-    log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
-    if (!result) return
-
     const defaultValues = await getTemplateDefaultValues(configuration.version)(log)(octokit)
     const defaultValueSchema = generateSchema(defaultValues.values)(log)
 
@@ -102,7 +96,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
       defaultValueSchema,
     )(log)
 
-    const configurationConclusion = await createCheck(configurationResult, configurationErrors, true)
+    const configurationConclusion = await createCheck(configurationResult, configurationErrors)
     log.info(`Validated configuration changes in #${number} with conclusion: ${configurationConclusion}.`)
   } catch (error) {
     log.error(`Failed to process PR #${number}' with error:`)
