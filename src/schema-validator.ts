@@ -26,7 +26,7 @@ export const validateTemplateConfiguration =
     const valueErrors = prettifyErrors(validateValues.errors)
 
     if (!isValidConfiguration || !hasValidValues) {
-      log.debug(`Saw validation errors:`)
+      log.debug('Saw validation errors:')
       log.debug(configurationErrors)
     }
 
@@ -39,10 +39,10 @@ export const validateTemplateConfiguration =
 export const generateSchema = (input?: ConfigurationValues) => (log: Logger) => {
   if (!input) return undefined
 
-  log.debug(`Generating JSON schema from:`)
+  log.debug('Generating JSON schema from:')
   log.debug(input)
   const generated = createSchema(input, { noRequired: true })
-  log.debug(`Generated JSON schema:`)
+  log.debug('Generated JSON schema:')
   log.debug(generated)
 
   return JSON.stringify(generated)

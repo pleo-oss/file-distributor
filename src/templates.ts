@@ -183,27 +183,27 @@ export const getTemplateDefaultValues =
       log.debug(`Downloading templates with version '${version}'.`)
       const { contents } = await downloadTemplates(version)(log)(octokit)
 
-      log.debug(`Extracting ZIP contents.`)
+      log.debug('Extracting ZIP contents.')
       const loaded = await loadAsync(contents)
-      log.debug(`Extracting default configuration.`)
+      log.debug('Extracting default configuration.')
 
       const defaults = await extract(loaded, 'defaults.yaml')(log)
       if (!defaults) return undefined
-      log.debug(`Saw default configuration:`)
+      log.debug('Saw default configuration:')
       log.debug(defaults)
 
-      log.debug(`Parsing default configuration.`)
+      log.debug('Parsing default configuration.')
       const parsed = parse(defaults) as RepositoryConfiguration | undefined
-      log.debug(`Parsed default configuration:`)
+      log.debug('Parsed default configuration:')
       log.debug(parsed)
 
       const defaultValues = parsed?.values
-      log.debug(`Saw default values:`)
+      log.debug('Saw default values:')
       log.debug(defaultValues)
 
       return defaultValues
     } catch (e: unknown) {
-      log.error(`Failed to get default values.`)
+      log.error('Failed to get default values.')
       return undefined
     }
   }

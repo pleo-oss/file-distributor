@@ -20,7 +20,7 @@ export const determineConfigurationChanges =
 
     try {
       const parsed: RepositoryConfiguration = parse(decodedContent)
-      log.debug(`Saw configuration file contents:`)
+      log.debug('Saw configuration file contents:')
       log.debug(parsed)
 
       const combinedConfiguration: RepositoryConfiguration = {
@@ -32,7 +32,7 @@ export const determineConfigurationChanges =
         },
       }
 
-      log.debug(`Saw combined configuration contents:`)
+      log.debug('Saw combined configuration contents:')
       log.debug(combinedConfiguration)
 
       return combinedConfiguration
