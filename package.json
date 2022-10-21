@@ -16,7 +16,7 @@
     "build:run": "yarn build && yarn start",
     "start": "probot run ./lib/app.js",
     "test": "jest",
-    "lint": "prettier --check **/*.ts && eslint --ext .ts,.json",
+    "lint": "prettier --check src/*.ts && eslint --ext .ts,.json",
     "format": "prettier --write **/*.ts && eslint --fix --ext .ts,.json"
   },
   "dependencies": {
