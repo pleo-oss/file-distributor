@@ -8,20 +8,20 @@ const ajv = new Ajv()
 const validate = ajv.compile<RepositoryConfiguration>(templateSchema)
 
 export const validateTemplateConfiguration =
-    (input: string) =>
-        (log: Logger): TemplateValidation => {
-            const parsed = parse(input)
-            const isValid = validate(parsed)
+  (input: string) =>
+  (log: Logger): TemplateValidation => {
+    const parsed = parse(input)
+    const isValid = validate(parsed)
 
-            const errors = validate.errors?.map(error => error?.message)?.filter(error => error) ?? []
+    const errors = validate.errors?.map(error => error?.message)?.filter(error => error) ?? []
 
-            if (!isValid) {
-                log.debug(`Saw validation errors:`)
-                log.debug(errors)
-            }
+    if (!isValid) {
+      log.debug(`Saw validation errors:`)
+      log.debug(errors)
+    }
 
-            return {
-                result: isValid,
-                errors,
-            }
-        }
+    return {
+      result: isValid,
+      errors,
+    }
+  }

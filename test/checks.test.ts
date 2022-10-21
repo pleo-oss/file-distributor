@@ -49,7 +49,7 @@ describe('Github api calls', () => {
     test('can call GitHub with a proper check', async () => {
       const testInput = {
         ...testRepository,
-        sha: testSha
+        sha: testSha,
       }
 
       await createCheckRun(testInput)(log)(octokitMock)
@@ -73,7 +73,7 @@ describe('Github api calls', () => {
     test('will not call GitHub multiple times with different checks', async () => {
       const testInput = {
         ...testRepository,
-        sha: testSha
+        sha: testSha,
       }
       await createCheckRun(testInput)(log)(octokitMock)
 
@@ -94,13 +94,11 @@ describe('Github api calls', () => {
       const testInput = {
         owner: 'pleo',
         repo: 'workflow',
-        sha: testSha
+        sha: testSha,
       }
 
       expect.assertions(1)
-      return createCheckRun(
-        testInput
-      )(log)(throwingOctokit).catch(e => expect(e.message).toMatch('Error'))
+      return createCheckRun(testInput)(log)(throwingOctokit).catch(e => expect(e.message).toMatch('Error'))
     })
   })
 
@@ -173,9 +171,7 @@ describe('Github api calls', () => {
       }
 
       expect.assertions(1)
-      await resolveCheckRun(
-        testInput
-      )(log)(throwingOctokit).catch(e => expect(e.message).toMatch('Error'))
+      await resolveCheckRun(testInput)(log)(throwingOctokit).catch(e => expect(e.message).toMatch('Error'))
     })
   })
 })
