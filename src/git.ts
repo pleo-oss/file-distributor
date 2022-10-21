@@ -222,8 +222,6 @@ const generatePullRequestDescription = (version: string, templates: Template[]) 
   const stringifiedTemplateNames = templates.map(t => `- \`${t.destinationPath}\``).join('\n')
 
   return `
-  ---
-
   Template version: \`${version}\`
 
   ---
@@ -296,7 +294,8 @@ export const requestPullRequestChanges =
 🤖 It looks like your changes are invalid. 
 
 Validating the changes in this PR resulted in the following errors: 
-${errors.join('\n')}
+
+${errors.map(error => `- ${error}`).join('\n')}
 `
     log.debug(`Creating change request review on PR #${pullRequestNumber}.`)
     const {

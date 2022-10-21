@@ -18,16 +18,25 @@ export const determineConfigurationChanges =
     log.debug(`'${fileName}' contains:`)
     log.debug(decodedContent)
 
-    const parsed: RepositoryConfiguration = parse(decodedContent)
+    try {
+      const parsed: RepositoryConfiguration = parse(decodedContent)
+      log.debug(`Saw configuration file contents:`)
+      log.debug(parsed)
 
-    const combinedConfiguration: RepositoryConfiguration = {
-      ...parsed,
-      values: {
-        ...parsed.values,
-        repositoryName: repository.repo,
-        defaultBranch: repository.defaultBranch,
-      },
+      const combinedConfiguration: RepositoryConfiguration = {
+        ...parsed,
+        values: {
+          ...parsed.values,
+          repositoryName: repository.repo,
+          defaultBranch: repository.defaultBranch,
+        },
+      }
+
+      log.debug(`Saw combined configuration contents:`)
+      log.debug(combinedConfiguration)
+
+      return combinedConfiguration
+    } catch (e: unknown) {
+      return undefined
     }
-
-    return combinedConfiguration
   }
