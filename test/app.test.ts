@@ -153,6 +153,11 @@ describe('Probot Tests', () => {
       name: 'push',
       payload: {
         ref: 'test',
+        repository: {
+          owner: { login: 'pleo-oss' },
+          name: 'test',
+          default_branch: 'main',
+        },
       },
     }
 
@@ -213,8 +218,7 @@ describe('Probot Tests', () => {
       },
     }
 
-    await probot.receive(pushEvent as unknown as EmitterWebhookEvent)
-    expect(logOutput.filter(log => log.level === 50)).toHaveLength(2)
+    await expect(probot.receive(pushEvent as unknown as EmitterWebhookEvent)).rejects.toThrow(Error)
   })
 
   test('can fetch changes, fetch configuration changes, render templates, create PR (smoke test)', async () => {
@@ -237,7 +241,7 @@ describe('Probot Tests', () => {
     baseNock.post('/repos/pleo-oss/test/git/trees').reply(200, { sha: 'createdTreeSha' })
     baseNock.post('/repos/pleo-oss/test/git/commits').reply(200, { sha: 'newCommitSha' })
     baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-templates').reply(200, { ref: 'updatedRef' })
-    baseNock.get('/repos/pleo-oss/test/pulls?head=refs%2Fheads%2Fcentralized-templates&state=open').reply(200, [])
+    baseNock.get('/repos/pleo-oss/test/pulls?head=pleo-oss%3Acentralized-templates&state=open').reply(200, [])
     baseNock.post('/repos/pleo-oss/test/pulls').reply(200, { number: 'prNumber' })
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation()
