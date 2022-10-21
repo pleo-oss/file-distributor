@@ -316,7 +316,7 @@ export const approvePullRequestChanges =
   (repository: RepositoryDetails, pullRequestNumber: number) =>
   (log: Logger) =>
   async (octokit: Pick<OctokitInstance, 'pulls'>) => {
-    const body = `🤖 Well done!`
+    const body = '🤖 Well done!'
     log.debug(`Creating approved review on PR #${pullRequestNumber}.`)
     const {
       data: { id },

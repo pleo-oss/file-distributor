@@ -1,4 +1,4 @@
-name: Test
+name: Build, Lint & Test
 on: 
   push:
     branches-ignore: 
@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Build, Lint & Test
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
@@ -25,6 +25,10 @@ jobs:
       - name: Build
         run: |
           yarn build
+
+      - name: Lint
+        run: |
+          yarn lint
 
       - name: Test
         run: |

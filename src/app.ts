@@ -70,7 +70,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
     const { content } = fileContent.data as { content: string }
     const decodedContent = Buffer.from(content, 'base64').toString()
-    log.debug(`Saw configuration file contents:`)
+    log.debug('Saw configuration file contents:')
     log.debug(decodedContent)
     const { result, errors } = validateTemplateConfiguration(decodedContent)(log)
     const conclusion = result ? 'success' : 'failure'

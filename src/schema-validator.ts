@@ -16,7 +16,7 @@ export const validateTemplateConfiguration =
     const errors = validate.errors?.map(error => error?.message)?.filter(error => error) ?? []
 
     if (!isValid) {
-      log.debug(`Saw validation errors:`)
+      log.debug('Saw validation errors:')
       log.debug(errors)
     }
 
