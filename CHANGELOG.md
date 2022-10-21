@@ -1,3 +1,21 @@
+# v2.3.0 (Fri Oct 21 2022)
+
+#### 🎁 Features
+
+- Validate repository configuration changes on PR creation [#43](https://github.com/pleo-oss/file-distributor/pull/43) ([@marcos-arranz](https://github.com/marcos-arranz) [@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Update Node.js to v19 [#42](https://github.com/pleo-oss/file-distributor/pull/42) ([@renovate[bot]](https://github.com/renovate[bot]))
+
+#### Authors: 3
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.2.0 (Wed Oct 19 2022)
 
 #### 🎁 Features
