@@ -5,11 +5,13 @@ export interface PathConfiguration {
   destination: string
 }
 
+export type ConfigurationValues = { [key: string]: string | undefined }
+
 export interface RepositoryConfiguration {
-  version?: string
+  version: string
   automerge?: boolean
   files?: PathConfiguration[]
-  values?: { [key: string]: string | undefined }
+  values?: ConfigurationValues
 }
 
 export interface RepositoryDetails {
@@ -56,7 +58,7 @@ export type UpdateCheckInput = CreateCheckInput & {
 
 export interface TemplateValidation {
   result: boolean
-  errors: (string | undefined)[]
+  errors: string[]
 }
 
 export type OctokitInstance = InstanceType<typeof ProbotOctokit>

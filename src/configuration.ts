@@ -19,6 +19,8 @@ export const determineConfigurationChanges =
     log.debug(decodedContent)
 
     const parsed: RepositoryConfiguration = parse(decodedContent)
+    log.debug('Saw configuration file contents:')
+    log.debug(parsed)
 
     const combinedConfiguration: RepositoryConfiguration = {
       ...parsed,
@@ -29,5 +31,25 @@ export const determineConfigurationChanges =
       },
     }
 
+    log.debug('Saw combined configuration contents:')
+    log.debug(combinedConfiguration)
+
     return combinedConfiguration
   }
+
+export const combineConfigurations = (
+  base: RepositoryConfiguration,
+  override: Partial<RepositoryConfiguration>,
+): RepositoryConfiguration => {
+  const baseFiles = new Set((base.files ?? []).map(entry => JSON.stringify(entry)))
+  const overrideFiles = new Set((override.files ?? []).map(entry => JSON.stringify(entry)))
+  return {
+    ...base,
+    ...override,
+    values: {
+      ...base.values,
+      ...override.values,
+    },
+    files: Array.from(new Set([...baseFiles, ...overrideFiles])).map(entry => JSON.parse(entry)),
+  }
+}

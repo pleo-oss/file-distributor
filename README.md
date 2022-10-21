@@ -65,6 +65,11 @@ jobs:
 
 See the [Mustache manual](https://mustache.github.io/mustache.5.html) for more information on the template syntax.
 
+### Default values
+The templates can contain a `defaults.yaml` file in the same format as the repository configuration.
+
+These defaults are used for validating any changes made in repositories. As an example, if a default value is set to an integer, template configuration changes to that value are also expected to be an integer. 
+
 ## Implementation
 A high-level overview of how the logic flows in the implementation can be seen in [this overview](docs/Overview.md).
 

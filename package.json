@@ -1,6 +1,6 @@
 {
   "name": "file-distributor",
-  "version": "2.3.0",
+  "version": "2.2.0",
   "private": true,
   "description": "A GitHub App for distributing files/templates to configured repositories in an organisation.",
   "author": "pleo-oss",
@@ -25,6 +25,7 @@
     "axios": "1.1.2",
     "codeowners-utils": "1.0.2",
     "dotenv": "16.0.3",
+    "genson-js": "^0.0.8",
     "jsonwebtoken": "8.5.1",
     "jszip": "3.10.1",
     "mustache": "4.2.0",

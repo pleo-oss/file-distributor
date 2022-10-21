@@ -33,8 +33,9 @@ describe('Pull Request reviews', () => {
 🤖 It looks like your changes are invalid. 
 
 Validating the changes in this PR resulted in the following errors: 
-hello
-world
+
+- hello
+- world
 `
       const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, ['hello', 'world'])(log)(
         octokitMock,

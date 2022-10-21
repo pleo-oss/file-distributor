@@ -11,8 +11,9 @@ import {
 } from './types'
 import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
+import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
+import { parse } from 'yaml'
 
-import { matchFile, parse } from 'codeowners-utils'
 const extract =
   (loaded: JSZip, source: string) =>
   async (log: Logger): Promise<string> => {
@@ -130,7 +131,7 @@ const enrichWithPrePendingHeader =
       return mustacheRenderedContent
     }
 
-    const codeOwnersEntries = parse(codeowners)
+    const codeOwnersEntries = parseCodeowners(codeowners)
     const matchedCodeOwner = matchFile(template.sourcePath, codeOwnersEntries)
 
     const header = process.env.PREPENDING_HEADER_TEMPLATE || '#OWNER: {{{stewards}}}'
@@ -169,4 +170,30 @@ export const renderTemplates =
     })
     log.debug(`Processed ${rendered.length} templates.`)
     return { version: fetchedVersion, templates: rendered }
+  }
+
+const versionRegex = /v\d+.\d+.\d+/
+export const getTemplateDefaultValues =
+  (version: string) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
+    const versionToFetch = versionRegex.test(version) ? version : undefined
+
+    log.debug(`Configuration uses template version '${version}'.`)
+
+    log.debug(`Downloading templates with version '${version}'.`)
+    const { contents } = await downloadTemplates(versionToFetch)(log)(octokit)
+
+    log.debug('Extracting ZIP contents.')
+    const loaded = await loadAsync(contents)
+    log.debug('Extracting default configuration.')
+
+    const defaults = await extract(loaded, 'defaults.yaml')(log)
+    log.debug('Saw default configuration:')
+    log.debug(defaults)
+
+    log.debug('Parsing default configuration.')
+    const parsed = parse(defaults) as RepositoryConfiguration
+    log.debug('Parsed default configuration:')
+    log.debug(parsed)
+
+    return parsed
   }
