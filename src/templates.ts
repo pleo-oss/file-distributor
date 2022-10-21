@@ -11,9 +11,9 @@ import {
 } from './types'
 import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
-
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
 import { parse } from 'yaml'
+
 const extract =
   (loaded: JSZip, source: string) =>
   async (log: Logger): Promise<string> => {
