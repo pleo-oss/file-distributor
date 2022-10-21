@@ -24,6 +24,21 @@ export const getCommitFiles =
     return filenames
   }
 
+export const getFilesChanged =
+  (repository: RepositoryDetails, pullRequestNumber: number) =>
+  (log: Logger) =>
+  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+    log.debug(`Fetching files changed for PR #${pullRequestNumber}.`)
+    const { data: filesChanged } = await octokit.pulls.listFiles({
+      ...repository,
+      pull_number: pullRequestNumber,
+    })
+    const filenames = filesChanged.map(file => file.filename)
+    log.debug(`Saw files changed in #${pullRequestNumber}:`)
+    log.debug(filenames)
+    return filenames
+  }
+
 const getOrCreateNewBranch =
   (repository: RepositoryDetails, baseBranchRef: string) =>
   (log: Logger) =>
@@ -271,4 +286,47 @@ export const commitFiles =
     log.debug(`Updated branch ref: ${updatedRef}`)
 
     return await maintainPullRequest(repository, prDetails, baseBranch)(log)(octokit)
+  }
+
+export const requestPullRequestChanges =
+  (repository: RepositoryDetails, pullRequestNumber: number, errors: (string | undefined)[]) =>
+  (log: Logger) =>
+  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+    const body = `
+🤖 It looks like your changes are invalid. 
+
+Validating the changes in this PR resulted in the following errors: 
+${errors.join('\n')}
+`
+    log.debug(`Creating change request review on PR #${pullRequestNumber}.`)
+    const {
+      data: { id },
+    } = await octokit.pulls.createReview({
+      ...repository,
+      pull_number: pullRequestNumber,
+      event: 'REQUEST_CHANGES',
+      body,
+    })
+    log.debug(`Created change request review '${id}'.`)
+
+    return id
+  }
+
+export const approvePullRequestChanges =
+  (repository: RepositoryDetails, pullRequestNumber: number) =>
+  (log: Logger) =>
+  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+    const body = `🤖 Well done!`
+    log.debug(`Creating approved review on PR #${pullRequestNumber}.`)
+    const {
+      data: { id },
+    } = await octokit.pulls.createReview({
+      ...repository,
+      pull_number: pullRequestNumber,
+      event: 'APPROVE',
+      body,
+    })
+    log.debug(`Created approved review '${id}'.`)
+
+    return id
   }

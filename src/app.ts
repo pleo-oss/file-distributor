@@ -1,9 +1,19 @@
-import { PushEvent } from '@octokit/webhooks-types'
+import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
 import { determineConfigurationChanges } from './configuration'
 import { renderTemplates } from './templates'
-import { commitFiles, getCommitFiles } from './git'
+import {
+  approvePullRequestChanges,
+  commitFiles,
+  getCommitFiles,
+  getFilesChanged,
+  requestPullRequestChanges,
+} from './git'
+import { validateTemplateConfiguration } from './schema-validator'
+import { createCheckRun, resolveCheckRun } from './checks'
+
+const configFileName = '.config/templates.yaml'
 
 const extractRepositoryInformation = (payload: PushEvent) => {
   const {
@@ -21,6 +31,74 @@ const extractRepositoryInformation = (payload: PushEvent) => {
   }
 }
 
+const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
+  const { log, octokit } = context
+
+  const repository = {
+    owner: payload.repository.owner.login,
+    repo: payload.repository.name,
+  }
+  const {
+    number,
+    pull_request: {
+      head: { ref, sha },
+    },
+  } = payload
+
+  log.info(`Pull request event happened on #${number}`)
+
+  try {
+    const filesChanged = await getFilesChanged(repository, number)(log)(octokit)
+    const configFile = filesChanged.find(filename => filename === configFileName)
+
+    if (!configFile) return
+
+    log.debug(`Found repository configuration file: ${configFile}.`)
+
+    const createCheckInput = {
+      ...repository,
+      sha: sha,
+    }
+
+    const checkId = await createCheckRun(createCheckInput)(log)(octokit)
+
+    const fileContent = await octokit.repos.getContent({
+      ...repository,
+      path: configFile,
+      ref,
+    })
+
+    const { content } = fileContent.data as { content: string }
+    const decodedContent = Buffer.from(content, 'base64').toString()
+    log.debug(`Saw configuration file contents:`)
+    log.debug(decodedContent)
+    const { result, errors } = validateTemplateConfiguration(decodedContent)(log)
+    const conclusion = result ? 'success' : 'failure'
+
+    const checkToResolve = {
+      ...repository,
+      sha: sha,
+      conclusion: conclusion,
+      checkRunId: checkId,
+    }
+    const checkConclusion = await resolveCheckRun(checkToResolve)(log)(octokit)
+
+    if (!result) {
+      const changeRequestId = await requestPullRequestChanges(repository, number, errors)(log)(octokit)
+      log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
+    } else {
+      const approvedReviewId = await approvePullRequestChanges(repository, number)(log)(octokit)
+      log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
+    }
+
+    log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
+  } catch (error) {
+    log.error(`Failed to process PR #${number}' with error:`)
+    log.error(error as never)
+    throw error
+  }
+}
+
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
   const { octokit } = context
   const { log } = context
@@ -35,7 +113,6 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
     log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
-    const configFileName = `.config/templates.yaml`
     const filesChanged = await getCommitFiles(repository, payload.after)(log)(octokit)
 
     if (filesChanged.includes(configFileName)) {
@@ -61,5 +138,9 @@ export = async (app: Probot) => {
 
   app.on('push', async (context: Context<'push'>) => {
     await processPushEvent(context.payload as PushEvent, context)
+  })
+
+  app.on(['pull_request.opened', 'pull_request.synchronize'], async (context: Context<'pull_request'>) => {
+    await processPullRequest(context.payload as PullRequestEvent, context)
   })
 }

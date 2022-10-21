@@ -44,4 +44,19 @@ export interface PRDetails {
   description: string
 }
 
+export interface CreateCheckInput {
+  owner: string
+  repo: string
+  sha: string
+}
+export type UpdateCheckInput = CreateCheckInput & {
+  conclusion: string
+  checkRunId: number
+}
+
+export interface TemplateValidation {
+  result: boolean
+  errors: (string | undefined)[]
+}
+
 export type OctokitInstance = InstanceType<typeof ProbotOctokit>
