@@ -13,6 +13,7 @@ module.exports = {
     'import/no-unresolved': 0,
     'max-len': 0,
     'no-console': 2,
+    quotes: [1, 'single'],
   },
   settings: {
     'import/resolver': {
