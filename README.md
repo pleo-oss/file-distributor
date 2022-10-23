@@ -102,7 +102,6 @@ docker run \
   -e WEBHOOK_SECRET=<webhook-secret> \
   -e TEMPLATE_REPOSITORY_NAME=<template-repository-name> \
   -e TEMPLATE_REPOSITORY_OWNER=<template-repository-owner> \
-  -e BRANCHES_TO_PROCESS=<branches-to-process-regex> \
   file-distributor
 ```
 
@@ -117,8 +116,6 @@ WEBHOOK_SECRET=secret-here
 
 TEMPLATE_REPOSITORY_NAME=template-repository
 TEMPLATE_REPOSITORY_OWNER=template-repository-owner
-
-BRANCHES_TO_PROCESS=master|main
 ```
 
 ## Contributing
