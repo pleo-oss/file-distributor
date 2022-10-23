@@ -10,12 +10,12 @@
 This app monitors repositories for changes made to a repository template configuration detailing which templates the repository contains and which template conditions to use for rendering templates.
 
 ## Configuration
-The app expects repositories to contain a `<repository-name>.yaml` file containing the template configuration the repository uses.
+The app expects repositories to contain a `.config/templates.yaml` file containing the template configuration the repository uses.
 
 The configuration has the following format: 
 
 ``` yaml
-# The template version to use (optional).
+# The template version to use.
 version: v10.7.0
 
 # Whether to merge template changes automatically (optional).
