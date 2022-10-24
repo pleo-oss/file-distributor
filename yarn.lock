@@ -2737,7 +2737,7 @@ functions-have-names@^1.2.2:
   resolved "https://registry.yarnpkg.com/functions-have-names/-/functions-have-names-1.2.3.tgz#0404fe4ee2ba2f607f0e0ec3c80bae994133b834"
   integrity sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==
 
-genson-js@^0.0.8:
+genson-js@0.0.8:
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/genson-js/-/genson-js-0.0.8.tgz#b5a2c9dad7b821b0c08f103ccbe2de88e88b1f34"
   integrity sha512-4NUusDTwF+lzYh72uKV+Uvpky9iPO+YDIMpGImA5pbHfLV9HwgRCA4hYjGu78V4J4Cx2IZRTFfRERn9aUs74mw==
