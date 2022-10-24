@@ -1,3 +1,15 @@
+# v2.4.0 (Mon Oct 24 2022)
+
+#### 🎁 Features
+
+- Set the default template location to '.github/templates.yaml' [#50](https://github.com/pleo-oss/file-distributor/pull/50) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v2.3.0 (Mon Oct 24 2022)
 
 #### 🎁 Features
