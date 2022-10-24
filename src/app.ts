@@ -100,9 +100,8 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
     const configurationConclusion = await updateCheck(checkId, configurationResult, configurationErrors)
     log.info(`Validated configuration changes in #${number} with conclusion: ${configurationConclusion}.`)
-  } catch (error) {
-    log.error(`Failed to process PR #${number}' with error:`)
-    log.error(error as never)
+  } catch (e: unknown) {
+    throw new Error(`Failed to process PR ${number} in repository ${repository.repo} with error ${e}`)
   }
 }
 
