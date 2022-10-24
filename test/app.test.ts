@@ -108,7 +108,7 @@ describe('Probot Tests', () => {
 
   beforeEach(async () => {
     configuration = {
-      version: undefined,
+      version: 'v0.0.7',
       automerge: false,
       files: [
         {

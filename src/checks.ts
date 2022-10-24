@@ -1,8 +1,8 @@
 import { OctokitInstance, CreateCheckInput, UpdateCheckInput } from './types'
 import { Logger } from 'probot'
 
-export const createCheckRun =
-  (input: CreateCheckInput) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'checks'>) => {
+export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) => {
+  const createCheckRun = async (input: CreateCheckInput) => {
     log.debug(`Creating queued check run on ${input.sha}.`)
     const {
       data: { id },
@@ -25,8 +25,7 @@ export const createCheckRun =
     return id
   }
 
-export const resolveCheckRun =
-  (input: UpdateCheckInput) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'checks'>) => {
+  const resolveCheckRun = async (input: UpdateCheckInput) => {
     const { checkRunId, sha, conclusion: result } = input
 
     log.debug(`Updating check run ${checkRunId}.`)
@@ -52,3 +51,9 @@ export const resolveCheckRun =
 
     return conclusion
   }
+
+  return {
+    createCheckRun,
+    resolveCheckRun,
+  }
+}

@@ -1,7 +1,6 @@
-import { determineConfigurationChanges } from '../lib/configuration'
 import { Logger } from 'probot'
 import { OctokitInstance, RepositoryConfiguration } from '../src/types'
-import { combineConfigurations } from '../src/configuration'
+import { combineConfigurations, configuration as configurationSetup } from '../src/configuration'
 
 describe('Configuration', () => {
   const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
@@ -22,6 +21,8 @@ values:
       },
     } as unknown as OctokitInstance
 
+    const { determineConfigurationChanges } = configurationSetup(log, mockedOctokit)
+
     const repositoryDetails = { repo: 'repository', owner: 'pleo-oss', defaultBranch: 'main' }
 
     const expected = {
@@ -34,7 +35,7 @@ values:
       automerge: false,
     }
 
-    const result = await determineConfigurationChanges('', repositoryDetails, '')(log)(mockedOctokit)
+    const result = await determineConfigurationChanges('', repositoryDetails, '')
 
     expect(result).toEqual(expected)
   })
