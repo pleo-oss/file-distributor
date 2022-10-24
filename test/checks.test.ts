@@ -7,18 +7,18 @@ describe('Github api calls', () => {
   const octokitMock = {
     checks: {
       create: jest.fn(() => {
-        return {
+        return Promise.resolve({
           data: {
             id: 'checkId',
           },
-        }
+        })
       }),
       update: jest.fn(() => {
-        return {
+        return Promise.resolve({
           data: {
             conclusion: 'success',
           },
-        }
+        })
       }),
     },
   } as unknown as OctokitInstance
