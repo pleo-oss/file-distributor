@@ -1,3 +1,27 @@
+# v2.3.0 (Mon Oct 24 2022)
+
+#### 🎁 Features
+
+- Validate value changes based on default template values [#45](https://github.com/pleo-oss/file-distributor/pull/45) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Validate repository configuration changes on PR creation [#43](https://github.com/pleo-oss/file-distributor/pull/43) ([@marcos-arranz](https://github.com/marcos-arranz) [@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### ⚠️ Pushed to `main`
+
+- Update README.md ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Automate linting across project [#47](https://github.com/pleo-oss/file-distributor/pull/47) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Update Node.js to v19 [#42](https://github.com/pleo-oss/file-distributor/pull/42) ([@renovate[bot]](https://github.com/renovate[bot]))
+
+#### Authors: 3
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.3.0 (Fri Oct 21 2022)
 
 #### 🎁 Features
