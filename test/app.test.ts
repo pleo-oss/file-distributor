@@ -8,22 +8,31 @@ import { EmitterWebhookEvent } from '@octokit/webhooks'
 import { RepositoryConfiguration } from '../src/types'
 import { Stream } from 'stream'
 import { pino } from 'pino'
-import JSZip, { generateAsync, loadAsync } from 'jszip'
+import JSZip from 'jszip'
 
 const privateKey = fs.readFileSync(path.join(__dirname, 'fixtures/mock-cert.pem'), 'utf-8')
 const autorcContent = fs.readFileSync(path.join(__dirname, 'fixtures/.autorc.json'), 'utf-8')
 const kodiakContent = fs.readFileSync(path.join(__dirname, 'fixtures/.kodiak.toml'), 'utf-8')
 const defaultsContent = fs.readFileSync(path.join(__dirname, 'fixtures/defaults.yaml'), 'utf-8')
 
-const contentToZip = new JSZip();
+const contentToZip = new JSZip()
 contentToZip.folder('pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/')
 contentToZip.folder('pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/templates')
-contentToZip.file('pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/defaults.yaml', defaultsContent)
-contentToZip.file('pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/.autorc.json', autorcContent)
+contentToZip.file(
+  'pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/defaults.yaml',
+  defaultsContent,
+)
+contentToZip.file(
+  'pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/.autorc.json',
+  autorcContent,
+)
 contentToZip.folder('pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/.github')
-contentToZip.file('pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/.github/.kodiak.toml', kodiakContent)
+contentToZip.file(
+  'pleo-io-centralized-templates-mustache-8790897c1797419d0de40720d6c2f9b6840e77e7/.github/.kodiak.toml',
+  kodiakContent,
+)
 
-let zipContents: ArrayBuffer
+let zipContents: number[]
 
 const baseNock = nock('https://api.github.com')
 
@@ -72,7 +81,7 @@ describe('Probot Tests', () => {
       }),
     })
 
-    zipContents = await contentToZip.generateAsync({ type: 'uint8array' })
+    zipContents = Array.from(new Uint8Array(await contentToZip.generateAsync({ type: 'uint8array' })))
 
     await probot.load(probotApp)
   })
@@ -157,7 +166,6 @@ describe('Probot Tests', () => {
   })
 
   test('can fetch changes, fetch configuration changes, render templates, create PR (smoke test)', async () => {
-
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [{ filename: '.github/templates.yaml' }] })
     baseNock
@@ -168,7 +176,7 @@ describe('Probot Tests', () => {
       .get('/repos/pleo-oss/template-repository/releases/latest')
       .reply(200, { zipball_url: 'test', tag_name: '1.0.0' })
 
-    baseNock.get('/repos/pleo-oss/template-repository/zipball/1.0.0').reply(200, Array.from(new Uint8Array(zipContents)))
+    baseNock.get('/repos/pleo-oss/template-repository/zipball/1.0.0').reply(200, zipContents)
     baseNock.get('/repos/pleo-oss/test').reply(200, { default_branch: 'baseBranch' })
     baseNock.get('/repos/pleo-oss/test/git/ref/heads%2FbaseBranch').reply(200, { object: { sha: 'baseBranchRef' } })
     baseNock
@@ -178,9 +186,9 @@ describe('Probot Tests', () => {
     baseNock.get('/repos/pleo-oss/test/git/trees/baseBranchRef').reply(200, { tree: 'existingTree' })
     baseNock.post('/repos/pleo-oss/test/git/trees').reply(200, { sha: 'createdTreeSha' })
     baseNock.post('/repos/pleo-oss/test/git/commits').reply(200, { sha: 'newCommitSha' })
+    baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-templates').reply(200, { ref: 'updatedRef' })
     baseNock.get('/repos/pleo-oss/test/pulls?head=refs%2Fheads%2Fcentralized-templates&state=open').reply(200, [])
     baseNock.get('/repos/pleo-oss/test/pulls?head=pleo-oss%3Acentralized-templates&state=open').reply(200, [])
-    baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-templates').reply(200, [])
     baseNock.post('/repos/pleo-oss/test/pulls').reply(200, { number: 'prNumber' })
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation()
