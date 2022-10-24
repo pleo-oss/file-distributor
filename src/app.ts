@@ -133,8 +133,7 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
     log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
     log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
   } catch (e: unknown) {
-    log.error(`Failed to process commit '${payload.after}' with error:`)
-    log.error(e as never)
+    throw new Error(`Failed to process commit '${payload.after}' with error: ${e}`)
   }
 }
 
