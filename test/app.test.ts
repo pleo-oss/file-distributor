@@ -219,9 +219,9 @@ describe('Probot Tests', () => {
 
   test('can fetch changes, fetch configuration changes, render templates, create PR (smoke test)', async () => {
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
-    baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [{ filename: '.config/templates.yaml' }] })
+    baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [{ filename: '.github/templates.yaml' }] })
     baseNock
-      .get('/repos/pleo-oss/test/contents/.config%2Ftemplates.yaml?ref=sha')
+      .get('/repos/pleo-oss/test/contents/.github%2Ftemplates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
     baseNock
       .get('/repos/pleo-oss/template-repository/releases/latest')
@@ -263,7 +263,7 @@ describe('Probot Tests', () => {
   test('can receive a pull request event without a template configuration change and process the event', async () => {
     baseNock.get('/repos/pleo-oss/test/pulls/27/files').reply(200, [
       {
-        filename: '.config/not-config-templates.yaml',
+        filename: '.github/not-config-templates.yaml',
       },
     ])
 
@@ -289,11 +289,11 @@ describe('Probot Tests', () => {
   test('can receive a pull request event with a template configuration change and process the event', async () => {
     baseNock.get('/repos/pleo-oss/test/pulls/27/files').reply(200, [
       {
-        filename: '.config/templates.yaml',
+        filename: '.github/templates.yaml',
       },
     ])
     baseNock
-      .get('/repos/pleo-oss/test/contents/.config%2Ftemplates.yaml?ref=sha')
+      .get('/repos/pleo-oss/test/contents/.github%2Ftemplates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
 
     baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)
@@ -322,14 +322,14 @@ describe('Probot Tests', () => {
   test('can receive a pull request event with a wrong template configuration change and process the event', async () => {
     baseNock.get('/repos/pleo-oss/test/pulls/27/files').reply(200, [
       {
-        filename: '.config/templates.yaml',
+        filename: '.github/templates.yaml',
       },
     ])
 
     configuration.version = 'Version not following pattern'
 
     baseNock
-      .get('/repos/pleo-oss/test/contents/.config%2Ftemplates.yaml?ref=sha')
+      .get('/repos/pleo-oss/test/contents/.github%2Ftemplates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
 
     baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)
