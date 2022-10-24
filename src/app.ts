@@ -12,8 +12,9 @@ import {
 } from './git'
 import { generateSchema, validateTemplateConfiguration } from './schema-validator'
 import { createCheckRun, resolveCheckRun } from './checks'
+config()
 
-const configFileName = '.config/templates.yaml'
+const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
 const extractRepositoryInformation = (payload: PushEvent) => {
   const {
@@ -138,8 +139,6 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 }
 
 export = async (app: Probot) => {
-  config()
-
   const authenticated = await app.auth(Number(process.env.APP_ID))
   if (!authenticated) {
     app.log.error('The application is not installed with expected authentication. Exiting.')
