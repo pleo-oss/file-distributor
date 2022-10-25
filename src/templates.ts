@@ -17,9 +17,9 @@ import { parse } from 'yaml'
 export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
     const found = loaded.file(new RegExp(source, 'i'))
-    log.debug(`Found ${found.length} file(s) matching ${source}. `)
+    log.debug('Found %d file(s) matching %s.', found.length, source)
     const picked = found.shift()
-    if (picked) log.debug(`Using ${picked.name} for ${source}. `)
+    if (picked) log.debug('Using %s for %s.', picked.name, source)
 
     const text = (await picked?.async('text')) ?? ''
     return text?.replace(/#<<</gm, '<<<')
@@ -38,7 +38,9 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
           if (!extensionMatches) {
             log.warn(
-              `Template configuration seems to be invalid, file extension mismatch between source: '${file.source}' and destination: '${file.destination}'. Skipping!`,
+              "Template configuration seems to be invalid, file extension mismatch between source: '%s' and destination: '%s'. Skipping!",
+              file.source,
+              file.destination,
             )
           }
           return extensionMatches
@@ -59,7 +61,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
 
     const codeOwners = toProcess[0]
     const templates = toProcess[1].filter(it => it?.contents)
-    log.debug(`Extracted ${templates.length} ZIP templates.`)
+    log.debug('Extracted %d ZIP templates.', templates.length)
 
     return {
       codeOwners,
@@ -81,16 +83,15 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
-    log.debug(`Fetching templates from '${templateRepository.owner}/${templateRepository.repo}.`)
+    log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
     const release = await getReleaseFromTag(templateVersion, templateRepository)
-    log.debug(`Fetching templates from URL: '${release.zipball_url}'.`)
+    log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
 
     if (!release.zipball_url) {
-      log.error(`Release '${release.id}' has no zipball URL.`)
       throw new Error(`Release '${release.id}' has no zipball URL.`)
     }
 
-    log.debug(`Fetching release information from '${release.zipball_url}'.`)
+    log.debug("Fetching release information from '%s'.", release.zipball_url)
     const { data: contents } = (await octokit.repos.downloadZipballArchive({
       ...templateRepository,
       ref: release.tag_name,
@@ -110,7 +111,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   ): string => {
     const templateExtension = template.destinationPath.split('.').pop()
     if (!(templateExtension === 'yaml' || templateExtension === 'toml' || templateExtension === 'yml')) {
-      log.debug(`File extension: ${templateExtension} with not supported comments`)
+      log.debug('File extension: %s with not supported comments', templateExtension)
       return mustacheRenderedContent
     }
 
@@ -131,7 +132,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates> => {
     log.debug('Processing configuration changes.')
     const { version } = configuration
-    log.debug(`Configuration uses template version '${version}'.`)
+    log.debug("Configuration uses template version '%s'.", version)
 
     const { contents, version: fetchedVersion } = await downloadTemplates(version)
     const extractedContent = await extractZipContents(contents, configuration)
@@ -148,14 +149,14 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
         contents: enrichWithPrePendingHeader(mustacheRenderedContent, template, extractedContent.codeOwners),
       }
     })
-    log.debug(`Processed ${rendered.length} templates.`)
+    log.debug('Processed %d templates.', rendered.length)
     return { version: fetchedVersion, templates: rendered }
   }
 
   const getTemplateDefaultValues = async (version: string) => {
-    log.debug(`Configuration uses template version '${version}'.`)
+    log.debug("Configuration uses template version '%s'.", version)
 
-    log.debug(`Downloading templates with version '${version}'.`)
+    log.debug("Downloading templates with version '%s'.", version)
     const { contents } = await downloadTemplates(version)
 
     log.debug('Extracting ZIP contents.')

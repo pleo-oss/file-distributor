@@ -50,14 +50,14 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { getTemplateDefaultValues } = templates(log, octokit)
 
   const { number, sha, repository } = extractPullRequestInformation(payload)
-  log.info(`Pull request event happened on #${number}`)
+  log.info('Pull request event happened on #%d', number)
 
   const filesChanged = await getFilesChanged(repository, number)
   const configFile = filesChanged.find(filename => filename === configFileName)
 
   if (!configFile) return
 
-  log.debug(`Found repository configuration file: ${configFile}.`)
+  log.debug('Found repository configuration file: %s.', configFile)
 
   const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
   const defaultValues = await getTemplateDefaultValues(configurationChanges.version)
@@ -90,14 +90,14 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
   const { getTemplateDefaultValues, renderTemplates } = templates(log, octokit)
 
-  log.info(`${context.name} event happened on '${payload.ref}'`)
-
   const repository = extractRepositoryInformation(payload)
   const branchRegex = new RegExp(repository.defaultBranch)
 
+  log.info('%s event happened on %s', context.name, payload.ref)
+
   if (!branchRegex.test(payload.ref)) return
 
-  log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
+  log.info('Processing changes made in commit %s.', payload.after)
 
   const filesChanged = await getCommitFiles(repository, payload.after)
   if (!filesChanged.includes(configFileName)) return
@@ -110,8 +110,8 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
   const { version, templates: processed } = await renderTemplates(combined)
   const pullRequestNumber = await commitFiles(repository, version, processed)
-  log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
-  log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
+  log.info('Committed templates to %s/%s in #%d', repository.owner, repository.repo, pullRequestNumber)
+  log.info('See: https://github.com/%s/%S/pull/%d', repository.owner, repository.repo, pullRequestNumber)
 }
 
 export = async (app: Probot) => {
