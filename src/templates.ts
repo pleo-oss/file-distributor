@@ -3,6 +3,7 @@ import { render } from 'mustache'
 import {
   ExtractedContent,
   OctokitInstance,
+  PathConfiguration,
   RepositoryConfiguration,
   RepositoryDetails,
   Template,
@@ -30,10 +31,20 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     configuration: RepositoryConfiguration,
   ): Promise<ExtractedContent> => {
     log.debug('Extracting ZIP contents.')
+    const pathPrefix = process.env['TEMPLATE_PATH_PREFIX']
     const loaded = await loadAsync(contents)
 
     const extractTemplates: Promise<Template>[] =
       configuration.files
+        ?.map((file: PathConfiguration | string) => {
+          if (typeof file === 'string') {
+            return {
+              source: `${pathPrefix}${file}`,
+              destination: file,
+            }
+          }
+          return file
+        })
         ?.filter(file => {
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
           if (!extensionMatches) {
