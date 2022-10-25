@@ -5,7 +5,7 @@ import { schemaValidator } from '../src/schema-validator'
 const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
 
 describe('Schema Tests', () => {
-  const { generateSchema, validateTemplateConfiguration } = schemaValidator(log)
+  const { generateSchema, validateTemplateConfiguration, validateFiles } = schemaValidator(log)
 
   test('returns false for an invalid input', async () => {
     const input = parse('DFds')
@@ -153,5 +153,44 @@ describe('Schema Tests', () => {
     const result = generateSchema(configuration.values)
     expect(result).not.toBeUndefined()
     expect(JSON.parse(result as string)).toEqual(expected)
+  })
+
+  test('validates valid versions', async () => {
+    const configuration = parse('version: v10.7.0')
+
+    const { result, errors } = validateTemplateConfiguration(configuration)
+    expect(result).toBeTruthy()
+    expect(errors?.length).toEqual(0)
+  })
+
+  test('invalidates invalid versions', async () => {
+    const configuration = parse('version: bla')
+
+    const { result, errors } = validateTemplateConfiguration(configuration)
+    expect(result).toBeFalsy()
+    expect(errors?.length).toEqual(1)
+  })
+
+  test('validates valid files', async () => {
+    const configuration = parse(`
+files: 
+  - file1
+  - file2
+`)
+    const files = ['file1', 'file2']
+    const { result, errors } = validateFiles(configuration, files)
+    expect(result).toBeTruthy()
+    expect(errors?.length).toEqual(0)
+  })
+
+  test('invalidates invalid files', async () => {
+    const configuration = parse(`
+files: 
+  - file1
+`)
+    const files = ['file2']
+    const { result, errors } = validateFiles(configuration, files)
+    expect(result).toBeFalsy()
+    expect(errors?.length).toEqual(1)
   })
 })
