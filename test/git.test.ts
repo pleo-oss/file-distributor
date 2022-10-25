@@ -1,4 +1,4 @@
-import { approvePullRequestChanges, requestPullRequestChanges } from '../src/git'
+import { git } from '../src/git'
 import { OctokitInstance } from '../src/types'
 import { Logger } from 'probot'
 
@@ -23,6 +23,8 @@ describe('Pull Request reviews', () => {
 
   const testPullRequestNumber = 1
 
+  const { approvePullRequestChanges, requestPullRequestChanges } = git(log, octokitMock)
+
   describe('Create reviews', () => {
     beforeEach(() => {
       jest.clearAllMocks()
@@ -37,9 +39,7 @@ Validating the changes in this PR resulted in the following errors:
 - hello
 - world
 `
-      const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, ['hello', 'world'])(log)(
-        octokitMock,
-      )
+      const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, ['hello', 'world'])
 
       expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
       expect(octokitMock.pulls.createReview).toHaveBeenCalledWith({
@@ -53,7 +53,7 @@ Validating the changes in this PR resulted in the following errors:
 
     test('can approve PRs', async () => {
       const expectedBody = '🤖 Well done!'
-      const result = await approvePullRequestChanges(testRepository, testPullRequestNumber)(log)(octokitMock)
+      const result = await approvePullRequestChanges(testRepository, testPullRequestNumber)
 
       expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
       expect(octokitMock.pulls.createReview).toHaveBeenCalledWith({

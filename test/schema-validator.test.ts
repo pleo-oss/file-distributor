@@ -1,19 +1,21 @@
 import { Logger } from 'probot'
 import { parse } from 'yaml'
-import { generateSchema, validateTemplateConfiguration } from '../src/schema-validator'
+import { schemaValidator } from '../src/schema-validator'
 
 const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
 
 describe('Schema Tests', () => {
+  const { generateSchema, validateTemplateConfiguration } = schemaValidator(log)
+
   test('returns false for an invalid input', async () => {
     const input = parse('DFds')
-    const { result, errors } = validateTemplateConfiguration(input)(log)
+    const { result, errors } = validateTemplateConfiguration(input)
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
 
   test('returns false for undefined input', async () => {
-    const { result, errors } = validateTemplateConfiguration(undefined)(log)
+    const { result, errors } = validateTemplateConfiguration(undefined)
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
@@ -31,7 +33,7 @@ describe('Schema Tests', () => {
           - source: null
             destination: path/to/template-destination/filename.yaml
         `)
-    const { result, errors } = validateTemplateConfiguration(input)(log)
+    const { result, errors } = validateTemplateConfiguration(input)
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
@@ -49,7 +51,7 @@ describe('Schema Tests', () => {
           - source: path/to/template/filename.yaml
             destination: path/to/template-destination/filename.yaml
         `)
-    const { result, errors } = validateTemplateConfiguration(input)(log)
+    const { result, errors } = validateTemplateConfiguration(input)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -67,7 +69,7 @@ describe('Schema Tests', () => {
           - source: path/to/template/filename.yaml
             destination: path/to/template-destination/filename.yaml
         `)
-    const { result, errors } = validateTemplateConfiguration(input)(log)
+    const { result, errors } = validateTemplateConfiguration(input)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -93,7 +95,7 @@ describe('Schema Tests', () => {
       }
     }`
 
-    const { result, errors } = validateTemplateConfiguration(configuration, valuesSchema)(log)
+    const { result, errors } = validateTemplateConfiguration(configuration, valuesSchema)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -119,7 +121,7 @@ describe('Schema Tests', () => {
       }
     }`
 
-    const { result, errors } = validateTemplateConfiguration(configuration, valuesSchema)(log)
+    const { result, errors } = validateTemplateConfiguration(configuration, valuesSchema)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
   })
@@ -148,7 +150,7 @@ describe('Schema Tests', () => {
       }
     }`)
 
-    const result = generateSchema(configuration.values)(log)
+    const result = generateSchema(configuration.values)
     expect(result).not.toBeUndefined()
     expect(JSON.parse(result as string)).toEqual(expected)
   })

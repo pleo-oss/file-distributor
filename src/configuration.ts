@@ -2,10 +2,25 @@ import { Logger } from 'probot'
 import { parse } from 'yaml'
 import { RepositoryDetails, RepositoryConfiguration, OctokitInstance } from './types'
 
-export const determineConfigurationChanges =
-  (fileName: string, repository: RepositoryDetails, sha: string) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'repos'>) => {
+export const combineConfigurations = (
+  base: RepositoryConfiguration,
+  override: Partial<RepositoryConfiguration>,
+): RepositoryConfiguration => {
+  const baseFiles = new Set((base.files ?? []).map(entry => JSON.stringify(entry)))
+  const overrideFiles = new Set((override.files ?? []).map(entry => JSON.stringify(entry)))
+  return {
+    ...base,
+    ...override,
+    values: {
+      ...base.values,
+      ...override.values,
+    },
+    files: Array.from(new Set([...baseFiles, ...overrideFiles])).map(entry => JSON.parse(entry)),
+  }
+}
+
+export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
+  const determineConfigurationChanges = async (fileName: string, repository: RepositoryDetails, sha: string) => {
     log.debug(`Saw changes to ${fileName}.`)
     const { data: fileContents } = await octokit.repos.getContent({
       ...repository,
@@ -37,19 +52,8 @@ export const determineConfigurationChanges =
     return combinedConfiguration
   }
 
-export const combineConfigurations = (
-  base: RepositoryConfiguration,
-  override: Partial<RepositoryConfiguration>,
-): RepositoryConfiguration => {
-  const baseFiles = new Set((base.files ?? []).map(entry => JSON.stringify(entry)))
-  const overrideFiles = new Set((override.files ?? []).map(entry => JSON.stringify(entry)))
   return {
-    ...base,
-    ...override,
-    values: {
-      ...base.values,
-      ...override.values,
-    },
-    files: Array.from(new Set([...baseFiles, ...overrideFiles])).map(entry => JSON.parse(entry)),
+    determineConfigurationChanges,
+    combineConfigurations,
   }
 }

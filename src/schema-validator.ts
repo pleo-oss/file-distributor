@@ -7,17 +7,19 @@ import { createSchema } from 'genson-js'
 const ajv = new Ajv()
 const validateConfiguration = ajv.compile<RepositoryConfiguration>(templateSchema)
 
-const prettifyErrors = (errors?: ErrorObject<string, Record<string, unknown>, unknown>[] | null) =>
-  errors
-    ?.map(error => {
-      if (!error) return ''
-      return `${error.instancePath} ${error?.message}`
-    })
-    ?.filter(error => error !== '') ?? []
+export const schemaValidator = (log: Logger) => {
+  const prettifyErrors = (errors?: ErrorObject<string, Record<string, unknown>, unknown>[] | null) =>
+    errors
+      ?.map(error => {
+        if (!error) return ''
+        return `${error.instancePath} ${error?.message}`
+      })
+      ?.filter(error => error !== '') ?? []
 
-export const validateTemplateConfiguration =
-  (configuration?: RepositoryConfiguration, valuesSchema?: string) =>
-  (log: Logger): TemplateValidation => {
+  const validateTemplateConfiguration = (
+    configuration?: RepositoryConfiguration,
+    valuesSchema?: string,
+  ): TemplateValidation => {
     const validateValues = ajv.compile<ConfigurationValues>(JSON.parse(valuesSchema ?? '{}'))
     const isValidConfiguration = validateConfiguration(configuration)
     const hasValidValues = validateValues(configuration?.values)
@@ -36,14 +38,20 @@ export const validateTemplateConfiguration =
     }
   }
 
-export const generateSchema = (input?: ConfigurationValues) => (log: Logger) => {
-  if (!input) return undefined
+  const generateSchema = (input?: ConfigurationValues) => {
+    if (!input) return undefined
 
-  log.debug('Generating JSON schema from:')
-  log.debug(input)
-  const generated = createSchema(input, { noRequired: true })
-  log.debug('Generated JSON schema:')
-  log.debug(generated)
+    log.debug('Generating JSON schema from:')
+    log.debug(input)
+    const generated = createSchema(input, { noRequired: true })
+    log.debug('Generated JSON schema:')
+    log.debug(generated)
 
-  return JSON.stringify(generated)
+    return JSON.stringify(generated)
+  }
+
+  return {
+    validateTemplateConfiguration,
+    generateSchema,
+  }
 }

@@ -50,7 +50,7 @@ describe('Probot Tests', () => {
 
   beforeEach(async () => {
     configuration = {
-      version: undefined,
+      version: 'v0.0.7',
       automerge: false,
       files: [
         {
@@ -173,10 +173,10 @@ describe('Probot Tests', () => {
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
     baseNock
       .persist()
-      .get('/repos/pleo-oss/template-repository/releases/latest')
-      .reply(200, { zipball_url: 'test', tag_name: '1.0.0' })
+      .get('/repos/pleo-oss/template-repository/releases/tags/v0.0.7')
+      .reply(200, { zipball_url: 'test', tag_name: '0.0.7' })
 
-    baseNock.get('/repos/pleo-oss/template-repository/zipball/1.0.0').reply(200, zipContents)
+    baseNock.get('/repos/pleo-oss/template-repository/zipball/0.0.7').reply(200, zipContents)
     baseNock.get('/repos/pleo-oss/test').reply(200, { default_branch: 'baseBranch' })
     baseNock.get('/repos/pleo-oss/test/git/ref/heads%2FbaseBranch').reply(200, { object: { sha: 'baseBranchRef' } })
     baseNock
@@ -187,8 +187,8 @@ describe('Probot Tests', () => {
     baseNock.post('/repos/pleo-oss/test/git/trees').reply(200, { sha: 'createdTreeSha' })
     baseNock.post('/repos/pleo-oss/test/git/commits').reply(200, { sha: 'newCommitSha' })
     baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-templates').reply(200, { ref: 'updatedRef' })
-    baseNock.get('/repos/pleo-oss/test/pulls?head=refs%2Fheads%2Fcentralized-templates&state=open').reply(200, [])
-    baseNock.get('/repos/pleo-oss/test/pulls?head=pleo-oss%3Acentralized-templates&state=open').reply(200, [])
+    baseNock.get('/repos/pleo-oss/test/pulls?head=refs/heads/centralized-templates&state=open').reply(200, [])
+    baseNock.get('/repos/pleo-oss/test/pulls?head=pleo-oss:centralized-templates&state=open').reply(200, [])
     baseNock.post('/repos/pleo-oss/test/pulls').reply(200, { number: 'prNumber' })
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation()
@@ -244,7 +244,7 @@ describe('Probot Tests', () => {
       },
     ])
     baseNock
-      .get('/repos/pleo-oss/test/contents/.github%2Ftemplates.yaml?ref=sha')
+      .get('/repos/pleo-oss/test/contents/.github/templates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
 
     baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)
@@ -280,7 +280,7 @@ describe('Probot Tests', () => {
     configuration.version = 'Version not following pattern'
 
     baseNock
-      .get('/repos/pleo-oss/test/contents/.github%2Ftemplates.yaml?ref=sha')
+      .get('/repos/pleo-oss/test/contents/.github/templates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
 
     baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)

@@ -14,9 +14,8 @@ import { Logger } from 'probot'
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
 import { parse } from 'yaml'
 
-const extract =
-  (loaded: JSZip, source: string) =>
-  async (log: Logger): Promise<string> => {
+export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
+  const extract = async (loaded: JSZip, source: string): Promise<string> => {
     const found = loaded.file(new RegExp(source, 'i'))
     log.debug(`Found ${found.length} file(s) matching ${source}. `)
     const picked = found.shift()
@@ -26,9 +25,10 @@ const extract =
     return text?.replace(/#<<</gm, '<<<')
   }
 
-const extractZipContents =
-  (contents: ArrayBuffer, configuration: RepositoryConfiguration) =>
-  async (log: Logger): Promise<ExtractedContent> => {
+  const extractZipContents = async (
+    contents: ArrayBuffer,
+    configuration: RepositoryConfiguration,
+  ): Promise<ExtractedContent> => {
     log.debug('Extracting ZIP contents.')
     const loaded = await loadAsync(contents)
 
@@ -44,7 +44,7 @@ const extractZipContents =
           return extensionMatches
         })
         .map(async file => {
-          const contents = await extract(loaded, file.source)(log)
+          const contents = await extract(loaded, file.source)
 
           return {
             sourcePath: file.source,
@@ -53,7 +53,7 @@ const extractZipContents =
           }
         }) ?? []
 
-    const extractCodeOwners: Promise<string> = extract(loaded, 'CODEOWNERS')(log)
+    const extractCodeOwners: Promise<string> = extract(loaded, 'CODEOWNERS')
 
     const toProcess: [string, Template[]] = await Promise.all([extractCodeOwners, Promise.all(extractTemplates)])
 
@@ -67,8 +67,7 @@ const extractZipContents =
     }
   }
 
-const getReleaseFromTag =
-  (tag: string | undefined, repository: RepositoryDetails) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
+  const getReleaseFromTag = (tag: string | undefined, repository: RepositoryDetails) => {
     const getLatestRelease = async () => {
       const latestRelease = await octokit.repos.getLatestRelease({
         ...repository,
@@ -91,17 +90,14 @@ const getReleaseFromTag =
     return tag ? getRelease() : getLatestRelease()
   }
 
-const downloadTemplates =
-  (templateVersion?: string) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'repos'>): Promise<TemplateInformation> => {
+  const downloadTemplates = async (templateVersion?: string): Promise<TemplateInformation> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
     log.debug(`Fetching templates from '${templateRepository.owner}/${templateRepository.repo}.`)
-    const release = await getReleaseFromTag(templateVersion, templateRepository)(octokit)
+    const release = await getReleaseFromTag(templateVersion, templateRepository)
     log.debug(`Fetching templates from URL: '${release.zipball_url}'.`)
 
     if (!release.zipball_url) {
@@ -122,9 +118,11 @@ const downloadTemplates =
     }
   }
 
-const enrichWithPrePendingHeader =
-  (mustacheRenderedContent: string, template: Template, codeowners: string) =>
-  (log: Logger): string => {
+  const enrichWithPrePendingHeader = (
+    mustacheRenderedContent: string,
+    template: Template,
+    codeowners: string,
+  ): string => {
     const templateExtension = template.destinationPath.split('.').pop()
     if (!(templateExtension === 'yaml' || templateExtension === 'toml' || templateExtension === 'yml')) {
       log.debug(`File extension: ${templateExtension} with not supported comments`)
@@ -145,16 +143,13 @@ const enrichWithPrePendingHeader =
     return `${renderedPrePendingHeader}\n\n${mustacheRenderedContent}`
   }
 
-export const renderTemplates =
-  (configuration: RepositoryConfiguration) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'repos'>): Promise<Templates> => {
+  const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates> => {
     log.debug('Processing configuration changes.')
     const { version } = configuration
     log.debug(`Configuration uses template version '${version}'.`)
 
-    const { contents, version: fetchedVersion } = await downloadTemplates(version)(log)(octokit)
-    const extractedContent = await extractZipContents(contents, configuration)(log)
+    const { contents, version: fetchedVersion } = await downloadTemplates(version)
+    const extractedContent = await extractZipContents(contents, configuration)
 
     const delimiters: [string, string] = ['<<<', '>>>']
     const rendered = extractedContent.templates.map(template => {
@@ -165,28 +160,27 @@ export const renderTemplates =
       }
       return {
         ...template,
-        contents: enrichWithPrePendingHeader(mustacheRenderedContent, template, extractedContent.codeOwners)(log),
+        contents: enrichWithPrePendingHeader(mustacheRenderedContent, template, extractedContent.codeOwners),
       }
     })
     log.debug(`Processed ${rendered.length} templates.`)
     return { version: fetchedVersion, templates: rendered }
   }
 
-const versionRegex = /v\d+.\d+.\d+/
-export const getTemplateDefaultValues =
-  (version: string) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
+  const versionRegex = /v\d+.\d+.\d+/
+  const getTemplateDefaultValues = async (version: string) => {
     const versionToFetch = versionRegex.test(version) ? version : undefined
 
     log.debug(`Configuration uses template version '${version}'.`)
 
     log.debug(`Downloading templates with version '${version}'.`)
-    const { contents } = await downloadTemplates(versionToFetch)(log)(octokit)
+    const { contents } = await downloadTemplates(versionToFetch)
 
     log.debug('Extracting ZIP contents.')
     const loaded = await loadAsync(contents)
     log.debug('Extracting default configuration.')
 
-    const defaults = await extract(loaded, 'defaults.yaml')(log)
+    const defaults = await extract(loaded, 'defaults.yaml')
     log.debug('Saw default configuration:')
     log.debug(defaults)
 
@@ -197,3 +191,9 @@ export const getTemplateDefaultValues =
 
     return parsed
   }
+
+  return {
+    renderTemplates,
+    getTemplateDefaultValues,
+  }
+}

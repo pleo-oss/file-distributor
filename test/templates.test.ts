@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import { PathConfiguration } from '../src/types'
-import { renderTemplates } from '../lib/templates'
+import { templates } from '../lib/templates'
 import { Logger } from 'probot'
 import { OctokitInstance } from '../src/types'
 
@@ -68,8 +68,10 @@ describe('Template rendering', () => {
       { source: 'templates/test_template.toml', destination: 'test_template.toml' },
     ])
 
+    const { renderTemplates } = templates(log, mockedOctokit)
+
     //when
-    const renderedTemplates = await renderTemplates(configuration)(log)(mockedOctokit)
+    const renderedTemplates = await renderTemplates(configuration)
 
     //then
     expect(renderedTemplates.templates.length).toBe(2)
@@ -90,8 +92,10 @@ describe('Template rendering', () => {
       { source: 'templates/test_template.json', destination: 'test_template.json' },
     ])
 
+    const { renderTemplates } = templates(log, mockedOctokit)
+
     //when
-    const renderedTemplates = await renderTemplates(configuration)(log)(mockedOctokit)
+    const renderedTemplates = await renderTemplates(configuration)
 
     //then
     expect(renderedTemplates.templates[0].contents).toBe('{"owner": "pleo", "repo": "expected-app-name"}')
@@ -108,8 +112,10 @@ describe('Template rendering', () => {
       { source: 'templates/test_template.toml', destination: 'test_template.toml' },
     ])
 
+    const { renderTemplates } = templates(log, mockedOctokit)
+
     //when
-    const renderedTemplates = await renderTemplates(configuration)(log)(mockedOctokit)
+    const renderedTemplates = await renderTemplates(configuration)
 
     //then
     expect(renderedTemplates.templates[0].contents).toBe(
@@ -136,8 +142,10 @@ describe('Template rendering', () => {
       { source: 'templates/test_template.toml', destination: 'test_template.toml' },
     ])
 
+    const { renderTemplates } = templates(log, mockedOctokit)
+
     //when
-    const renderedTemplates = await renderTemplates(configuration)(log)(mockedOctokit)
+    const renderedTemplates = await renderTemplates(configuration)
 
     //then
     expect(renderedTemplates.templates[0].contents).toBe(
@@ -161,8 +169,10 @@ repo = "expected-app-name"`,
       { source: 'templates/global_template.toml', destination: 'global_template.toml' },
     ])
 
+    const { renderTemplates } = templates(log, mockedOctokit)
+
     //when
-    const renderedTemplates = await renderTemplates(configuration)(log)(mockedOctokit)
+    const renderedTemplates = await renderTemplates(configuration)
 
     //then
     expect(renderedTemplates.templates[0].contents).toBe('#OWNER: @pleo-io/global_team\n\nrepo = "expected-app-name"')
@@ -184,8 +194,10 @@ repo = "expected-app-name"`,
       { appName: 'expected-app-name', appVersion: 'expected-app-version' },
     )
 
+    const { renderTemplates } = templates(log, mockedOctokit)
+
     //when
-    const renderedTemplates = await renderTemplates(configuration)(log)(mockedOctokit)
+    const renderedTemplates = await renderTemplates(configuration)
 
     //then
     expect(renderedTemplates.templates[0].contents).toBe(

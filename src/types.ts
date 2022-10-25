@@ -51,6 +51,7 @@ export interface CreateCheckInput {
   repo: string
   sha: string
 }
+
 export type UpdateCheckInput = CreateCheckInput & {
   conclusion: string
   checkRunId: number

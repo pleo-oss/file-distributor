@@ -1,4 +1,4 @@
-import { createCheckRun, resolveCheckRun } from '../src/checks'
+import { checks } from '../src/checks'
 import { OctokitInstance } from '../src/types'
 import { Logger } from 'probot'
 
@@ -41,31 +41,30 @@ describe('Github api calls', () => {
 
   const testSha = 'some-sha'
 
-  describe('Create check calls', () => {
+  const { createCheckRun, resolveCheckRun } = checks(log, octokitMock)
+
+  describe('Create checks', () => {
     beforeEach(() => {
       jest.clearAllMocks()
     })
 
-    test('can call GitHub with a proper check', async () => {
+    test('calls GitHub with a proper check', async () => {
       const testInput = {
         ...testRepository,
         sha: testSha,
       }
 
-      await createCheckRun(testInput)(log)(octokitMock)
+      await createCheckRun(testInput)
 
       expect(octokitMock.checks.create).toBeCalledTimes(1)
       expect(octokitMock.checks.create).toHaveBeenCalledWith({
-        headers: {
-          accept: 'application/vnd.github.v3+json',
-        },
         ...testRepository,
         name: 'Configuration validation',
         head_sha: testSha,
         status: 'queued',
         output: {
-          title: 'Template schema validation',
-          summary: 'Validation is queued',
+          title: 'Schema validation',
+          summary: 'Validation queued',
         },
       })
     })
@@ -75,22 +74,14 @@ describe('Github api calls', () => {
         ...testRepository,
         sha: testSha,
       }
-      await createCheckRun(testInput)(log)(octokitMock)
+      await createCheckRun(testInput)
 
       expect(octokitMock.checks.create).toBeCalledTimes(1)
-      expect(octokitMock.checks.create).not.toHaveBeenCalledWith({
-        ...testRepository,
-        name: 'Configuration validation',
-        head_sha: testSha,
-        status: 'queued',
-        output: {
-          title: 'Template schema validation',
-          summary: 'Validation is queued',
-        },
-      })
     })
 
     test('will throw check exception when check creation throws', async () => {
+      const { createCheckRun } = checks(log, throwingOctokit)
+
       const testInput = {
         owner: 'pleo',
         repo: 'workflow',
@@ -98,11 +89,11 @@ describe('Github api calls', () => {
       }
 
       expect.assertions(1)
-      return createCheckRun(testInput)(log)(throwingOctokit).catch(e => expect(e.message).toMatch('Error'))
+      return createCheckRun(testInput).catch(e => expect(e.message).toMatch('Error'))
     })
   })
 
-  describe('Update check calls', () => {
+  describe('Update checks', () => {
     const testInput = {
       ...testRepository,
       sha: testSha,
@@ -114,14 +105,11 @@ describe('Github api calls', () => {
       jest.clearAllMocks()
     })
 
-    test('can resolve GitHub checks', async () => {
-      await resolveCheckRun(testInput)(log)(octokitMock)
+    test('resolves GitHub checks', async () => {
+      await resolveCheckRun(testInput)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
-        headers: {
-          accept: 'application/vnd.github.v3+json',
-        },
         check_run_id: testInput.checkRunId,
         conclusion: testInput.conclusion,
         ...testRepository,
@@ -129,7 +117,7 @@ describe('Github api calls', () => {
         name: 'Configuration validation',
         status: 'completed',
         output: {
-          title: 'Template schema validation',
+          title: 'Schema validation',
           summary: testInput.conclusion,
         },
       })
@@ -143,20 +131,17 @@ describe('Github api calls', () => {
         checkRunId: 98,
       }
 
-      await resolveCheckRun(testInput)(log)(octokitMock)
+      await resolveCheckRun(testInput)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).not.toHaveBeenCalledWith({
-        headers: {
-          accept: 'application/vnd.github.v3+json',
-        },
         owner: 'not-pleo',
         repo: testInput.repo,
         head_sha: testInput.sha,
         check_run_id: testInput.checkRunId,
         status: 'completed',
         output: {
-          title: 'Template schema validation',
+          title: 'Schema validation',
           summary: testInput.conclusion,
         },
       })
@@ -170,8 +155,10 @@ describe('Github api calls', () => {
         checkRunId: 98,
       }
 
+      const { resolveCheckRun } = checks(log, throwingOctokit)
+
       expect.assertions(1)
-      await resolveCheckRun(testInput)(log)(throwingOctokit).catch(e => expect(e.message).toMatch('Error'))
+      await resolveCheckRun(testInput).catch(e => expect(e.message).toMatch('Error'))
     })
   })
 })
