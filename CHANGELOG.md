@@ -1,3 +1,15 @@
+# v2.5.2 (Tue Oct 25 2022)
+
+#### 🐞 Fixes
+
+- Hotfix release fetch and noisy error logging [#54](https://github.com/pleo-oss/file-distributor/pull/54) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v2.5.1 (Tue Oct 25 2022)
 
 #### 🐞 Fixes
