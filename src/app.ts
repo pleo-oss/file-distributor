@@ -1,13 +1,11 @@
 import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
-import { config } from 'dotenv'
 import { configuration } from './configuration'
 import { templates } from './templates'
 import { git } from './git'
 import { schemaValidator } from './schema-validator'
 import { checks } from './checks'
-
-config()
+import 'dotenv/config'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
