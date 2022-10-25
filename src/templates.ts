@@ -154,7 +154,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return { version: fetchedVersion, templates: rendered }
   }
 
-  const getTemplateDefaultValues = async (version: string) => {
+  const getTemplateInformation = async (version: string) => {
     log.debug("Configuration uses template version '%s'.", version)
 
     log.debug("Downloading templates with version '%s'.", version)
@@ -168,16 +168,19 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     log.debug('Saw default configuration:')
     log.debug(defaults)
 
+    log.debug('Extracting template files')
+    const allFiles = Object.keys(loaded.files)
+
     log.debug('Parsing default configuration.')
     const parsed = parse(defaults) as RepositoryConfiguration
     log.debug('Parsed default configuration:')
     log.debug(parsed)
 
-    return parsed
+    return { configuration: parsed, files: allFiles }
   }
 
   return {
     renderTemplates,
-    getTemplateDefaultValues,
+    getTemplateInformation,
   }
 }
