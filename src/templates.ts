@@ -67,27 +67,16 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     }
   }
 
-  const getReleaseFromTag = (tag: string | undefined, repository: RepositoryDetails) => {
-    const getLatestRelease = async () => {
-      const latestRelease = await octokit.repos.getLatestRelease({
-        ...repository,
-      })
-      return latestRelease.data
+  const getReleaseFromTag = async (tag: string | undefined, repository: RepositoryDetails) => {
+    if (!tag) {
+      throw new Error('A release tag is missing.')
     }
 
-    const getRelease = async () => {
-      if (!tag) {
-        throw Error('A release tag is missing.')
-      }
-
-      const release = await octokit.repos.getReleaseByTag({
-        ...repository,
-        tag,
-      })
-      return release.data
-    }
-
-    return tag ? getRelease() : getLatestRelease()
+    const { data } = await octokit.repos.getReleaseByTag({
+      ...repository,
+      tag,
+    })
+    return data
   }
 
   const downloadTemplates = async (templateVersion?: string): Promise<TemplateInformation> => {
@@ -102,7 +91,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
 
     if (!release.zipball_url) {
       log.error(`Release '${release.id}' has no zipball URL.`)
-      throw Error(`Release '${release.id}' has no zipball URL.`)
+      throw new Error(`Release '${release.id}' has no zipball URL.`)
     }
 
     log.debug(`Fetching release information from '${release.zipball_url}'.`)

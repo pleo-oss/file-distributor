@@ -85,8 +85,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
     log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
   } catch (error) {
-    log.error(`Failed to process PR #${number}' with error:`)
-    log.error(error as never)
+    log.error(`Failed to process PR #${number}'`)
     throw error
   }
 }
@@ -121,8 +120,7 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
     log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
     log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
   } catch (error) {
-    log.error(`Failed to process commit '${payload.after}' with error:`)
-    log.error(error)
+    log.error(`Failed to process commit '${payload.after}'`)
     throw error
   }
 }
