@@ -37,9 +37,9 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
 
   const getOrCreateNewBranch = async (repository: RepositoryDetails, baseBranchRef: string) => {
     try {
-      log.debug('Creating new branch on SHA: %s.', baseBranchRef)
+      log.debug("Creating new branch on SHA: '%s'.", baseBranchRef)
       const newBranch = (await octokit.git.createRef({ ...repository, ref: fullBranchName, sha: baseBranchRef })).data
-      log.debug('Created new branch with ref: %s.', newBranch.ref)
+      log.debug("Created new branch with ref: '%s'.", newBranch.ref)
 
       const {
         object: { sha },
@@ -47,11 +47,11 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
 
       return sha
     } catch {
-      log.debug('Failed to create a new branch with ref: %s.', fullBranchName)
-      log.debug('Fetching existing branch with ref: %s.', reducedBranchName)
+      log.debug("Failed to create a new branch with ref: '%s'.", fullBranchName)
+      log.debug("Fetching existing branch with ref: '%s'.", reducedBranchName)
 
       const { data: foundBranch } = await octokit.git.getRef({ ...repository, ref: reducedBranchName })
-      log.debug('Found new branch with ref: %s.', foundBranch.ref)
+      log.debug("Found new branch with ref: '%s'.", foundBranch.ref)
 
       const {
         object: { sha },
@@ -69,7 +69,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       content: template.contents,
     }))
 
-    log.debug('Fetching existing trees from %s.', treeSha)
+    log.debug("Fetching existing trees from '%s'.", treeSha)
     const {
       data: { tree: existingTree },
     } = await octokit.git.getTree({ ...repository, tree_sha: treeSha })
@@ -81,7 +81,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       ...repository,
       tree: [...templateTree, ...existingTree] as [],
     })
-    log.debug('Created git tree with SHA %s.', createdTreeSha)
+    log.debug("Created git tree with SHA '%s'.", createdTreeSha)
 
     return createdTreeSha
   }
@@ -102,7 +102,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       tree: createdTreeSha,
       parents: [currentCommitSha],
     })
-    log.debug('Created git commit with SHA %s.', newCommitSha)
+    log.debug("Created git commit with SHA '%s.'", newCommitSha)
 
     return newCommitSha
   }
@@ -187,7 +187,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   }
 
   const updateBranch = async (newBranch: string, newCommit: string, repository: RepositoryDetails) => {
-    log.debug('Setting new branch ref %s to commit %s.', newBranch, newCommit)
+    log.debug("Setting new branch ref '%s' to commit '%s'.", newBranch, newCommit)
     const {
       data: { ref: updatedRef },
     } = await octokit.git.updateRef({
@@ -222,9 +222,9 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     const {
       data: { default_branch: baseBranch },
     } = await octokit.repos.get({ ...repository })
-    log.debug('Using base branch %s.', baseBranch)
+    log.debug("Using base branch '%s'.", baseBranch)
 
-    log.debug('Fetching base branch ref heads/%s.', baseBranch)
+    log.debug("Fetching base branch ref 'heads/%s'.", baseBranch)
     const {
       data: {
         object: { sha: baseBranchRef },
@@ -238,7 +238,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       data: { sha: currentCommitSha },
     } = await octokit.git.getCommit({ ...repository, commit_sha: baseBranchRef })
 
-    log.debug('Using base commit %s.', currentCommitSha)
+    log.debug("Using base commit '%s'.", currentCommitSha)
 
     return { baseBranch, currentCommitSha, newBranch, baseBranchRef }
   }
@@ -254,7 +254,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     const createdTree = await createTreeWithChanges(templates, repository, baseBranchRef)
     const newCommit = await createCommitWithChanges(repository, prDetails.title, currentCommitSha, createdTree)
     const updatedRef = await updateBranch(newBranch, newCommit, repository)
-    log.debug('Updated branch ref: %s', updatedRef)
+    log.debug("Updated branch ref: '%s'", updatedRef)
 
     return await maintainPullRequest(repository, prDetails, baseBranch)
   }
@@ -280,7 +280,7 @@ ${errors.map(error => `- ${error}`).join('\n')}
       event: 'REQUEST_CHANGES',
       body,
     })
-    log.debug('Created change request review %d.', id)
+    log.debug("Created change request review '%d'.", id)
 
     return id
   }
@@ -296,7 +296,7 @@ ${errors.map(error => `- ${error}`).join('\n')}
       event: 'APPROVE',
       body,
     })
-    log.debug('Created approved review %d.', id)
+    log.debug("Created approved review '%d'.", id)
 
     return id
   }

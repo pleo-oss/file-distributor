@@ -38,7 +38,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
           if (!extensionMatches) {
             log.warn(
-              'Template configuration seems to be invalid, file extension mismatch between source: %s and destination: %s. Skipping!',
+              "Template configuration seems to be invalid, file extension mismatch between source: '%s' and destination: '%s'. Skipping!",
               file.source,
               file.destination,
             )
@@ -83,15 +83,15 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
-    log.debug('Fetching templates from %s/%s.', templateRepository.owner, templateRepository.repo)
+    log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
     const release = await getReleaseFromTag(templateVersion, templateRepository)
-    log.debug('Fetching templates from URL: %s.', release.zipball_url)
+    log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
 
     if (!release.zipball_url) {
       throw new Error(`Release '${release.id}' has no zipball URL.`)
     }
 
-    log.debug('Fetching release information from %s.', release.zipball_url)
+    log.debug("Fetching release information from '%s'.", release.zipball_url)
     const { data: contents } = (await octokit.repos.downloadZipballArchive({
       ...templateRepository,
       ref: release.tag_name,
@@ -132,7 +132,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates> => {
     log.debug('Processing configuration changes.')
     const { version } = configuration
-    log.debug('Configuration uses template version %s.', version)
+    log.debug("Configuration uses template version '%s'.", version)
 
     const { contents, version: fetchedVersion } = await downloadTemplates(version)
     const extractedContent = await extractZipContents(contents, configuration)
@@ -154,9 +154,9 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   }
 
   const getTemplateDefaultValues = async (version: string) => {
-    log.debug('Configuration uses template version %s.', version)
+    log.debug("Configuration uses template version '%s'.", version)
 
-    log.debug('Downloading templates with version %s.', version)
+    log.debug("Downloading templates with version '%s'.", version)
     const { contents } = await downloadTemplates(version)
 
     log.debug('Extracting ZIP contents.')
