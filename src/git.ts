@@ -5,8 +5,8 @@ const baseBranchName = 'centralized-templates'
 const reducedBranchName = `heads/${baseBranchName}`
 const fullBranchName = `refs/${reducedBranchName}`
 
-export const getCommitFiles =
-  (repository: RepositoryDetails, sha: string) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'repos'>) => {
+export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git'>) => {
+  const getCommitFiles = async (repository: RepositoryDetails, sha: string) => {
     const commit = await octokit.repos.getCommit({
       ...repository,
       ref: sha,
@@ -24,10 +24,7 @@ export const getCommitFiles =
     return filenames
   }
 
-export const getFilesChanged =
-  (repository: RepositoryDetails, pullRequestNumber: number) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+  const getFilesChanged = async (repository: RepositoryDetails, pullRequestNumber: number) => {
     log.debug(`Fetching files changed for PR #${pullRequestNumber}.`)
     const { data: filesChanged } = await octokit.pulls.listFiles({
       ...repository,
@@ -39,10 +36,7 @@ export const getFilesChanged =
     return filenames
   }
 
-const getOrCreateNewBranch =
-  (repository: RepositoryDetails, baseBranchRef: string) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'git'>) => {
+  const getOrCreateNewBranch = async (repository: RepositoryDetails, baseBranchRef: string) => {
     try {
       log.debug(`Creating new branch on SHA: '${baseBranchRef}'.`)
       const newBranch = (await octokit.git.createRef({ ...repository, ref: fullBranchName, sha: baseBranchRef })).data
@@ -68,10 +62,7 @@ const getOrCreateNewBranch =
     }
   }
 
-const createTreeWithChanges =
-  (templates: Template[], repository: RepositoryDetails, treeSha: string) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'git'>) => {
+  const createTreeWithChanges = async (templates: Template[], repository: RepositoryDetails, treeSha: string) => {
     const templateTree = templates.map(template => ({
       path: template.destinationPath,
       mode: '100644',
@@ -96,10 +87,12 @@ const createTreeWithChanges =
     return createdTreeSha
   }
 
-const createCommitWithChanges =
-  (repository: RepositoryDetails, title: string, currentCommitSha: string, createdTreeSha: string) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'git'>) => {
+  const createCommitWithChanges = async (
+    repository: RepositoryDetails,
+    title: string,
+    currentCommitSha: string,
+    createdTreeSha: string,
+  ) => {
     log.debug('Creating git commit with modified templates.')
 
     const {
@@ -115,10 +108,7 @@ const createCommitWithChanges =
     return newCommitSha
   }
 
-const createPullRequest =
-  (repository: RepositoryDetails, details: PRDetails, baseBranch: string) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+  const createPullRequest = async (repository: RepositoryDetails, details: PRDetails, baseBranch: string) => {
     const { title, description } = details
 
     log.debug('Creating PR.')
@@ -134,10 +124,7 @@ const createPullRequest =
     return created
   }
 
-const updatePullRequest =
-  (repository: RepositoryDetails, details: PRDetails, number: number) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+  const updatePullRequest = async (repository: RepositoryDetails, details: PRDetails, number: number) => {
     const { title, description } = details
 
     log.debug(`Updating PR #${number}.`)
@@ -154,8 +141,7 @@ const updatePullRequest =
     return updated
   }
 
-const getExistingPullRequest =
-  (repository: RepositoryDetails) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+  const getExistingPullRequest = async (repository: RepositoryDetails) => {
     const { data: openPullRequests } = await octokit.pulls.list({
       ...repository,
       head: `${repository.owner}:${baseBranchName}`,
@@ -168,10 +154,7 @@ const getExistingPullRequest =
     return toUpdate
   }
 
-const mergePullRequest =
-  (number: number, repository: RepositoryDetails) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+  const mergePullRequest = async (number: number, repository: RepositoryDetails) => {
     log.debug(`Attempting automerge of PR #${number}.`)
     const merged = await octokit.pulls.merge({
       ...repository,
@@ -183,18 +166,20 @@ const mergePullRequest =
     return merged
   }
 
-const maintainPullRequest =
-  (repository: RepositoryDetails, details: PRDetails, baseBranch: string, automerge?: boolean) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
-    const currentPullRequest = await getExistingPullRequest(repository)(log)(octokit)
+  const maintainPullRequest = async (
+    repository: RepositoryDetails,
+    details: PRDetails,
+    baseBranch: string,
+    automerge?: boolean,
+  ) => {
+    const currentPullRequest = await getExistingPullRequest(repository)
 
     const pr = currentPullRequest
-      ? await updatePullRequest(repository, details, currentPullRequest.number)(log)(octokit)
-      : await createPullRequest(repository, details, baseBranch)(log)(octokit)
+      ? await updatePullRequest(repository, details, currentPullRequest.number)
+      : await createPullRequest(repository, details, baseBranch)
 
     if (automerge) {
-      await mergePullRequest(pr.data.number, repository)(log)(octokit)
+      await mergePullRequest(pr.data.number, repository)
     }
     const {
       data: { number: prNumber },
@@ -202,10 +187,7 @@ const maintainPullRequest =
     return prNumber
   }
 
-const updateBranch =
-  (newBranch: string, newCommit: string, repository: RepositoryDetails) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'git'>) => {
+  const updateBranch = async (newBranch: string, newCommit: string, repository: RepositoryDetails) => {
     log.debug(`Setting new branch ref '${newBranch}' to commit '${newCommit}'.`)
     const {
       data: { ref: updatedRef },
@@ -218,10 +200,10 @@ const updateBranch =
     return updatedRef
   }
 
-const generatePullRequestDescription = (version: string, templates: Template[]) => {
-  const stringifiedTemplateNames = templates.map(t => `- \`${t.destinationPath}\``).join('\n')
+  const generatePullRequestDescription = (version: string, templates: Template[]) => {
+    const stringifiedTemplateNames = templates.map(t => `- \`${t.destinationPath}\``).join('\n')
 
-  return `
+    return `
   Template version: \`${version}\`
 
   ---
@@ -234,10 +216,9 @@ const generatePullRequestDescription = (version: string, templates: Template[]) 
 
   ${stringifiedTemplateNames}
   `
-}
+  }
 
-const extractBranchInformation =
-  (repository: RepositoryDetails) => (log: Logger) => async (octokit: Pick<OctokitInstance, 'repos' | 'git'>) => {
+  const extractBranchInformation = async (repository: RepositoryDetails) => {
     log.debug('Fetching base branch.')
     const {
       data: { default_branch: baseBranch },
@@ -251,7 +232,7 @@ const extractBranchInformation =
       },
     } = await octokit.git.getRef({ ...repository, ref: `heads/${baseBranch}` })
 
-    const newBranch = await getOrCreateNewBranch(repository, baseBranchRef)(log)(octokit)
+    const newBranch = await getOrCreateNewBranch(repository, baseBranchRef)
 
     log.debug('Determining current commit.')
     const {
@@ -263,33 +244,27 @@ const extractBranchInformation =
     return { baseBranch, currentCommitSha, newBranch, baseBranchRef }
   }
 
-export const commitFiles =
-  (repository: RepositoryDetails, version: string, templates: Template[]) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'git' | 'repos' | 'pulls'>) => {
-    const { baseBranch, currentCommitSha, newBranch, baseBranchRef } = await extractBranchInformation(repository)(log)(
-      octokit,
-    )
+  const commitFiles = async (repository: RepositoryDetails, version: string, templates: Template[]) => {
+    const { baseBranch, currentCommitSha, newBranch, baseBranchRef } = await extractBranchInformation(repository)
 
     const prDetails = {
       title: 'Update templates based on repository configuration',
       description: generatePullRequestDescription(version, templates),
     }
 
-    const createdTree = await createTreeWithChanges(templates, repository, baseBranchRef)(log)(octokit)
-    const newCommit = await createCommitWithChanges(repository, prDetails.title, currentCommitSha, createdTree)(log)(
-      octokit,
-    )
-    const updatedRef = await updateBranch(newBranch, newCommit, repository)(log)(octokit)
+    const createdTree = await createTreeWithChanges(templates, repository, baseBranchRef)
+    const newCommit = await createCommitWithChanges(repository, prDetails.title, currentCommitSha, createdTree)
+    const updatedRef = await updateBranch(newBranch, newCommit, repository)
     log.debug(`Updated branch ref: ${updatedRef}`)
 
-    return await maintainPullRequest(repository, prDetails, baseBranch)(log)(octokit)
+    return await maintainPullRequest(repository, prDetails, baseBranch)
   }
 
-export const requestPullRequestChanges =
-  (repository: RepositoryDetails, pullRequestNumber: number, errors: (string | undefined)[]) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+  const requestPullRequestChanges = async (
+    repository: RepositoryDetails,
+    pullRequestNumber: number,
+    errors: (string | undefined)[],
+  ) => {
     const body = `
 🤖 It looks like your changes are invalid. 
 
@@ -311,10 +286,7 @@ ${errors.map(error => `- ${error}`).join('\n')}
     return id
   }
 
-export const approvePullRequestChanges =
-  (repository: RepositoryDetails, pullRequestNumber: number) =>
-  (log: Logger) =>
-  async (octokit: Pick<OctokitInstance, 'pulls'>) => {
+  const approvePullRequestChanges = async (repository: RepositoryDetails, pullRequestNumber: number) => {
     const body = '🤖 Well done!'
     log.debug(`Creating approved review on PR #${pullRequestNumber}.`)
     const {
@@ -329,3 +301,12 @@ export const approvePullRequestChanges =
 
     return id
   }
+
+  return {
+    approvePullRequestChanges,
+    commitFiles,
+    getCommitFiles,
+    getFilesChanged,
+    requestPullRequestChanges,
+  }
+}
