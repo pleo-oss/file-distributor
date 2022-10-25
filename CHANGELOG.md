@@ -1,3 +1,20 @@
+# v2.5.0 (Mon Oct 24 2022)
+
+#### 🎁 Features
+
+- Fix tests and make probot throw error [#44](https://github.com/pleo-oss/file-distributor/pull/44) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### 🏠 Internal
+
+- Fix App manifest permissions [#51](https://github.com/pleo-oss/file-distributor/pull/51) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.4.0 (Mon Oct 24 2022)
 
 #### 🎁 Features

@@ -1,0 +1,83 @@
+# Whether the file distributor should attempt to automerge template updates into your repository.
+automerge: false
+
+# Files distributed to all repositories.
+files:
+  - source: templates/.github/workflows/opslevel.yaml
+    destination: .github/workflows/opslevel.yaml
+
+values:
+  # Allow Kodiak to auto-update and auto-merge PRs in your repository once PRs are passing all checks via the `automerge` or `autoupdate` PR labels.
+  allowKodiakAutoMerge: true
+
+  # Make Kodiak give Renovate PRs 1 approval automatically.
+  autoApproveRenovatePrs: true
+
+  # Auto-release your Kotlin service to our private package repository and generate an up-to-date `CHANGELOG`.
+  # Labels on PRs determine the release type (`major`, `minor`, `patch` or `internal`).
+  # This value depends on the `incrementVersion` Gradle task in your `build.gradle.kts`.
+  autoRelease: false
+
+  databaseMigrationEnabled: false
+
+  # Send unit and functional test results to Datadog.
+  # See https://docs.datadoghq.com/continuous_integration/setup_tests/java/?tab=onpremisesciproviderdatadogagent
+  #   and https://app.datadoghq.eu/ci/test-services?view=branches.
+  datadogTestLoggingEnabled: false
+
+  # The default branch of the repository templates go to. Automatically set.
+  defaultBranch: main
+
+  # The default port for your service.
+  defaultPort: 8880
+
+  deploymentEnabled: true
+
+  # Enable reporting workflow events (e.g. production deployments) to a serverless function.
+  # This data is used to calculate metrics such as Deployment Frequency, Mean Time to Change, Change Failure Rate & Mean Time to Repair.
+  doraMetricsReportingEnabled: true
+
+  funcTestEnabled: true
+
+  # The JDK version of your service.
+  jdkVersion: 17
+
+  # The default metrics port for your service.
+  metricsPort: 8881
+
+  nodeVersion: 16
+
+  # Image version (full) for the Postgres service (see `postgresRequired`)
+  postgresImageVersion: "postgres:11.11"
+
+  # Provision a Postgres instance for tests to run against.
+  postgresRequired: false
+
+  # Deploy to our production K8S cluster.
+  productionDeploymentEnabled: true
+
+  # Publish generated TypeScript request/response types for frontend calls to generated OpenAPI clients.
+  publishTypeScriptFrontendModels: false
+
+  # Image version (full) for the Redis service (see `redisRequired`)
+  redisImageVersion: "redis:6.2.6"
+
+  # Provision a Redis instance for tests to run against.
+  redisRequired: false
+
+  # Whether your service should release its generated OpenAPI clients.
+  releaseOpenAPIClients: false
+
+  # Name of the repository the template goes to. Automatically set.
+  repositoryName: repository-name
+
+  # Notify OpsLevel about production deploys.
+  sendOpsLevelDeployNotifications: false
+
+  # Send Snyk results to OpsLevel.
+  sendOpsLevelVulnerabilityCheck: false
+
+  # The workflow should add a step to set up Golang.
+  setupGo: false
+
+  stripeKeyRequired: false

@@ -26,6 +26,21 @@ const extractRepositoryInformation = (payload: PushEvent) => {
   }
 }
 
+const extractPullRequestInformation = (payload: PullRequestEvent) => {
+  const {
+    number,
+    pull_request: {
+      head: { sha },
+    },
+    repository: {
+      owner: { login },
+      name,
+    },
+  } = payload
+
+  return { number, sha, repository: { owner: login, repo: name } }
+}
+
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
   const { log, octokit } = context
 
@@ -35,46 +50,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
   const { getTemplateDefaultValues } = templates(log, octokit)
 
-  const createCheck = async (result: boolean, errors: string[]) => {
-    const conclusion = result ? 'success' : 'failure'
-
-    const createCheckInput = {
-      ...repository,
-      sha: sha,
-    }
-
-    const checkId = await createCheckRun(createCheckInput)
-
-    const checkToResolve = {
-      ...repository,
-      sha: sha,
-      conclusion: conclusion,
-      checkRunId: checkId,
-    }
-    const checkConclusion = await resolveCheckRun(checkToResolve)
-
-    if (!result) {
-      const changeRequestId = await requestPullRequestChanges(repository, number, errors)
-      log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
-    } else {
-      const approvedReviewId = await approvePullRequestChanges(repository, number)
-      log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
-    }
-
-    return checkConclusion
-  }
-
-  const repository = {
-    owner: payload.repository.owner.login,
-    repo: payload.repository.name,
-  }
-  const {
-    number,
-    pull_request: {
-      head: { sha },
-    },
-  } = payload
-
+  const { number, sha, repository } = extractPullRequestInformation(payload)
   log.info(`Pull request event happened on #${number}`)
 
   try {
@@ -92,16 +68,26 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     const combined = combineConfigurations(defaultValues, configuration)
     if (!combined) return
 
-    const { result: configurationResult, errors: configurationErrors } = validateTemplateConfiguration(
-      combined,
-      defaultValueSchema,
-    )
+    const { result, errors } = validateTemplateConfiguration(combined, defaultValueSchema)
 
-    const configurationConclusion = await createCheck(configurationResult, configurationErrors)
-    log.info(`Validated configuration changes in #${number} with conclusion: ${configurationConclusion}.`)
+    const conclusion = result ? 'success' : 'failure'
+    const checkInput = { ...repository, sha: sha }
+    const checkId = await createCheckRun(checkInput)
+    const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion, checkRunId: checkId })
+
+    if (!result) {
+      const changeRequestId = await requestPullRequestChanges(repository, number, errors)
+      log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
+    } else {
+      const approvedReviewId = await approvePullRequestChanges(repository, number)
+      log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
+    }
+
+    log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
   } catch (error) {
     log.error(`Failed to process PR #${number}' with error:`)
     log.error(error as never)
+    throw error
   }
 }
 
@@ -134,9 +120,10 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
     const pullRequestNumber = await commitFiles(repository, version, processed)
     log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
     log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
-  } catch (e: unknown) {
+  } catch (error) {
     log.error(`Failed to process commit '${payload.after}' with error:`)
-    log.error(e as never)
+    log.error(error)
+    throw error
   }
 }
 

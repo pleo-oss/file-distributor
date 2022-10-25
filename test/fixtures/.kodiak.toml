@@ -1,0 +1,27 @@
+version = 1
+
+[merge]
+automerge_label = "automerge"
+require_automerge_label = true
+delete_branch_on_merge = true
+method = "squash"
+optimistic_updates = true
+prioritize_ready_to_merge = true
+<<<^allowKodiakAutoMerge>>>
+do_not_merge = true
+<<</allowKodiakAutoMerge>>>
+
+[merge.message]
+strip_html_comments = true
+
+[update]
+autoupdate_label = "autoupdate"
+require_automerge_label = false
+
+[approve]
+<<<#autoApproveRenovatePrs>>>
+auto_approve_usernames = ["pleo-bot-file-distributor", "pleo-bot-renovate"]
+<<</autoApproveRenovatePrs>>>
+<<<^autoApproveRenovatePrs>>>
+auto_approve_usernames = ["pleo-bot-file-distributor"]
+<<</autoApproveRenovatePrs>>>

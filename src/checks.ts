@@ -3,52 +3,47 @@ import { Logger } from 'probot'
 
 export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) => {
   const createCheckRun = async (input: CreateCheckInput) => {
-    log.debug(`Creating queued check run on ${input.sha}.`)
+    const { owner, repo, sha } = input
+
+    log.debug('Creating queued check run on %s.', input.sha)
     const {
       data: { id },
     } = await octokit.checks.create({
-      headers: {
-        accept: 'application/vnd.github.v3+json',
-      },
-      owner: input.owner,
-      repo: input.repo,
+      owner,
+      repo,
       name: 'Configuration validation',
-      head_sha: input.sha,
+      head_sha: sha,
       status: 'queued',
       output: {
-        title: 'Template schema validation',
-        summary: 'Validation is queued',
+        title: 'Schema validation',
+        summary: 'Validation queued',
       },
     })
-    log.debug(`Queued check run ${input.sha} with ID '${id}'.`)
+    log.debug('Queued check run %s with ID %d.', input.sha, id)
 
     return id
   }
 
   const resolveCheckRun = async (input: UpdateCheckInput) => {
-    const { checkRunId, sha, conclusion: result } = input
+    const { repo, owner, checkRunId, sha, conclusion: result } = input
 
-    log.debug(`Updating check run ${checkRunId}.`)
+    log.debug('Updating check run %d.', checkRunId)
     const {
       data: { conclusion },
     } = await octokit.checks.update({
-      headers: {
-        accept: 'application/vnd.github.v3+json',
-      },
-      owner: input.owner,
-      repo: input.repo,
+      owner,
+      repo,
       name: 'Configuration validation',
       check_run_id: checkRunId,
       status: 'completed',
       head_sha: sha,
       conclusion: result,
       output: {
-        title: 'Template schema validation',
+        title: 'Schema validation',
         summary: result,
       },
     })
-    log.debug(`Updated check run ${checkRunId} with conclusion '${conclusion}'.`)
-
+    log.debug('Updated check run %d with conclusion %s.', checkRunId, conclusion)
     return conclusion
   }
 
