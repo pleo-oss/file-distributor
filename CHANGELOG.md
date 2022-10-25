@@ -1,3 +1,22 @@
+# v2.5.1 (Tue Oct 25 2022)
+
+#### 🐞 Fixes
+
+- Reduce parameters of implementation by exporting built closures [#52](https://github.com/pleo-oss/file-distributor/pull/52) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Improve concurrency [#49](https://github.com/pleo-oss/file-distributor/pull/49) ([@marcos-arranz](https://github.com/marcos-arranz))
+- Pin dependency genson-js to 0.0.8 [#48](https://github.com/pleo-oss/file-distributor/pull/48) ([@renovate[bot]](https://github.com/renovate[bot]))
+
+#### Authors: 3
+
+- [@renovate[bot]](https://github.com/renovate[bot])
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.5.0 (Mon Oct 24 2022)
 
 #### 🎁 Features
