@@ -98,8 +98,8 @@ yarn start
 
 - Create a new `smee` channel at [smee.io](https://smee.io/)
 - Create a GitHub App for local development at [github.com/settings/apps/new](https://github.com/settings/apps/new)
-- Set the `smee` URL as the Webhook URL in the GitHub App settings
-- Add a Webhook secret in the GitHub App settings
+- Set the `smee` URL as the _Webhook URL_ in the GitHub App settings
+- Add a _Webhook secret_ in the GitHub App settings
 - Set the following permissions in the GitHub App settings
   - Repository permissions
     - Checks: `read/write`
@@ -111,10 +111,10 @@ yarn start
 - Set the following event subscriptions in the GitHub App settings
   - Push
 - Save the changes to the GitHub App settings
-- Generate and add a private key in the GitHub App settings
-- Enable SSL verification in the GitHub App settings
+- Generate and add a _Private key_ in the GitHub App settings
+- Enable _SSL verification_ in the GitHub App settings
 - Save the changes to the GitHub App settings
-- Add the `App ID`, `Webhook URL`, `Webhook secret` and `Private key` to the `.env` of this repository
+- Set the _App ID_, _Webhook URL_, _Webhook secret_ and _Private key_ in a `.env` file in the root of this repository
 - Install the GitHub App on a repository/organisation to generate events
 - Done 🎉
 
