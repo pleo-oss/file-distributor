@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import { PathConfiguration } from '../src/types'
-import { templates } from '../lib/templates'
+import { templates } from '../src/templates'
 import { Logger } from 'probot'
 import { OctokitInstance } from '../src/types'
 
@@ -47,7 +47,7 @@ templates/test_template.toml @pleo-io/concrete_team_y
 }
 
 const getRepositoryConfiguration = (
-  pathConfigurations: PathConfiguration[],
+  pathConfigurations: (PathConfiguration | string)[],
   values: { [key: string]: string } = { appName: 'expected-app-name' },
 ) => ({
   version: '0.0.3',
@@ -79,6 +79,71 @@ describe('Template rendering', () => {
     //and
     expect(renderedTemplates.templates[0].contents).toBe('{"owner": "pleo", "repo": "expected-app-name"}')
     expect(renderedTemplates.templates[1].contents).toBe('owner = "pleo" repo = "expected-app-name"')
+  })
+
+  test('should render relative path templates with expected prefix', async () => {
+    const oldEnv = process.env
+
+    const contents = [
+      { path: 'templates/somePath/test_template.json', data: '{"owner": "pleo", "repo": "<<<appName>>>"}' },
+      { path: 'templates/somePath/test_template.toml', data: 'owner = "pleo" repo = "<<<appName>>>"' },
+    ]
+
+    const mockedOctokit = createMockedOctokit([...contents])
+
+    const configuration = getRepositoryConfiguration(['somePath/test_template.json', 'somePath/test_template.toml'])
+
+    const { renderTemplates } = templates(log, mockedOctokit)
+
+    process.env['TEMPLATE_PATH_PREFIX'] = 'templates/'
+
+    const { templates: result } = await renderTemplates(configuration)
+
+    expect(result.length).toEqual(2)
+    expect(result[0].contents).toEqual('{"owner": "pleo", "repo": "expected-app-name"}')
+    expect(result[1].contents).toEqual('owner = "pleo" repo = "expected-app-name"')
+    expect(result[0].sourcePath).toEqual(contents[0].path)
+    expect(result[1].sourcePath).toEqual(contents[1].path)
+
+    process.env = oldEnv
+  })
+
+  test('should render mixed relative path templates and (source, destination) with expected prefixes', async () => {
+    const oldEnv = process.env
+
+    const contents = [
+      { path: 'templates/somePath/test_template.json', data: '{"owner": "pleo", "repo": "<<<appName>>>"}' },
+      { path: 'templates/somePath/test_template.toml', data: 'owner = "pleo" repo = "<<<appName>>>"' },
+      { path: 'templates/test_template.json', data: '{"owner": "pleo", "repo": "<<<appName>>>"}' },
+      { path: 'templates/test_template.toml', data: 'owner = "pleo" repo = "<<<appName>>>"' },
+    ]
+
+    const mockedOctokit = createMockedOctokit([...contents])
+
+    const configuration = getRepositoryConfiguration([
+      'somePath/test_template.json',
+      'somePath/test_template.toml',
+      { source: 'templates/test_template.json', destination: 'test_template.json' },
+      { source: 'templates/test_template.toml', destination: 'test_template.toml' },
+    ])
+
+    const { renderTemplates } = templates(log, mockedOctokit)
+
+    process.env['TEMPLATE_PATH_PREFIX'] = 'templates/'
+
+    const { templates: result } = await renderTemplates(configuration)
+
+    expect(result.length).toEqual(4)
+    expect(result[0].contents).toEqual('{"owner": "pleo", "repo": "expected-app-name"}')
+    expect(result[1].contents).toEqual('owner = "pleo" repo = "expected-app-name"')
+    expect(result[2].contents).toEqual('{"owner": "pleo", "repo": "expected-app-name"}')
+    expect(result[3].contents).toEqual('owner = "pleo" repo = "expected-app-name"')
+    expect(result[0].sourcePath).toEqual(contents[0].path)
+    expect(result[1].sourcePath).toEqual(contents[1].path)
+    expect(result[2].sourcePath).toEqual(contents[2].path)
+    expect(result[3].sourcePath).toEqual(contents[3].path)
+
+    process.env = oldEnv
   })
 
   test('should skip prepending header for json file when CODEOWNERS defined', async () => {
