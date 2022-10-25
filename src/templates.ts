@@ -3,7 +3,6 @@ import { render } from 'mustache'
 import {
   ExtractedContent,
   OctokitInstance,
-  PathConfiguration,
   RepositoryConfiguration,
   RepositoryDetails,
   Template,
@@ -14,6 +13,7 @@ import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
 import { parse } from 'yaml'
+import { ensurePathConfiguration } from './configuration'
 
 export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
@@ -31,20 +31,10 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     configuration: RepositoryConfiguration,
   ): Promise<ExtractedContent> => {
     log.debug('Extracting ZIP contents.')
-    const pathPrefix = process.env['TEMPLATE_PATH_PREFIX']
     const loaded = await loadAsync(contents)
 
     const extractTemplates: Promise<Template>[] =
-      configuration.files
-        ?.map((file: PathConfiguration | string) => {
-          if (typeof file === 'string') {
-            return {
-              source: `${pathPrefix}${file}`,
-              destination: file,
-            }
-          }
-          return file
-        })
+      ensurePathConfiguration(configuration.files)
         ?.filter(file => {
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
           if (!extensionMatches) {
