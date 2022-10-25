@@ -20,13 +20,11 @@
     "format": "prettier --write src/**/*.ts test/**/*.ts && eslint --fix --ext .ts src && eslint --fix --ext .ts test"
   },
   "dependencies": {
-    "@types/node-fetch": "2.6.2",
     "ajv": "8.11.0",
-    "axios": "1.1.2",
     "codeowners-utils": "1.0.2",
+    "dd-trace": "3.6.0",
     "dotenv": "16.0.3",
     "genson-js": "0.0.8",
-    "jsonwebtoken": "8.5.1",
     "jszip": "3.10.1",
     "mustache": "4.2.0",
     "node-stream-zip": "1.15.0",
@@ -38,6 +36,7 @@
     "@octokit/webhooks-types": "6.4.0",
     "@swc/core": "1.3.7",
     "@swc/jest": "0.2.23",
+    "@types/dd-trace": "^0.9.0",
     "@types/jest": "29.1.2",
     "@types/mustache": "4.2.1",
     "@types/node": "18.8.2",

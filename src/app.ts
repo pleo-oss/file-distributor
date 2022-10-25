@@ -1,3 +1,5 @@
+import 'dd-trace/init'
+
 import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
 import { config } from 'dotenv'
@@ -6,6 +8,7 @@ import { templates } from './templates'
 import { git } from './git'
 import { schemaValidator } from './schema-validator'
 import { checks } from './checks'
+
 config()
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
@@ -53,41 +56,36 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { number, sha, repository } = extractPullRequestInformation(payload)
   log.info(`Pull request event happened on #${number}`)
 
-  try {
-    const filesChanged = await getFilesChanged(repository, number)
-    const configFile = filesChanged.find(filename => filename === configFileName)
+  const filesChanged = await getFilesChanged(repository, number)
+  const configFile = filesChanged.find(filename => filename === configFileName)
 
-    if (!configFile) return
+  if (!configFile) return
 
-    log.debug(`Found repository configuration file: ${configFile}.`)
+  log.debug(`Found repository configuration file: ${configFile}.`)
 
-    const configuration = await determineConfigurationChanges(configFileName, repository, sha)
-    const defaultValues = await getTemplateDefaultValues(configuration.version)
-    const defaultValueSchema = generateSchema(defaultValues.values)
+  const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
+  const defaultValues = await getTemplateDefaultValues(configurationChanges.version)
+  const defaultValueSchema = generateSchema(defaultValues.values)
 
-    const combined = combineConfigurations(defaultValues, configuration)
-    if (!combined) return
+  const combined = combineConfigurations(defaultValues, configurationChanges)
+  if (!combined) return
 
-    const { result, errors } = validateTemplateConfiguration(combined, defaultValueSchema)
+  const { result, errors } = validateTemplateConfiguration(combined, defaultValueSchema)
 
-    const conclusion = result ? 'success' : 'failure'
-    const checkInput = { ...repository, sha: sha }
-    const checkId = await createCheckRun(checkInput)
-    const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion, checkRunId: checkId })
+  const conclusion = result ? 'success' : 'failure'
+  const checkInput = { ...repository, sha: sha }
+  const checkId = await createCheckRun(checkInput)
+  const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion, checkRunId: checkId })
 
-    if (!result) {
-      const changeRequestId = await requestPullRequestChanges(repository, number, errors)
-      log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
-    } else {
-      const approvedReviewId = await approvePullRequestChanges(repository, number)
-      log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
-    }
-
-    log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
-  } catch (error) {
-    log.error(`Failed to process PR #${number}'`)
-    throw error
+  if (!result) {
+    const changeRequestId = await requestPullRequestChanges(repository, number, errors)
+    log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
+  } else {
+    const approvedReviewId = await approvePullRequestChanges(repository, number)
+    log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
   }
+
+  log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
 }
 
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
@@ -98,31 +96,26 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
   log.info(`${context.name} event happened on '${payload.ref}'`)
 
-  try {
-    const repository = extractRepositoryInformation(payload)
-    const branchRegex = new RegExp(repository.defaultBranch)
+  const repository = extractRepositoryInformation(payload)
+  const branchRegex = new RegExp(repository.defaultBranch)
 
-    if (!branchRegex.test(payload.ref)) return
+  if (!branchRegex.test(payload.ref)) return
 
-    log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
+  log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
 
-    const filesChanged = await getCommitFiles(repository, payload.after)
-    if (!filesChanged.includes(configFileName)) return
+  const filesChanged = await getCommitFiles(repository, payload.after)
+  if (!filesChanged.includes(configFileName)) return
 
-    const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
-    const defaultValues = await getTemplateDefaultValues(parsed.version)
+  const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
+  const defaultValues = await getTemplateDefaultValues(parsed.version)
 
-    const combined = combineConfigurations(defaultValues, parsed)
-    if (!combined) return
+  const combined = combineConfigurations(defaultValues, parsed)
+  if (!combined) return
 
-    const { version, templates: processed } = await renderTemplates(combined)
-    const pullRequestNumber = await commitFiles(repository, version, processed)
-    log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
-    log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
-  } catch (error) {
-    log.error(`Failed to process commit '${payload.after}'`)
-    throw error
-  }
+  const { version, templates: processed } = await renderTemplates(combined)
+  const pullRequestNumber = await commitFiles(repository, version, processed)
+  log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
+  log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
 }
 
 export = async (app: Probot) => {
