@@ -29,7 +29,7 @@ export const schemaValidator = (log: Logger) => {
     const valueErrors = prettifyErrors(validateValues.errors)
 
     if (!isValidConfiguration || !hasValidValues) {
-      log.debug('Saw validation errors: %s', configurationErrors.join(','))
+      log.debug(configurationErrors, 'Saw validation errors.')
     }
 
     return {
@@ -57,11 +57,9 @@ export const schemaValidator = (log: Logger) => {
   const generateSchema = (input?: ConfigurationValues) => {
     if (!input) return undefined
 
-    log.debug('Generating JSON schema from:')
-    log.debug(input)
+    log.debug(input, 'Generating JSON schema.')
     const generated = createSchema(input, { noRequired: true })
-    log.debug('Generated JSON schema:')
-    log.debug(generated)
+    log.debug(generated, 'Generated JSON schema.')
 
     return JSON.stringify(generated)
   }

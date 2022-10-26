@@ -87,16 +87,16 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   if (!result) {
     const changeRequestId = await requestPullRequestChanges(repository, number, errors)
-    log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
+    log.debug(`Requested changes for PR #%d in %s.`, number, changeRequestId)
   } else {
     const approvedReviewId = await approvePullRequestChanges(repository, number)
-    log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
+    log.debug(`Approved PR #%d in %s.`, number, approvedReviewId)
   }
 
   const checkId = await createCheckRun(checkInput)
   const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion(result), checkRunId: checkId })
 
-  log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
+  log.info(`Validated configuration changes in #%d with conclusion: %s.`, number, checkConclusion)
 }
 
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {

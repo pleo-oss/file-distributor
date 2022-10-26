@@ -165,16 +165,14 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     log.debug('Extracting default configuration.')
 
     const defaults = await extract(loaded, 'defaults.yaml')
-    log.debug('Saw default configuration:')
-    log.debug(defaults)
+    log.debug(defaults, 'Saw default configuration.')
 
     log.debug('Extracting template files')
     const allFiles = Object.keys(loaded.files)
 
     log.debug('Parsing default configuration.')
     const parsed = parse(defaults) as RepositoryConfiguration
-    log.debug('Parsed default configuration:')
-    log.debug(parsed)
+    log.debug(parsed, 'Parsed default configuration.')
 
     return { configuration: parsed, files: allFiles }
   }
