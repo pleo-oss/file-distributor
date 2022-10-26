@@ -12,7 +12,8 @@
     "probot-app"
   ],
   "scripts": {
-    "build": "swc src -d lib -s --copy-files",
+    "build": "tsc",
+    "build:swc": "swc src -d lib -s --copy-files",
     "build:run": "yarn build && yarn start",
     "start": "probot run ./lib/app.js",
     "test": "jest",
