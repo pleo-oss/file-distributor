@@ -84,11 +84,12 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   const result = validatedTemplates.result && validatedFiles.result
   const errors = validatedTemplates.errors.concat(validatedFiles.errors)
+  const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
 
   if (!result) {
     const changeRequestId = await requestPullRequestChanges(repository, number, errors)
     log.debug(`Requested changes for PR #%d in %s.`, number, changeRequestId)
-  } else {
+  } else if (onlyChangesConfiguration) {
     const approvedReviewId = await approvePullRequestChanges(repository, number)
     log.debug(`Approved PR #%d in %s.`, number, approvedReviewId)
   }
