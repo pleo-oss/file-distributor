@@ -1,3 +1,15 @@
+# v2.7.0 (Wed Oct 26 2022)
+
+#### 🎁 Features
+
+- Validate configured files are present in template releases [#58](https://github.com/pleo-oss/file-distributor/pull/58) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v2.6.0 (Wed Oct 26 2022)
 
 #### 🎁 Features
