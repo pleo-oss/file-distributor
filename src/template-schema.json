@@ -15,7 +15,7 @@
       "type": "array",
       "nullable": true,
       "items": {
-        "type": "object",
+        "type": ["object", "string"],
         "properties": {
           "source": {
             "type": "string"

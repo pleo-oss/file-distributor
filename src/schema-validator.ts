@@ -4,7 +4,7 @@ import templateSchema from './template-schema.json'
 import { Logger } from 'probot'
 import { createSchema } from 'genson-js'
 
-const ajv = new Ajv()
+const ajv = new Ajv({ allowUnionTypes: true })
 const validateConfiguration = ajv.compile<RepositoryConfiguration>(templateSchema)
 
 export const schemaValidator = (log: Logger) => {

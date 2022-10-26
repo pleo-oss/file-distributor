@@ -10,7 +10,7 @@ export type ConfigurationValues = { [key: string]: string | undefined }
 export interface RepositoryConfiguration {
   version: string
   automerge?: boolean
-  files?: PathConfiguration[]
+  files?: (PathConfiguration | string)[]
   values?: ConfigurationValues
 }
 

@@ -1,6 +1,6 @@
 import { Logger } from 'probot'
 import { parse } from 'yaml'
-import { RepositoryDetails, RepositoryConfiguration, OctokitInstance } from './types'
+import { RepositoryDetails, RepositoryConfiguration, OctokitInstance, PathConfiguration } from './types'
 
 export const combineConfigurations = (
   base: RepositoryConfiguration,
@@ -17,6 +17,19 @@ export const combineConfigurations = (
     },
     files: Array.from(new Set([...baseFiles, ...overrideFiles])).map(entry => JSON.parse(entry)),
   }
+}
+
+export const ensurePathConfiguration = (files?: (PathConfiguration | string)[]) => {
+  const pathPrefix = process.env['TEMPLATE_PATH_PREFIX'] ?? ''
+  return files?.map((file: PathConfiguration | string) => {
+    if (typeof file === 'string') {
+      return {
+        source: `${pathPrefix}${file}`,
+        destination: file,
+      }
+    }
+    return file
+  })
 }
 
 export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
@@ -37,6 +50,7 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
 
     const combinedConfiguration: RepositoryConfiguration = {
       ...parsed,
+      files: ensurePathConfiguration(parsed.files),
       values: {
         ...parsed.values,
         repositoryName: repository.repo,

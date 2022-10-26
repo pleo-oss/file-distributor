@@ -13,6 +13,7 @@ import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
 import { parse } from 'yaml'
+import { ensurePathConfiguration } from './configuration'
 
 export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
@@ -33,7 +34,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     const loaded = await loadAsync(contents)
 
     const extractTemplates: Promise<Template>[] =
-      configuration.files
+      ensurePathConfiguration(configuration.files)
         ?.filter(file => {
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
           if (!extensionMatches) {
