@@ -1,3 +1,25 @@
+# v2.7.1 (Wed Oct 26 2022)
+
+#### 🐞 Fixes
+
+- Only approve PRs that exclusively change repository configuration [#64](https://github.com/pleo-oss/file-distributor/pull/64) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### ⚠️ Pushed to `main`
+
+- Prefer tsc for Docker building ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Add README instructions for local testing [#56](https://github.com/pleo-oss/file-distributor/pull/56) ([@andersfischernielsen](https://github.com/andersfischernielsen) [@dpotyralski](https://github.com/dpotyralski))
+- Prefer SWC only in tests and CI [#60](https://github.com/pleo-oss/file-distributor/pull/60) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+
+---
+
 # v2.7.0 (Wed Oct 26 2022)
 
 #### 🎁 Features
