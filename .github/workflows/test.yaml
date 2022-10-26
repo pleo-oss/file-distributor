@@ -24,7 +24,7 @@ jobs:
 
       - name: Build
         run: |
-          yarn build
+          yarn build:swc
 
       - name: Lint
         run: |
