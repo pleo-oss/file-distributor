@@ -1,3 +1,21 @@
+# v2.6.0 (Wed Oct 26 2022)
+
+#### 🎁 Features
+
+- Support file definitions as strings [#57](https://github.com/pleo-oss/file-distributor/pull/57) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Use SWC for building [#59](https://github.com/pleo-oss/file-distributor/pull/59) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Change logging to interpolate using pino [#46](https://github.com/pleo-oss/file-distributor/pull/46) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.5.2 (Tue Oct 25 2022)
 
 #### 🐞 Fixes
