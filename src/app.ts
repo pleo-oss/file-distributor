@@ -44,13 +44,16 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { log, octokit } = context
 
   const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(log, octokit)
-  const { validateTemplateConfiguration, generateSchema } = schemaValidator(log)
+  const { validateFiles, validateTemplateConfiguration, generateSchema } = schemaValidator(log)
   const { createCheckRun, resolveCheckRun } = checks(log, octokit)
   const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
-  const { getTemplateDefaultValues } = templates(log, octokit)
+  const { getTemplateInformation } = templates(log, octokit)
 
   const { number, sha, repository } = extractPullRequestInformation(payload)
   log.info('Pull request event happened on #%d', number)
+
+  const conclusion = (result: boolean) => (result ? 'success' : 'failure')
+  const checkInput = { ...repository, sha: sha }
 
   const filesChanged = await getFilesChanged(repository, number)
   const configFile = filesChanged.find(filename => filename === configFileName)
@@ -60,18 +63,27 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   log.debug('Found repository configuration file: %s.', configFile)
 
   const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
-  const defaultValues = await getTemplateDefaultValues(configurationChanges.version)
-  const defaultValueSchema = generateSchema(defaultValues.values)
+  const { result: versionResult } = validateTemplateConfiguration(configurationChanges)
+  const versionCheckId = await createCheckRun(checkInput)
+  const versionCheckConclusion = await resolveCheckRun({
+    ...checkInput,
+    conclusion: conclusion(versionResult),
+    checkRunId: versionCheckId,
+  })
 
-  const combined = combineConfigurations(defaultValues, configurationChanges)
+  if (versionCheckConclusion === 'failure') return
+
+  const { configuration: templateConfiguration, files } = await getTemplateInformation(configurationChanges.version)
+  const defaultValueSchema = generateSchema(templateConfiguration.values)
+
+  const combined = combineConfigurations(templateConfiguration, configurationChanges)
   if (!combined) return
 
-  const { result, errors } = validateTemplateConfiguration(combined, defaultValueSchema)
+  const validatedTemplates = validateTemplateConfiguration(combined, defaultValueSchema)
+  const validatedFiles = validateFiles(combined, files)
 
-  const conclusion = result ? 'success' : 'failure'
-  const checkInput = { ...repository, sha: sha }
-  const checkId = await createCheckRun(checkInput)
-  const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion, checkRunId: checkId })
+  const result = validatedTemplates.result && validatedFiles.result
+  const errors = validatedTemplates.errors.concat(validatedFiles.errors)
 
   if (!result) {
     const changeRequestId = await requestPullRequestChanges(repository, number, errors)
@@ -81,6 +93,9 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
   }
 
+  const checkId = await createCheckRun(checkInput)
+  const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion(result), checkRunId: checkId })
+
   log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
 }
 
@@ -88,7 +103,7 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   const { log, octokit } = context
   const { commitFiles, getCommitFiles } = git(log, octokit)
   const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
-  const { getTemplateDefaultValues, renderTemplates } = templates(log, octokit)
+  const { getTemplateInformation, renderTemplates } = templates(log, octokit)
 
   const repository = extractRepositoryInformation(payload)
   const branchRegex = new RegExp(repository.defaultBranch)
@@ -103,7 +118,7 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   if (!filesChanged.includes(configFileName)) return
 
   const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
-  const defaultValues = await getTemplateDefaultValues(parsed.version)
+  const { configuration: defaultValues } = await getTemplateInformation(parsed.version)
 
   const combined = combineConfigurations(defaultValues, parsed)
   if (!combined) return
