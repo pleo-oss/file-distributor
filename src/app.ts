@@ -6,6 +6,7 @@ import { git } from './git'
 import { schemaValidator } from './schema-validator'
 import { checks } from './checks'
 import 'dotenv/config'
+import { RepositoryDetails } from './types'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
@@ -38,6 +39,11 @@ const extractPullRequestInformation = (payload: PullRequestEvent) => {
   } = payload
 
   return { number, sha, repository: { owner: login, repo: name } }
+}
+
+const happenedOnDefaultBranch = (repository: RepositoryDetails, payload: PushEvent) => {
+  if (!repository.defaultBranch) return false
+  return new RegExp(repository.defaultBranch).test(payload.ref)
 }
 
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
@@ -100,18 +106,16 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
 }
 
-const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
+const pushFilesToRepository = async (payload: PushEvent, context: Context<'push'>) => {
   const { log, octokit } = context
   const { commitFiles, getCommitFiles } = git(log, octokit)
   const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
   const { getTemplateInformation, renderTemplates } = templates(log, octokit)
 
   const repository = extractRepositoryInformation(payload)
-  const branchRegex = new RegExp(repository.defaultBranch)
 
   log.info('%s event happened on %s', context.name, payload.ref)
-
-  if (!branchRegex.test(payload.ref)) return
+  if (!happenedOnDefaultBranch(repository, payload)) return
 
   log.info('Processing changes made in commit %s.', payload.after)
 
@@ -130,17 +134,37 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   log.info('See: https://github.com/%s/%S/pull/%d', repository.owner, repository.repo, pullRequestNumber)
 }
 
+const addBaseConfiguration = async (payload: PushEvent, context: Context<'push'>) => {
+  const { log, octokit } = context
+  const { getDefaultBranchContents, createBaseConfiguration } = git(log, octokit)
+  const { getLatestTemplateVersion } = templates(log, octokit)
+
+  const repository = extractRepositoryInformation(payload)
+  if (!happenedOnDefaultBranch(repository, payload)) return
+
+  const defaultBranchContents = await getDefaultBranchContents(repository, configFileName)
+  if (defaultBranchContents) return
+
+  const latestVersion = await getLatestTemplateVersion()
+  const createdPR = await createBaseConfiguration(repository, latestVersion, configFileName)
+  if (createdPR) {
+    const { owner, repo } = repository
+    log.info("Created new base configuration for %s/%s in #%d with version '%s'", owner, repo, createdPR, latestVersion)
+  }
+}
+
 export = async (app: Probot) => {
   const authenticated = await app.auth(Number(process.env.APP_ID))
   if (!authenticated) {
     app.log.error('The application is not installed with expected authentication. Exiting.')
   }
 
-  app.on('push', async (context: Context<'push'>) => {
-    await processPushEvent(context.payload as PushEvent, context)
+  app.on('push', (context: Context<'push'>) => {
+    pushFilesToRepository(context.payload as PushEvent, context)
+    addBaseConfiguration(context.payload as PushEvent, context)
   })
 
-  app.on(['pull_request.opened', 'pull_request.synchronize'], async (context: Context<'pull_request'>) => {
-    await processPullRequest(context.payload as PullRequestEvent, context)
+  app.on(['pull_request.opened', 'pull_request.synchronize'], (context: Context<'pull_request'>) => {
+    processPullRequest(context.payload as PullRequestEvent, context)
   })
 }

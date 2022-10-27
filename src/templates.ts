@@ -78,6 +78,15 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return data
   }
 
+  const getLatestRelease = async (repository: RepositoryDetails) => {
+    const {
+      data: { tag_name },
+    } = await octokit.repos.getLatestRelease({
+      ...repository,
+    })
+    return tag_name
+  }
+
   const downloadTemplates = async (templateVersion: string): Promise<TemplateInformation> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
@@ -179,8 +188,17 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return { configuration: parsed, files: allFiles }
   }
 
+  const getLatestTemplateVersion = async () => {
+    const templateRepository = {
+      owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
+      repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
+    }
+    return getLatestRelease(templateRepository)
+  }
+
   return {
     renderTemplates,
     getTemplateInformation,
+    getLatestTemplateVersion,
   }
 }

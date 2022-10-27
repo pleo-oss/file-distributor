@@ -35,10 +35,12 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     return filenames
   }
 
-  const getOrCreateNewBranch = async (repository: RepositoryDetails, baseBranchRef: string) => {
+  const getOrCreateNewBranch = async (repository: RepositoryDetails, baseBranchRef: string, branchName?: string) => {
     try {
       log.debug("Creating new branch on SHA: '%s'.", baseBranchRef)
-      const newBranch = (await octokit.git.createRef({ ...repository, ref: fullBranchName, sha: baseBranchRef })).data
+      const newBranch = (
+        await octokit.git.createRef({ ...repository, ref: branchName ?? fullBranchName, sha: baseBranchRef })
+      ).data
       log.debug("Created new branch with ref: '%s'.", newBranch.ref)
 
       const {
@@ -140,11 +142,15 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     return updated
   }
 
-  const getExistingPullRequest = async (repository: RepositoryDetails) => {
+  const getExistingPullRequest = async (
+    repository: RepositoryDetails,
+    branchName?: string,
+    state?: 'open' | 'closed' | 'all',
+  ) => {
     const { data: openPullRequests } = await octokit.pulls.list({
       ...repository,
-      head: `${repository.owner}:${baseBranchName}`,
-      state: 'open',
+      head: `${repository.owner}:${branchName ?? baseBranchName}`,
+      state: state ?? 'open',
     })
     log.debug('Found %s open PRs.', openPullRequests.length)
 
@@ -217,7 +223,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   `
   }
 
-  const extractBranchInformation = async (repository: RepositoryDetails) => {
+  const extractBranchInformation = async (repository: RepositoryDetails, branchName?: string) => {
     log.debug('Fetching base branch.')
     const {
       data: { default_branch: baseBranch },
@@ -231,7 +237,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       },
     } = await octokit.git.getRef({ ...repository, ref: `heads/${baseBranch}` })
 
-    const newBranch = await getOrCreateNewBranch(repository, baseBranchRef)
+    const newBranch = await getOrCreateNewBranch(repository, branchName ?? baseBranchRef)
 
     log.debug('Determining current commit.')
     const {
@@ -252,6 +258,42 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     }
 
     const createdTree = await createTreeWithChanges(templates, repository, baseBranchRef)
+    const newCommit = await createCommitWithChanges(repository, prDetails.title, currentCommitSha, createdTree)
+    const updatedRef = await updateBranch(newBranch, newCommit, repository)
+    log.debug("Updated branch ref: '%s'", updatedRef)
+
+    return await maintainPullRequest(repository, prDetails, baseBranch)
+  }
+
+  const baseConfigurationDescription = `
+  🤖 It looks like this repository is not configured for template distribution.
+  
+  ---
+  
+  This PR creates a repository configuration for you. 
+  If you do not wish to configure the repository, close this PR and I will leave the repository alone going forward.
+  `
+
+  const createBaseConfiguration = async (repository: RepositoryDetails, version: string, configurationPath: string) => {
+    const branchName = 'templates/create-configuration'
+    const { baseBranch, currentCommitSha, newBranch, baseBranchRef } = await extractBranchInformation(
+      repository,
+      branchName,
+    )
+
+    const existingPullRequests = await getExistingPullRequest(repository, branchName, 'all')
+    if (existingPullRequests) return undefined
+
+    const prDetails = {
+      title: 'Update templates based on repository configuration',
+      description: baseConfigurationDescription,
+    }
+
+    const baseConfiguration: Template[] = [
+      { contents: `version: ${version}`, sourcePath: '', destinationPath: configurationPath },
+    ]
+
+    const createdTree = await createTreeWithChanges(baseConfiguration, repository, baseBranchRef)
     const newCommit = await createCommitWithChanges(repository, prDetails.title, currentCommitSha, createdTree)
     const updatedRef = await updateBranch(newBranch, newCommit, repository)
     log.debug("Updated branch ref: '%s'", updatedRef)
@@ -301,11 +343,25 @@ ${errors.map(error => `- ${error}`).join('\n')}
     return id
   }
 
+  const getDefaultBranchContents = async (repository: RepositoryDetails, path: string) => {
+    const { owner, repo } = repository
+    log.debug('Fetching repository contents for %s/%s', owner, repo)
+    try {
+      const contents = await octokit.repos.getContent({ ...repository, path })
+      log.debug('Found contents at %s for %s/%s', path, owner, repo)
+      return contents
+    } catch (e) {
+      return undefined
+    }
+  }
+
   return {
     approvePullRequestChanges,
     commitFiles,
     getCommitFiles,
     getFilesChanged,
     requestPullRequestChanges,
+    getDefaultBranchContents,
+    createBaseConfiguration,
   }
 }
