@@ -1,6 +1,6 @@
 {
   "name": "file-distributor",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "private": true,
   "description": "A GitHub App for distributing files/templates to configured repositories in an organisation.",
   "author": "pleo-oss",
@@ -12,8 +12,7 @@
     "probot-app"
   ],
   "scripts": {
-    "build": "tsc",
-    "build:swc": "swc src -d lib -s --copy-files",
+    "build": "swc src -d lib -s --copy-files",
     "build:run": "yarn build && yarn start",
     "start": "probot run ./lib/app.js",
     "test": "jest",

@@ -171,6 +171,14 @@ describe('Schema Tests', () => {
     expect(errors?.length).toEqual(1)
   })
 
+  test('invalidates invalid versions', async () => {
+    const configuration = parse('')
+
+    const { result, errors } = validateTemplateConfiguration(configuration)
+    expect(result).toBeFalsy()
+    expect(errors?.length).toEqual(1)
+  })
+
   test('validates valid files', async () => {
     const configuration = parse(`
 files: 

@@ -3,7 +3,7 @@
   "tasks": [
     {
       "type": "npm",
-      "script": "build:swc",
+      "script": "build",
       "group": "build",
       "problemMatcher": [],
       "label": "yarn: build",
