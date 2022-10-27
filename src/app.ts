@@ -63,13 +63,18 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   log.debug('Found repository configuration file: %s.', configFile)
 
   const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
-  const { result: versionResult } = validateTemplateConfiguration(configurationChanges)
+  const { result: versionResult, errors: versionErrors } = validateTemplateConfiguration(configurationChanges)
   const versionCheckId = await createCheckRun(checkInput)
   const versionCheckConclusion = await resolveCheckRun({
     ...checkInput,
     conclusion: conclusion(versionResult),
     checkRunId: versionCheckId,
   })
+
+  if (!versionResult) {
+    const changeRequestId = await requestPullRequestChanges(repository, number, versionErrors)
+    log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
+  }
 
   if (versionCheckConclusion === 'failure') return
 

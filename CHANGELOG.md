@@ -1,3 +1,23 @@
+# v2.7.2 (Thu Oct 27 2022)
+
+#### 🐞 Fixes
+
+- Submit change requests for version validation issues [#62](https://github.com/pleo-oss/file-distributor/pull/62) ([@andersfischernielsen](https://github.com/andersfischernielsen) [@dpotyralski](https://github.com/dpotyralski))
+
+#### 🏠 Internal
+
+- Unify logging across implementation [#65](https://github.com/pleo-oss/file-distributor/pull/65) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Add administration permissions for automerge [#63](https://github.com/pleo-oss/file-distributor/pull/63) ([@andersfischernielsen](https://github.com/andersfischernielsen) [@dpotyralski](https://github.com/dpotyralski))
+- Add pull request events to readme local testing [#66](https://github.com/pleo-oss/file-distributor/pull/66) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 3
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.7.1 (Wed Oct 26 2022)
 
 #### 🐞 Fixes
