@@ -135,6 +135,8 @@ const pushFilesToRepository = async (payload: PushEvent, context: Context<'push'
 }
 
 const addBaseConfiguration = async (payload: PushEvent, context: Context<'push'>) => {
+  if (!process.env['CREATE_ONBOARDING_PRS']) return
+
   const { log, octokit } = context
   const { getDefaultBranchContents, createBaseConfiguration } = git(log, octokit)
   const { getLatestTemplateVersion } = templates(log, octokit)
