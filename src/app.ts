@@ -1,4 +1,4 @@
-import 'dd-trace/init';
+import 'dd-trace/init'
 import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
 import { configuration } from './configuration'
