@@ -147,7 +147,7 @@ const addBaseConfiguration = async (payload: PushEvent, context: Context<'push'>
 
   const latestVersion = await getLatestTemplateVersion()
   const createdPR = await createBaseConfiguration(repository, latestVersion, configFileName)
-  if (createdPR) {
+  if (createdPR !== undefined) {
     const { owner, repo } = repository
     log.info("Created new base configuration for %s/%s in #%d with version '%s'", owner, repo, createdPR, latestVersion)
   }
@@ -159,9 +159,11 @@ export = async (app: Probot) => {
     app.log.error('The application is not installed with expected authentication. Exiting.')
   }
 
-  app.on('push', (context: Context<'push'>) => {
-    pushFilesToRepository(context.payload as PushEvent, context)
-    addBaseConfiguration(context.payload as PushEvent, context)
+  app.on('push', async (context: Context<'push'>) => {
+    await Promise.all([
+      pushFilesToRepository(context.payload as PushEvent, context),
+      addBaseConfiguration(context.payload as PushEvent, context),
+    ])
   })
 
   app.on(['pull_request.opened', 'pull_request.synchronize'], (context: Context<'pull_request'>) => {

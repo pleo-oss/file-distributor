@@ -7,8 +7,10 @@ const fullBranchName = `refs/${reducedBranchName}`
 
 export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git'>) => {
   const getCommitFiles = async (repository: RepositoryDetails, sha: string) => {
+    const { owner, repo } = repository
     const commit = await octokit.repos.getCommit({
-      ...repository,
+      owner,
+      repo,
       ref: sha,
     })
     log.debug('Fetched commit: %o', commit)
@@ -113,23 +115,27 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     const { title, description } = details
 
     log.debug('Creating PR.')
-    const created = await octokit.pulls.create({
+    const {
+      data: { number },
+    } = await octokit.pulls.create({
       ...repository,
       title,
       body: description,
       head: fullBranchName,
       base: baseBranch,
     })
-    log.debug('Created PR #%d.', created.data.number)
+    log.debug('Created PR #%d.', number)
 
-    return created
+    return number
   }
 
   const updatePullRequest = async (repository: RepositoryDetails, details: PRDetails, number: number) => {
     const { title, description } = details
 
     log.debug('Updating PR #%d.', number)
-    const updated = await octokit.pulls.update({
+    const {
+      data: { number: updatedNumber },
+    } = await octokit.pulls.update({
       ...repository,
       pull_number: number,
       head: fullBranchName,
@@ -137,9 +143,9 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       title: title,
       state: 'open',
     })
-    log.debug('Updated PR #%d.', updated.data.number)
+    log.debug('Updated PR #%d.', updatedNumber)
 
-    return updated
+    return updatedNumber
   }
 
   const getExistingPullRequest = async (
@@ -184,12 +190,10 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       : await createPullRequest(repository, details, baseBranch)
 
     if (automerge) {
-      await mergePullRequest(pr.data.number, repository)
+      await mergePullRequest(pr, repository)
     }
-    const {
-      data: { number: prNumber },
-    } = pr
-    return prNumber
+
+    return pr
   }
 
   const updateBranch = async (newBranch: string, newCommit: string, repository: RepositoryDetails) => {
