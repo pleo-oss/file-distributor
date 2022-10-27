@@ -46,7 +46,7 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
     log.debug('%s contains: %s', fileName, decodedContent)
 
     const parsed: RepositoryConfiguration = parse(decodedContent)
-    log.debug(parsed, 'Saw configuration file contents')
+    log.debug('Saw configuration file contents %o', parsed)
 
     const combinedConfiguration: RepositoryConfiguration = {
       ...parsed,
