@@ -11,7 +11,6 @@ module.exports = {
   rules: {
     'max-len': 0,
     'no-console': 2,
-    quotes: [1, 'single'],
   },
   settings: {
     'import/resolver': {

@@ -13,13 +13,14 @@ import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
 import { parse } from 'yaml'
+import { ensurePathConfiguration } from './configuration'
 
 export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
     const found = loaded.file(new RegExp(source, 'i'))
-    log.debug(`Found ${found.length} file(s) matching ${source}. `)
+    log.debug('Found %d file(s) matching %s.', found.length, source)
     const picked = found.shift()
-    if (picked) log.debug(`Using ${picked.name} for ${source}. `)
+    if (picked) log.debug('Using %s for %s.', picked.name, source)
 
     const text = (await picked?.async('text')) ?? ''
     return text?.replace(/#<<</gm, '<<<')
@@ -33,12 +34,14 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     const loaded = await loadAsync(contents)
 
     const extractTemplates: Promise<Template>[] =
-      configuration.files
+      ensurePathConfiguration(configuration.files)
         ?.filter(file => {
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
           if (!extensionMatches) {
             log.warn(
-              `Template configuration seems to be invalid, file extension mismatch between source: '${file.source}' and destination: '${file.destination}'. Skipping!`,
+              "Template configuration seems to be invalid, file extension mismatch between source: '%s' and destination: '%s'. Skipping!",
+              file.source,
+              file.destination,
             )
           }
           return extensionMatches
@@ -59,7 +62,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
 
     const codeOwners = toProcess[0]
     const templates = toProcess[1].filter(it => it?.contents)
-    log.debug(`Extracted ${templates.length} ZIP templates.`)
+    log.debug('Extracted %d ZIP templates.', templates.length)
 
     return {
       codeOwners,
@@ -67,45 +70,29 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     }
   }
 
-  const getReleaseFromTag = (tag: string | undefined, repository: RepositoryDetails) => {
-    const getLatestRelease = async () => {
-      const latestRelease = await octokit.repos.getLatestRelease({
-        ...repository,
-      })
-      return latestRelease.data
-    }
-
-    const getRelease = async () => {
-      if (!tag) {
-        throw Error('A release tag is missing.')
-      }
-
-      const release = await octokit.repos.getReleaseByTag({
-        ...repository,
-        tag,
-      })
-      return release.data
-    }
-
-    return tag ? getRelease() : getLatestRelease()
+  const getReleaseFromTag = async (tag: string, repository: RepositoryDetails) => {
+    const { data } = await octokit.repos.getReleaseByTag({
+      ...repository,
+      tag,
+    })
+    return data
   }
 
-  const downloadTemplates = async (templateVersion?: string): Promise<TemplateInformation> => {
+  const downloadTemplates = async (templateVersion: string): Promise<TemplateInformation> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
-    log.debug(`Fetching templates from '${templateRepository.owner}/${templateRepository.repo}.`)
+    log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
     const release = await getReleaseFromTag(templateVersion, templateRepository)
-    log.debug(`Fetching templates from URL: '${release.zipball_url}'.`)
+    log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
 
     if (!release.zipball_url) {
-      log.error(`Release '${release.id}' has no zipball URL.`)
-      throw Error(`Release '${release.id}' has no zipball URL.`)
+      throw new Error(`Release '${release.id}' has no zipball URL.`)
     }
 
-    log.debug(`Fetching release information from '${release.zipball_url}'.`)
+    log.debug("Fetching release information from '%s'.", release.zipball_url)
     const { data: contents } = (await octokit.repos.downloadZipballArchive({
       ...templateRepository,
       ref: release.tag_name,
@@ -125,7 +112,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   ): string => {
     const templateExtension = template.destinationPath.split('.').pop()
     if (!(templateExtension === 'yaml' || templateExtension === 'toml' || templateExtension === 'yml')) {
-      log.debug(`File extension: ${templateExtension} with not supported comments`)
+      log.debug('File extension: %s with not supported comments', templateExtension)
       return mustacheRenderedContent
     }
 
@@ -146,7 +133,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates> => {
     log.debug('Processing configuration changes.')
     const { version } = configuration
-    log.debug(`Configuration uses template version '${version}'.`)
+    log.debug("Configuration uses template version '%s'.", version)
 
     const { contents, version: fetchedVersion } = await downloadTemplates(version)
     const extractedContent = await extractZipContents(contents, configuration)
@@ -163,18 +150,15 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
         contents: enrichWithPrePendingHeader(mustacheRenderedContent, template, extractedContent.codeOwners),
       }
     })
-    log.debug(`Processed ${rendered.length} templates.`)
+    log.debug('Processed %d templates.', rendered.length)
     return { version: fetchedVersion, templates: rendered }
   }
 
-  const versionRegex = /v\d+.\d+.\d+/
-  const getTemplateDefaultValues = async (version: string) => {
-    const versionToFetch = versionRegex.test(version) ? version : undefined
+  const getTemplateInformation = async (version: string) => {
+    log.debug("Configuration uses template version '%s'.", version)
 
-    log.debug(`Configuration uses template version '${version}'.`)
-
-    log.debug(`Downloading templates with version '${version}'.`)
-    const { contents } = await downloadTemplates(versionToFetch)
+    log.debug("Downloading templates with version '%s'.", version)
+    const { contents } = await downloadTemplates(version)
 
     log.debug('Extracting ZIP contents.')
     const loaded = await loadAsync(contents)
@@ -184,16 +168,19 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     log.debug('Saw default configuration:')
     log.debug(defaults)
 
+    log.debug('Extracting template files')
+    const allFiles = Object.keys(loaded.files)
+
     log.debug('Parsing default configuration.')
     const parsed = parse(defaults) as RepositoryConfiguration
     log.debug('Parsed default configuration:')
     log.debug(parsed)
 
-    return parsed
+    return { configuration: parsed, files: allFiles }
   }
 
   return {
     renderTemplates,
-    getTemplateDefaultValues,
+    getTemplateInformation,
   }
 }

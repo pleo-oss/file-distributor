@@ -1,13 +1,12 @@
 import 'dd-trace/init';
 import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
-import { config } from 'dotenv'
 import { configuration } from './configuration'
 import { templates } from './templates'
 import { git } from './git'
 import { schemaValidator } from './schema-validator'
 import { checks } from './checks'
-config()
+import 'dotenv/config'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
@@ -46,86 +45,90 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { log, octokit } = context
 
   const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(log, octokit)
-  const { validateTemplateConfiguration, generateSchema } = schemaValidator(log)
+  const { validateFiles, validateTemplateConfiguration, generateSchema } = schemaValidator(log)
   const { createCheckRun, resolveCheckRun } = checks(log, octokit)
   const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
-  const { getTemplateDefaultValues } = templates(log, octokit)
+  const { getTemplateInformation } = templates(log, octokit)
 
   const { number, sha, repository } = extractPullRequestInformation(payload)
-  log.info(`Pull request event happened on #${number}`)
+  log.info('Pull request event happened on #%d', number)
 
-  try {
-    const filesChanged = await getFilesChanged(repository, number)
-    const configFile = filesChanged.find(filename => filename === configFileName)
+  const conclusion = (result: boolean) => (result ? 'success' : 'failure')
+  const checkInput = { ...repository, sha: sha }
 
-    if (!configFile) return
+  const filesChanged = await getFilesChanged(repository, number)
+  const configFile = filesChanged.find(filename => filename === configFileName)
 
-    log.debug(`Found repository configuration file: ${configFile}.`)
+  if (!configFile) return
 
-    const configuration = await determineConfigurationChanges(configFileName, repository, sha)
-    const defaultValues = await getTemplateDefaultValues(configuration.version)
-    const defaultValueSchema = generateSchema(defaultValues.values)
+  log.debug('Found repository configuration file: %s.', configFile)
 
-    const combined = combineConfigurations(defaultValues, configuration)
-    if (!combined) return
+  const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
+  const { result: versionResult } = validateTemplateConfiguration(configurationChanges)
+  const versionCheckId = await createCheckRun(checkInput)
+  const versionCheckConclusion = await resolveCheckRun({
+    ...checkInput,
+    conclusion: conclusion(versionResult),
+    checkRunId: versionCheckId,
+  })
 
-    const { result, errors } = validateTemplateConfiguration(combined, defaultValueSchema)
+  if (versionCheckConclusion === 'failure') return
 
-    const conclusion = result ? 'success' : 'failure'
-    const checkInput = { ...repository, sha: sha }
-    const checkId = await createCheckRun(checkInput)
-    const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion, checkRunId: checkId })
+  const { configuration: templateConfiguration, files } = await getTemplateInformation(configurationChanges.version)
+  const defaultValueSchema = generateSchema(templateConfiguration.values)
 
-    if (!result) {
-      const changeRequestId = await requestPullRequestChanges(repository, number, errors)
-      log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
-    } else {
-      const approvedReviewId = await approvePullRequestChanges(repository, number)
-      log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
-    }
+  const combined = combineConfigurations(templateConfiguration, configurationChanges)
+  if (!combined) return
 
-    log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
-  } catch (error) {
-    log.error(`Failed to process PR #${number}' with error:`)
-    log.error(error as never)
-    throw error
+  const validatedTemplates = validateTemplateConfiguration(combined, defaultValueSchema)
+  const validatedFiles = validateFiles(combined, files)
+
+  const result = validatedTemplates.result && validatedFiles.result
+  const errors = validatedTemplates.errors.concat(validatedFiles.errors)
+  const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
+
+  if (!result) {
+    const changeRequestId = await requestPullRequestChanges(repository, number, errors)
+    log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
+  } else if (onlyChangesConfiguration) {
+    const approvedReviewId = await approvePullRequestChanges(repository, number)
+    log.debug(`Approved PR #${number} in ${approvedReviewId}.`)
   }
+
+  const checkId = await createCheckRun(checkInput)
+  const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion(result), checkRunId: checkId })
+
+  log.info(`Validated configuration changes in #${number} with conclusion: ${checkConclusion}.`)
 }
 
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
   const { log, octokit } = context
   const { commitFiles, getCommitFiles } = git(log, octokit)
   const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
-  const { getTemplateDefaultValues, renderTemplates } = templates(log, octokit)
+  const { getTemplateInformation, renderTemplates } = templates(log, octokit)
 
-  log.info(`${context.name} event happened on '${payload.ref}'`)
+  const repository = extractRepositoryInformation(payload)
+  const branchRegex = new RegExp(repository.defaultBranch)
 
-  try {
-    const repository = extractRepositoryInformation(payload)
-    const branchRegex = new RegExp(repository.defaultBranch)
+  log.info('%s event happened on %s', context.name, payload.ref)
 
-    if (!branchRegex.test(payload.ref)) return
+  if (!branchRegex.test(payload.ref)) return
 
-    log.info(`Processing changes made to ${repository.owner}/${repository.repo} in ${payload.after}.`)
+  log.info('Processing changes made in commit %s.', payload.after)
 
-    const filesChanged = await getCommitFiles(repository, payload.after)
-    if (!filesChanged.includes(configFileName)) return
+  const filesChanged = await getCommitFiles(repository, payload.after)
+  if (!filesChanged.includes(configFileName)) return
 
-    const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
-    const defaultValues = await getTemplateDefaultValues(parsed.version)
+  const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
+  const { configuration: defaultValues } = await getTemplateInformation(parsed.version)
 
-    const combined = combineConfigurations(defaultValues, parsed)
-    if (!combined) return
+  const combined = combineConfigurations(defaultValues, parsed)
+  if (!combined) return
 
-    const { version, templates: processed } = await renderTemplates(combined)
-    const pullRequestNumber = await commitFiles(repository, version, processed)
-    log.info(`Committed templates to '${repository.owner}/${repository.repo}' in #${pullRequestNumber}`)
-    log.info(`See: https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}`)
-  } catch (error) {
-    log.error(`Failed to process commit '${payload.after}' with error:`)
-    log.error(error)
-    throw error
-  }
+  const { version, templates: processed } = await renderTemplates(combined)
+  const pullRequestNumber = await commitFiles(repository, version, processed)
+  log.info('Committed templates to %s/%s in #%d', repository.owner, repository.repo, pullRequestNumber)
+  log.info('See: https://github.com/%s/%S/pull/%d', repository.owner, repository.repo, pullRequestNumber)
 }
 
 export = async (app: Probot) => {

@@ -3,8 +3,9 @@ import Ajv, { ErrorObject } from 'ajv'
 import templateSchema from './template-schema.json'
 import { Logger } from 'probot'
 import { createSchema } from 'genson-js'
+import { ensurePathConfiguration } from './configuration'
 
-const ajv = new Ajv()
+const ajv = new Ajv({ allowUnionTypes: true })
 const validateConfiguration = ajv.compile<RepositoryConfiguration>(templateSchema)
 
 export const schemaValidator = (log: Logger) => {
@@ -28,13 +29,28 @@ export const schemaValidator = (log: Logger) => {
     const valueErrors = prettifyErrors(validateValues.errors)
 
     if (!isValidConfiguration || !hasValidValues) {
-      log.debug('Saw validation errors:')
-      log.debug(configurationErrors)
+      log.debug('Saw validation errors: %s', configurationErrors.join(','))
     }
 
     return {
       result: isValidConfiguration && hasValidValues,
       errors: configurationErrors.concat(valueErrors),
+    }
+  }
+
+  const validateFiles = (configuration: RepositoryConfiguration, templates: string[]): TemplateValidation => {
+    const paths = ensurePathConfiguration(configuration.files) ?? []
+    const errors = paths?.reduce(
+      (errors, file) =>
+        templates.some(t => new RegExp(file.source).test(t))
+          ? errors
+          : errors.add(`'${file.source}' was not found in the templates`),
+      new Set<string>(),
+    )
+
+    return {
+      result: errors.size === 0,
+      errors: Array.from(errors),
     }
   }
 
@@ -51,6 +67,7 @@ export const schemaValidator = (log: Logger) => {
   }
 
   return {
+    validateFiles,
     validateTemplateConfiguration,
     generateSchema,
   }

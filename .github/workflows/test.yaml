@@ -1,7 +1,7 @@
 name: Build, Lint & Test
-on: 
+on:
   push:
-    branches-ignore: 
+    branches-ignore:
       - main
 
 jobs:
@@ -15,16 +15,16 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 19
           cache: 'yarn'
 
       - name: Install dependencies
         run: |
-          yarn
+          yarn --prefer-offline
 
       - name: Build
         run: |
-          yarn build
+          yarn build:swc
 
       - name: Lint
         run: |
