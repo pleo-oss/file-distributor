@@ -172,7 +172,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
 
     log.debug('Parsing default configuration.')
     const parsed = parse(defaults) as RepositoryConfiguration
-    log.debug(parsed, 'Parsed default configuration.')
+    log.debug('Parsed default configuration. %o', parsed)
 
     return { configuration: parsed, files: allFiles }
   }
