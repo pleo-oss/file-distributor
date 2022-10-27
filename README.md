@@ -15,7 +15,7 @@ The app expects repositories to contain a `.github/templates.yaml` file containi
 
 The configuration has the following format:
 
-```yaml
+```sh
 # The template version to use.
 version: v10.7.0
 
