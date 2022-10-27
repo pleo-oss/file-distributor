@@ -15,7 +15,7 @@ The app expects repositories to contain a `.github/templates.yaml` file containi
 
 The configuration has the following format:
 
-```sh
+```yaml
 # The template version to use.
 version: v10.7.0
 
@@ -147,7 +147,7 @@ docker run \
 
 The app expects the following environment variables to be present:
 
-```bash
+```sh
 WEBHOOK_PROXY_URL=https://smee.io/development-url-here
 
 # The App ID for the created GitHub App
