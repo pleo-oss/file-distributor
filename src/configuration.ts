@@ -58,7 +58,7 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
       },
     }
 
-    log.debug(combinedConfiguration, 'Saw combined configuration contents')
+    log.debug('Saw combined configuration contents %o', combinedConfiguration)
 
     return combinedConfiguration
   }
