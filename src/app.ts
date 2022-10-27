@@ -142,6 +142,12 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
   const { version, templates: processed } = await renderTemplates(combined)
   const pullRequestNumber = await commitFiles(repository, version, processed)
+
+  if (!pullRequestNumber) {
+    log.info('Commit leads to no changes.')
+    log.info('Skipped PR creation.')
+  }
+
   log.info('Committed templates to %s/%s in #%d', repository.owner, repository.repo, pullRequestNumber)
   log.info('See: https://github.com/%s/%S/pull/%d', repository.owner, repository.repo, pullRequestNumber)
 }

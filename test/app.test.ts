@@ -184,6 +184,7 @@ describe('Probot Tests', () => {
       .reply(200, { object: { sha: 'newBranch' } })
     baseNock.get('/repos/pleo-oss/test/git/commits/baseBranchRef').reply(200, { sha: 'currentCommitSha' })
     baseNock.get('/repos/pleo-oss/test/git/trees/baseBranchRef').reply(200, { tree: 'existingTree' })
+    baseNock.get('/repos/pleo-oss/test/compare/baseBranch...newBranch').reply(200, { files: ['somefile'] })
     baseNock.post('/repos/pleo-oss/test/git/trees').reply(200, { sha: 'createdTreeSha' })
     baseNock.post('/repos/pleo-oss/test/git/commits').reply(200, { sha: 'newCommitSha' })
     baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-templates').reply(200, { ref: 'updatedRef' })
