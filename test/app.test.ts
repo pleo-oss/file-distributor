@@ -158,6 +158,7 @@ describe('Probot Tests', () => {
         repository: {
           owner: { login: 'pleo-oss' },
           name: 'test',
+          default_branch: 'main',
         },
       },
     }
@@ -171,6 +172,7 @@ describe('Probot Tests', () => {
     baseNock
       .get('/repos/pleo-oss/test/contents/.github%2Ftemplates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
+    baseNock.get('/repos/pleo-oss/template-repository/releases/latest').reply(200, { tag_name: '0.0.7' })
     baseNock
       .persist()
       .get('/repos/pleo-oss/template-repository/releases/tags/v0.0.7')

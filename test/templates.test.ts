@@ -24,6 +24,11 @@ const createMockedOctokit = (files: { path: string; data: string }[]): OctokitIn
           },
         }
       },
+      getLatestRelease: () => {
+        return {
+          data: { tag_name: 'v1.0.0' },
+        }
+      },
       downloadZipballArchive: () => {
         return {
           data: stubTemplates(files),
@@ -271,6 +276,15 @@ repo = "expected-app-name"`,
     expect(renderedTemplates.templates[1].contents).toBe(
       '#OWNER: @pleo-io/team_from_pattern\n\nappVersion = "expected-app-version"',
     )
+  })
+
+  test('fetches latest release tag', async () => {
+    const mockedOctokit = createMockedOctokit([])
+    const { getLatestTemplateVersion } = templates(log, mockedOctokit)
+
+    const expected = 'v1.0.0'
+    const result = await getLatestTemplateVersion()
+    expect(result).toEqual(expected)
   })
 
   beforeEach(() => {
