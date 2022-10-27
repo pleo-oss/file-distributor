@@ -272,18 +272,21 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   const commitFiles = async (repository: RepositoryDetails, version: string, templates: Template[]) => {
     const { baseBranch, currentCommitSha, newBranch, baseBranchRef } = await extractBranchInformation(repository)
 
+    const title = 'Update templates based on repository configuration'
+
+    const createdTree = await createTreeWithChanges(templates, repository, baseBranchRef)
+    const newCommit = await createCommitWithChanges(repository, title, currentCommitSha, createdTree)
+    const updatedRef = await updateBranch(newBranch, newCommit, repository)
+
     const changes = await getChangesBetweenBranches(newBranch, baseBranch, repository)
     if (changes.length === 0) return undefined
 
+    log.debug("Updated branch ref: '%s'", updatedRef)
+
     const prDetails = {
-      title: 'Update templates based on repository configuration',
+      title,
       description: generatePullRequestDescription(version, changes),
     }
-
-    const createdTree = await createTreeWithChanges(templates, repository, baseBranchRef)
-    const newCommit = await createCommitWithChanges(repository, prDetails.title, currentCommitSha, createdTree)
-    const updatedRef = await updateBranch(newBranch, newCommit, repository)
-    log.debug("Updated branch ref: '%s'", updatedRef)
 
     return maintainPullRequest(repository, prDetails, baseBranch)
   }
