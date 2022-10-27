@@ -4,6 +4,7 @@ WORKDIR /usr/src/app
 
 COPY yarn.lock package.json tsconfig.json .
 COPY src/ ./src
+COPY .swcrc ./.swcrc
 
 RUN yarn && yarn build && rm -rf node_modules && yarn --production
 
