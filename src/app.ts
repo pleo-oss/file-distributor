@@ -168,7 +168,7 @@ export = async (app: Probot) => {
     ])
   })
 
-  app.on(['pull_request.opened', 'pull_request.synchronize'], (context: Context<'pull_request'>) => {
-    processPullRequest(context.payload as PullRequestEvent, context)
+  app.on(['pull_request.opened', 'pull_request.synchronize'], async (context: Context<'pull_request'>) => {
+    await processPullRequest(context.payload as PullRequestEvent, context)
   })
 }
