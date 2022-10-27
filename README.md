@@ -115,6 +115,7 @@ yarn start
     - Events: `read`
 - Set the following event subscriptions in the GitHub App settings
   - Push
+  - Pull request
 - Save the changes to the GitHub App settings
 - Generate and add a _Private key_ in the GitHub App settings
 - Enable _SSL verification_ in the GitHub App settings
