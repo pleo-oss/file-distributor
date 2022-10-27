@@ -57,11 +57,9 @@ export const schemaValidator = (log: Logger) => {
   const generateSchema = (input?: ConfigurationValues) => {
     if (!input) return undefined
 
-    log.debug('Generating JSON schema from:')
-    log.debug(input)
+    log.debug('Generating JSON schema from input. %o', input)
     const generated = createSchema(input, { noRequired: true })
-    log.debug('Generated JSON schema:')
-    log.debug(generated)
+    log.debug('Generated JSON schema. %o', generated)
 
     return JSON.stringify(generated)
   }
