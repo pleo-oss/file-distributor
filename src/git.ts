@@ -121,15 +121,18 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       base: baseBranch,
     })
 
+    log.debug('Created PR #%d.', number)
+
+    const labels = process.env['LABELS_TO_ADD']
+    if (!labels) return number
+
+    const asList = labels.split(',')
     try {
-      const labels = process.env['LABELS_TO_ADD'] ?? ''
-      const asList = labels.split(',')
       const added = await octokit.issues.setLabels({ ...repository, issue_number: number, labels: asList })
       log.debug("Set label(s) '%o' on #%d.", added, number)
     } catch (e) {
       log.error('Failed to set labels on #%d', number)
     }
-    log.debug('Created PR #%d.', number)
 
     return number
   }
