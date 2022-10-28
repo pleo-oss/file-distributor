@@ -41,7 +41,11 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     try {
       log.debug("Creating new branch on SHA: '%s'.", baseBranchRef)
       const newBranch = (
-        await octokit.git.createRef({ ...repository, ref: branchName ?? fullBranchName, sha: baseBranchRef })
+        await octokit.git.createRef({
+          ...repository,
+          ref: `refs/heads/${branchName}` ?? fullBranchName,
+          sha: baseBranchRef,
+        })
       ).data
       log.debug("Created new branch with ref: '%s'.", newBranch.ref)
 
@@ -54,7 +58,10 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       log.debug("Failed to create a new branch with ref: '%s'.", fullBranchName)
       log.debug("Fetching existing branch with ref: '%s'.", reducedBranchName)
 
-      const { data: foundBranch } = await octokit.git.getRef({ ...repository, ref: branchName ?? reducedBranchName })
+      const { data: foundBranch } = await octokit.git.getRef({
+        ...repository,
+        ref: `heads/${branchName}` ?? reducedBranchName,
+      })
       log.debug("Found new branch with ref: '%s'.", foundBranch.ref)
 
       const {
