@@ -241,7 +241,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       },
     } = await octokit.git.getRef({ ...repository, ref: `heads/${baseBranch}` })
 
-    const newBranch = await getOrCreateNewBranch(repository, branchName ?? baseBranchRef)
+    const newBranch = await getOrCreateNewBranch(repository, baseBranchRef, branchName)
 
     log.debug('Determining current commit.')
     const {
