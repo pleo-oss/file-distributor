@@ -54,7 +54,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       log.debug("Failed to create a new branch with ref: '%s'.", fullBranchName)
       log.debug("Fetching existing branch with ref: '%s'.", reducedBranchName)
 
-      const { data: foundBranch } = await octokit.git.getRef({ ...repository, ref: reducedBranchName })
+      const { data: foundBranch } = await octokit.git.getRef({ ...repository, ref: branchName ?? reducedBranchName })
       log.debug("Found new branch with ref: '%s'.", foundBranch.ref)
 
       const {
