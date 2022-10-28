@@ -5,7 +5,7 @@ const baseBranchName = 'centralized-templates'
 const reducedBranchName = `heads/${baseBranchName}`
 const fullBranchName = `refs/${reducedBranchName}`
 
-export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git'>) => {
+export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues'>) => {
   const getCommitFiles = async (repository: RepositoryDetails, sha: string) => {
     const commit = await octokit.repos.getCommit({
       ...repository,
@@ -111,23 +111,36 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     const { title, description } = details
 
     log.debug('Creating PR.')
-    const created = await octokit.pulls.create({
+    const {
+      data: { number },
+    } = await octokit.pulls.create({
       ...repository,
       title,
       body: description,
       head: fullBranchName,
       base: baseBranch,
     })
-    log.debug('Created PR #%d.', created.data.number)
 
-    return created
+    try {
+      const labels = process.env['LABELS_TO_ADD'] ?? ''
+      const asList = labels.split(',')
+      const added = await octokit.issues.setLabels({ ...repository, issue_number: number, labels: asList })
+      log.debug("Set label(s) '%o' on #%d.", added, number)
+    } catch (e) {
+      log.error('Failed to set labels on #%d', number)
+    }
+    log.debug('Created PR #%d.', number)
+
+    return number
   }
 
   const updatePullRequest = async (repository: RepositoryDetails, details: PRDetails, number: number) => {
     const { title, description } = details
 
     log.debug('Updating PR #%d.', number)
-    const updated = await octokit.pulls.update({
+    const {
+      data: { number: updated },
+    } = await octokit.pulls.update({
       ...repository,
       pull_number: number,
       head: fullBranchName,
@@ -135,7 +148,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       title: title,
       state: 'open',
     })
-    log.debug('Updated PR #%d.', updated.data.number)
+    log.debug('Updated PR #%d.', updated)
 
     return updated
   }
@@ -178,12 +191,9 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       : await createPullRequest(repository, details, baseBranch)
 
     if (automerge) {
-      await mergePullRequest(pr.data.number, repository)
+      await mergePullRequest(pr, repository)
     }
-    const {
-      data: { number: prNumber },
-    } = pr
-    return prNumber
+    return pr
   }
 
   const updateBranch = async (newBranch: string, newCommit: string, repository: RepositoryDetails) => {
