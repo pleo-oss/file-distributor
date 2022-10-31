@@ -1,3 +1,25 @@
+# v2.8.0 (Mon Oct 31 2022)
+
+#### 🎁 Features
+
+- Support setting labels on created PRs [#70](https://github.com/pleo-oss/file-distributor/pull/70) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### ⚠️ Pushed to `main`
+
+- Remove redundant values ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Support sending application traces/metrics to DataDog [#55](https://github.com/pleo-oss/file-distributor/pull/55) ([@dpotyralski](https://github.com/dpotyralski) [@andersfischernielsen](https://github.com/andersfischernielsen))
+- Use SWC for better CI/test/build performance [#68](https://github.com/pleo-oss/file-distributor/pull/68) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+
+---
+
 # v2.7.2 (Thu Oct 27 2022)
 
 #### 🐞 Fixes
