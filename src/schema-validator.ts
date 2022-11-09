@@ -111,8 +111,9 @@ export const schemaValidator = (log: Logger) => {
       line: getLineFromInstancePath(e.instancePath, configuration.cstYamlRepresentation),
     }))
 
-    const validationValueErrors = (validateValues.errors ?? [])
-      .map(e => ({ message: e.message, line: undefined } as ValidationError))
+    const validationValueErrors = (validateValues.errors ?? []).map(
+      e => ({ message: e.message, line: undefined } as ValidationError),
+    )
 
     if (!isValidConfiguration || !hasValidValues) {
       log.debug('Saw validation errors: %s', prettifyErrors(validateConfiguration.errors).join(','))
