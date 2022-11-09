@@ -77,10 +77,10 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
   }
 
-  if (versionCheckConclusion === 'failure') return
+  if (versionCheckConclusion === 'failure' || !configurationChanges.repositoryConfiguration) return
 
   const { configuration: templateConfiguration, files } = await getTemplateInformation(
-    configurationChanges.repositoryConfiguration.version,
+    configurationChanges.repositoryConfiguration?.version,
   )
   const defaultValueSchema = generateSchema(templateConfiguration.values)
 
@@ -97,7 +97,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const validatedFiles = validateFiles(combined, files)
 
   const result = validatedTemplates.result && validatedFiles.result
-  const errors = validatedTemplates.errors && validatedFiles.errors
+  const errors = validatedTemplates.errors.concat(validatedFiles.errors)
   const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
 
   if (!result) {

@@ -5,6 +5,7 @@ import {
   RepositoryConfiguration,
   TemplateConfig,
   TemplateValidation,
+  ValidationError,
 } from './types'
 import Ajv, { ErrorObject } from 'ajv'
 import templateSchema from './template-schema.json'
@@ -27,6 +28,12 @@ const getLineFromOffset = (lines: number[], offset: number): number => {
   return -1
 }
 
+/**
+ * Returns the line in the CST representation of the YAML given an instance path
+ * @param instancePath Path as given by tools like ajv (i.e. /files/1/destination)
+ * @param cst CST representation of the YAML file https://eemeli.org/yaml/#parser
+ * @returns the line number or undefined if not found
+ */
 const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): number | undefined => {
   const pathItems = instancePath.split('/').slice(1)
 
@@ -41,10 +48,12 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): 
 
         const key = item.key as SourceToken
 
+        // If note key is not the current path value skip this node and its childs and go to next sibling
         if (key.source !== currentPathValue) {
           return CST.visit.SKIP
         }
         if (path.length === pathItems.length) {
+          // If it has the same value, check if it is the last item in the path, if so the item is found and finish visit
           const index = getLineFromOffset(cst.lines, key.offset)
           if (index > 0) {
             line = index
@@ -53,12 +62,16 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): 
         }
       } else {
         if (num !== path[path.length - 1][1]) {
+          // If number in the instance path provided is not the same as the current traversal path skip to the next sibling
+          // I.e. instancePath: /files/1/source, num = 1, path = [['value', 0], ['value', 0]] <- This is not a match because 1 != 0
           return CST.visit.SKIP
         }
 
         if (!CST.isScalar(item.value)) return
 
         if (path.length === pathItems.length) {
+          // If it has the same value, check if it is the last item in the path, if so the item is found and finish visit
+
           const index = getLineFromOffset(cst.lines, item.value.offset)
           if (index > 0) {
             line = index
@@ -66,6 +79,7 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): 
           }
         }
       }
+      // Otherwise go on visiting
       return
     })
     return line
@@ -92,22 +106,21 @@ export const schemaValidator = (log: Logger) => {
     const isValidConfiguration = validateConfiguration(configuration?.repositoryConfiguration)
     const hasValidValues = validateValues(configuration?.repositoryConfiguration?.values)
 
-    const validationErrors = validateConfiguration.errors?.map(e => ({
+    const validationErrors = (validateConfiguration.errors ?? []).map(e => ({
       message: e.message,
       line: getLineFromInstancePath(e.instancePath, configuration.cstYamlRepresentation),
     }))
 
-    const validationValueErrors = validateValues.errors?.map(e => ({ message: e.message, line: undefined }))
-
-    const configurationErrors = prettifyErrors(validateConfiguration.errors)
+    const validationValueErrors = (validateValues.errors ?? [])
+      .map(e => ({ message: e.message, line: undefined } as ValidationError))
 
     if (!isValidConfiguration || !hasValidValues) {
-      log.debug('Saw validation errors: %s', configurationErrors.join(','))
+      log.debug('Saw validation errors: %s', prettifyErrors(validateConfiguration.errors).join(','))
     }
 
     return {
       result: isValidConfiguration && hasValidValues,
-      errors: [].concat(validationValueErrors ?? [], validationErrors ?? []),
+      errors: validationValueErrors.concat(validationErrors),
     }
   }
 
