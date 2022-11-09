@@ -14,6 +14,33 @@ describe('Pull Request reviews', () => {
         }
       }),
     },
+    repos: {
+      get: jest.fn(() => {
+        return {
+          data: {
+            default_branch: 'main'
+          }
+        }
+      })
+    },
+    git: {
+      getRef: jest.fn(() => {
+        return {
+          data: {
+            object: {
+              sha: 'sha'
+            }
+          }
+        }
+      }),
+      getCommit: jest.fn(() => {
+        return {
+          data: {
+            sha: 'shaCurrentCommit'
+          }
+        }
+      })
+    }
   } as unknown as OctokitInstance
 
   const testRepository = {
@@ -23,7 +50,7 @@ describe('Pull Request reviews', () => {
 
   const testPullRequestNumber = 1
 
-  const { approvePullRequestChanges, requestPullRequestChanges } = git(log, octokitMock)
+  const { approvePullRequestChanges, requestPullRequestChanges, commitFiles } = git(log, octokitMock)
 
   describe('Create reviews', () => {
     beforeEach(() => {
@@ -73,6 +100,12 @@ Check the PR comments for any additional errors.`
         body: expectedBody,
       })
       expect(result).toEqual('reviewId')
+    })
+  })
+
+  describe('Commit files', () => {
+    test('can commit files', async () => {
+      const result = await commitFiles(testRepository, 'v1.0,0', [])
     })
   })
 })
