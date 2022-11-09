@@ -1,5 +1,5 @@
 import { Logger } from 'probot'
-import { OctokitInstance, PRDetails, RepositoryDetails, Template } from './types'
+import { OctokitInstance, PRDetails, RepositoryDetails, Template, ValidationError } from './types'
 
 const baseBranchName = 'centralized-templates'
 const reducedBranchName = `heads/${baseBranchName}`
@@ -275,15 +275,27 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   const requestPullRequestChanges = async (
     repository: RepositoryDetails,
     pullRequestNumber: number,
-    errors: (string | undefined)[],
+    configFileName: string,
+    errors: ValidationError[],
   ) => {
-    const body = `
-🤖 It looks like your changes are invalid. 
 
-Validating the changes in this PR resulted in the following errors: 
+    const errorsWithoutLine = errors.filter(e => !e.line)
 
-${errors.map(error => `- ${error}`).join('\n')}
-`
+    const comments = errors.filter(e => e.line).map(e => ({
+      path: configFileName,
+      body: e.message ?? '',
+      line: e.line,
+    }))
+
+    let body = `🤖 It looks like your template changes are invalid.\n\n`
+
+    if (errorsWithoutLine) {
+      body = body.concat(`There were the following errors:
+        ${errorsWithoutLine.map(e => `- ${e.message}`).join('\n')}`)
+    }
+
+    body = body.concat('\nCheck the PR comments for any additional error.')
+
     log.debug('Creating change request review on PR #%d.', pullRequestNumber)
     const {
       data: { id },
@@ -292,7 +304,9 @@ ${errors.map(error => `- ${error}`).join('\n')}
       pull_number: pullRequestNumber,
       event: 'REQUEST_CHANGES',
       body,
+      comments
     })
+
     log.debug("Created change request review '%d'.", id)
 
     return id
