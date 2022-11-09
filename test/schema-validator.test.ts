@@ -166,6 +166,30 @@ describe('Schema Tests', () => {
     expect(errors[0].line).toBe(9)
   })
 
+  test('returns false and multiple errors with annotated line when map property is wrong', async () => {
+    const content = `# The template version to use (optional).
+    version: v10.7.0
+    
+    # Whether to merge template changes automatically (optional).
+    automerge: notAboolean
+    
+    # Templates to add to the repository (optional).
+    files:           
+      - source: 2
+        destination: path/to/template-destination/filename.yaml
+    `
+    const configuration = {
+      repositoryConfiguration: parse(content),
+
+      cstYamlRepresentation: getCst(content),
+    }
+    const { result, errors } = validateTemplateConfiguration(configuration)
+    expect(result).toBeFalsy()
+    expect(errors?.length).toEqual(2)
+    expect(errors[0].line).toBe(5)
+    expect(errors[1].line).toBe(9)
+  })
+
   test('returns false and error with line when array property is wrong', async () => {
     const content = `# The template version to use (optional).
     version: v10.7.0
@@ -252,6 +276,7 @@ describe('Schema Tests', () => {
     const { result, errors } = validateTemplateConfiguration(configuration, valuesSchema)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
+    expect(errors[0].line).toBeUndefined()
   })
 
   test('generates JSON schema from values', async () => {
