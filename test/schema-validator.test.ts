@@ -13,7 +13,7 @@ const getCst = (content: string): CSTRepresentation => {
 
   return {
     tokens: tokens,
-    lines: lineCounter.lineStarts
+    lines: lineCounter.lineStarts,
   }
 }
 
@@ -25,8 +25,8 @@ describe('Schema Tests', () => {
       repositoryConfiguration: parse('DFds'),
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     }
 
     const { result, errors } = validateTemplateConfiguration(input)
@@ -39,8 +39,8 @@ describe('Schema Tests', () => {
       repositoryConfiguration: undefined,
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     })
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
@@ -63,8 +63,8 @@ describe('Schema Tests', () => {
       repositoryConfiguration: input,
       cstYamlRepresentation: {
         tokens: [],
-        lines: []
-      }
+        lines: [],
+      },
     })
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
@@ -87,8 +87,8 @@ describe('Schema Tests', () => {
 
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     }
     const { result, errors } = validateTemplateConfiguration(configuration)
     expect(result).toBeTruthy()
@@ -112,8 +112,8 @@ describe('Schema Tests', () => {
 
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     }
     const { result, errors } = validateTemplateConfiguration(configuration)
     expect(result).toBeTruthy()
@@ -135,7 +135,7 @@ describe('Schema Tests', () => {
     const configuration = {
       repositoryConfiguration: parse(content),
 
-      cstYamlRepresentation: getCst(content)
+      cstYamlRepresentation: getCst(content),
     }
     const { result, errors } = validateTemplateConfiguration(configuration)
     expect(result).toBeFalsy()
@@ -158,7 +158,7 @@ describe('Schema Tests', () => {
     const configuration = {
       repositoryConfiguration: parse(content),
 
-      cstYamlRepresentation: getCst(content)
+      cstYamlRepresentation: getCst(content),
     }
     const { result, errors } = validateTemplateConfiguration(configuration)
     expect(result).toBeFalsy()
@@ -180,7 +180,7 @@ describe('Schema Tests', () => {
     const configuration = {
       repositoryConfiguration: parse(content),
 
-      cstYamlRepresentation: getCst(content)
+      cstYamlRepresentation: getCst(content),
     }
     const { result, errors } = validateTemplateConfiguration(configuration)
     expect(result).toBeFalsy()
@@ -202,8 +202,8 @@ describe('Schema Tests', () => {
 
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     }
 
     const valuesSchema = `{
@@ -235,8 +235,8 @@ describe('Schema Tests', () => {
 
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     }
 
     const valuesSchema = `{
@@ -288,8 +288,8 @@ describe('Schema Tests', () => {
       repositoryConfiguration: parse('version: v10.7.0'),
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     }
 
     const { result, errors } = validateTemplateConfiguration(configuration)
@@ -302,8 +302,8 @@ describe('Schema Tests', () => {
       repositoryConfiguration: parse('version: bla'),
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     }
 
     const { result, errors } = validateTemplateConfiguration(configuration)
@@ -316,8 +316,8 @@ describe('Schema Tests', () => {
       repositoryConfiguration: parse(''),
       cstYamlRepresentation: {
         lines: [],
-        tokens: []
-      }
+        tokens: [],
+      },
     }
 
     const { result, errors } = validateTemplateConfiguration(configuration)

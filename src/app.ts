@@ -79,17 +79,21 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   if (versionCheckConclusion === 'failure') return
 
-  const { configuration: templateConfiguration, files } = await getTemplateInformation(configurationChanges.repositoryConfiguration.version)
+  const { configuration: templateConfiguration, files } = await getTemplateInformation(
+    configurationChanges.repositoryConfiguration.version,
+  )
   const defaultValueSchema = generateSchema(templateConfiguration.values)
 
   const combined = combineConfigurations(templateConfiguration, configurationChanges.repositoryConfiguration)
   if (!combined) return
 
-  const validatedTemplates = validateTemplateConfiguration({
-    repositoryConfiguration: combined,
-    cstYamlRepresentation: configurationChanges.cstYamlRepresentation
-  },
-    defaultValueSchema)
+  const validatedTemplates = validateTemplateConfiguration(
+    {
+      repositoryConfiguration: combined,
+      cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
+    },
+    defaultValueSchema,
+  )
   const validatedFiles = validateFiles(combined, files)
 
   const result = validatedTemplates.result && validatedFiles.result

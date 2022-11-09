@@ -1,5 +1,11 @@
 /* eslint-disable no-console */
-import { ConfigurationValues, CSTRepresentation, RepositoryConfiguration, TemplateConfig, TemplateValidation } from './types'
+import {
+  ConfigurationValues,
+  CSTRepresentation,
+  RepositoryConfiguration,
+  TemplateConfig,
+  TemplateValidation,
+} from './types'
 import Ajv, { ErrorObject } from 'ajv'
 import templateSchema from './template-schema.json'
 import { Logger } from 'probot'
@@ -11,10 +17,9 @@ import { Document, SourceToken } from 'yaml/dist/parse/cst'
 const ajv = new Ajv({ allowUnionTypes: true, allErrors: true })
 const validateConfiguration = ajv.compile<RepositoryConfiguration>(templateSchema)
 
-
 const getLineFromOffset = (lines: number[], offset: number): number => {
   for (let index = 1; index < lines.length; index++) {
-    const newLineOffset = lines[index];
+    const newLineOffset = lines[index]
     if (newLineOffset > offset) {
       return index
     }
@@ -25,11 +30,9 @@ const getLineFromOffset = (lines: number[], offset: number): number => {
 const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): number | undefined => {
   const pathItems = instancePath.split('/').slice(1)
 
-
   const getLineFromDoc = (doc: Document) => {
     let line = undefined
     CST.visit(doc, (item, path) => {
-
       const currentPathValue = pathItems[path.length - 1]
       const num = Number(currentPathValue)
       // If path step is a number
@@ -84,20 +87,15 @@ export const schemaValidator = (log: Logger) => {
       })
       ?.filter(error => error !== '') ?? []
 
-  const validateTemplateConfiguration = (
-    configuration: TemplateConfig,
-    valuesSchema?: string,
-  ): TemplateValidation => {
+  const validateTemplateConfiguration = (configuration: TemplateConfig, valuesSchema?: string): TemplateValidation => {
     const validateValues = ajv.compile<ConfigurationValues>(JSON.parse(valuesSchema ?? '{}'))
     const isValidConfiguration = validateConfiguration(configuration?.repositoryConfiguration)
     const hasValidValues = validateValues(configuration?.repositoryConfiguration?.values)
 
-    const validationErrors = validateConfiguration.errors?.map(e => (
-      {
-        message: e.message,
-        line: getLineFromInstancePath(e.instancePath, configuration.cstYamlRepresentation)
-      }
-    ))
+    const validationErrors = validateConfiguration.errors?.map(e => ({
+      message: e.message,
+      line: getLineFromInstancePath(e.instancePath, configuration.cstYamlRepresentation),
+    }))
 
     const validationValueErrors = validateValues.errors?.map(e => ({ message: e.message, line: undefined }))
 
@@ -125,9 +123,9 @@ export const schemaValidator = (log: Logger) => {
 
     return {
       result: errors.size === 0,
-      errors: Array.from(errors).map((e) => ({
+      errors: Array.from(errors).map(e => ({
         message: e,
-        line: undefined
+        line: undefined,
       })),
     }
   }

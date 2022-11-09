@@ -278,14 +278,15 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     configFileName: string,
     errors: ValidationError[],
   ) => {
-
     const errorsWithoutLine = errors.filter(e => !e.line)
 
-    const comments = errors.filter(e => e.line).map(e => ({
-      path: configFileName,
-      body: e.message ?? '',
-      line: e.line,
-    }))
+    const comments = errors
+      .filter(e => e.line)
+      .map(e => ({
+        path: configFileName,
+        body: e.message ?? '',
+        line: e.line,
+      }))
 
     let body = `🤖 It looks like your template changes are invalid.\n\n`
 
@@ -304,7 +305,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       pull_number: pullRequestNumber,
       event: 'REQUEST_CHANGES',
       body,
-      comments
+      comments,
     })
 
     log.debug("Created change request review '%d'.", id)

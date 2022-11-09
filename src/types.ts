@@ -9,12 +9,12 @@ export interface PathConfiguration {
 export type ConfigurationValues = { [key: string]: string | undefined }
 
 export interface TemplateConfig {
-  repositoryConfiguration: RepositoryConfiguration | undefined,
+  repositoryConfiguration: RepositoryConfiguration | undefined
   cstYamlRepresentation: CSTRepresentation
 }
 
 export interface CSTRepresentation {
-  tokens: Token[],
+  tokens: Token[]
   lines: number[]
 }
 
@@ -69,7 +69,7 @@ export type UpdateCheckInput = CreateCheckInput & {
 }
 
 export interface ValidationError {
-  message: string | undefined,
+  message: string | undefined
   line: number | undefined
 }
 

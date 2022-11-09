@@ -52,7 +52,7 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
 
     const rep = {
       tokens: tokens,
-      lines: lineCounter.lineStarts
+      lines: lineCounter.lineStarts,
     }
 
     const parsed: RepositoryConfiguration = parse(decodedContent)
@@ -72,7 +72,7 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
 
     return {
       repositoryConfiguration: combinedConfiguration,
-      cstYamlRepresentation: rep
+      cstYamlRepresentation: rep,
     } as TemplateConfig
   }
 

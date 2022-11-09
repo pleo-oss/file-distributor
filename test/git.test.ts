@@ -37,14 +37,10 @@ There were the following errors:
         - hello
 Check the PR comments for any additional error.`
 
-      const result = await requestPullRequestChanges(
-        testRepository,
-        testPullRequestNumber,
-        '.github/templates.yaml',
-        [
-          { message: 'hello', line: undefined },
-          { message: 'world', line: 13 }
-        ])
+      const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, '.github/templates.yaml', [
+        { message: 'hello', line: undefined },
+        { message: 'world', line: 13 },
+      ])
 
       expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
       expect(octokitMock.pulls.createReview).toHaveBeenCalledWith({
@@ -56,9 +52,9 @@ Check the PR comments for any additional error.`
           {
             path: '.github/templates.yaml',
             body: 'world',
-            line: 13
-          }
-        ]
+            line: 13,
+          },
+        ],
       })
 
       expect(result).toEqual('reviewId')
