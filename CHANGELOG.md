@@ -1,3 +1,15 @@
+# v2.9.0 (Thu Nov 10 2022)
+
+#### 🎁 Features
+
+- Send comment on PR errors per line [#71](https://github.com/pleo-oss/file-distributor/pull/71) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 1
+
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.8.0 (Mon Oct 31 2022)
 
 #### 🎁 Features
