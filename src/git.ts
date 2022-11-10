@@ -284,7 +284,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       .filter(e => e.line)
       .map(e => ({
         path: configFileName,
-        body: e.message ?? '',
+        body: `\`${e.message}\`` ?? '',
         line: e.line,
       }))
 
@@ -292,10 +292,10 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
 
     if (errorsWithoutLine) {
       body = body.concat(`There were the following errors:
-        ${errorsWithoutLine.map(e => `- ${e.message}`).join('\n')}`)
+        ${errorsWithoutLine.map(e => `- \`${e.message}\``).join('\n')}`)
     }
 
-    body = body.concat('\nCheck the PR comments for any additional errors.')
+    body = body.concat('\n\nCheck the PR comments for any additional errors.')
 
     log.debug('Creating change request review on PR #%d.', pullRequestNumber)
     const {
