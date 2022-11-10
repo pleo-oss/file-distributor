@@ -34,7 +34,8 @@ describe('Pull Request reviews', () => {
       const expectedMainBody = `🤖 It looks like your template changes are invalid.
 
 There were the following errors:
-        - hello
+        - \`hello\`
+
 Check the PR comments for any additional errors.`
 
       const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, '.github/templates.yaml', [
@@ -51,7 +52,7 @@ Check the PR comments for any additional errors.`
         comments: [
           {
             path: '.github/templates.yaml',
-            body: 'world',
+            body: '`world`',
             line: 13,
           },
         ],
