@@ -133,6 +133,8 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   if (!filesChanged.includes(configFileName)) return
 
   const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
+
+  if (!parsed.repositoryConfiguration) return
   const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
 
   const combined = combineConfigurations(defaultValues, parsed.repositoryConfiguration)

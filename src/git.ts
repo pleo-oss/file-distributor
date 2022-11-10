@@ -295,7 +295,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
         ${errorsWithoutLine.map(e => `- ${e.message}`).join('\n')}`)
     }
 
-    body = body.concat('\nCheck the PR comments for any additional error.')
+    body = body.concat('\nCheck the PR comments for any additional errors.')
 
     log.debug('Creating change request review on PR #%d.', pullRequestNumber)
     const {

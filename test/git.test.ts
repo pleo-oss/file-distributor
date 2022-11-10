@@ -35,7 +35,7 @@ describe('Pull Request reviews', () => {
 
 There were the following errors:
         - hello
-Check the PR comments for any additional error.`
+Check the PR comments for any additional errors.`
 
       const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, '.github/templates.yaml', [
         { message: 'hello', line: undefined },
