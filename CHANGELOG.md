@@ -1,3 +1,15 @@
+# v2.10.0 (Thu Nov 10 2022)
+
+#### 🎁 Features
+
+- Add version as required in the schema [#72](https://github.com/pleo-oss/file-distributor/pull/72) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 1
+
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.9.0 (Thu Nov 10 2022)
 
 #### 🎁 Features
