@@ -73,19 +73,27 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   })
 
   if (!versionResult) {
-    const changeRequestId = await requestPullRequestChanges(repository, number, versionErrors)
+    const changeRequestId = await requestPullRequestChanges(repository, number, configFileName, versionErrors)
     log.debug(`Requested changes for PR #${number} in ${changeRequestId}.`)
   }
 
-  if (versionCheckConclusion === 'failure') return
+  if (versionCheckConclusion === 'failure' || !configurationChanges.repositoryConfiguration) return
 
-  const { configuration: templateConfiguration, files } = await getTemplateInformation(configurationChanges.version)
+  const { configuration: templateConfiguration, files } = await getTemplateInformation(
+    configurationChanges.repositoryConfiguration?.version,
+  )
   const defaultValueSchema = generateSchema(templateConfiguration.values)
 
-  const combined = combineConfigurations(templateConfiguration, configurationChanges)
+  const combined = combineConfigurations(templateConfiguration, configurationChanges.repositoryConfiguration)
   if (!combined) return
 
-  const validatedTemplates = validateTemplateConfiguration(combined, defaultValueSchema)
+  const validatedTemplates = validateTemplateConfiguration(
+    {
+      repositoryConfiguration: combined,
+      cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
+    },
+    defaultValueSchema,
+  )
   const validatedFiles = validateFiles(combined, files)
 
   const result = validatedTemplates.result && validatedFiles.result
@@ -93,7 +101,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
 
   if (!result) {
-    const changeRequestId = await requestPullRequestChanges(repository, number, errors)
+    const changeRequestId = await requestPullRequestChanges(repository, number, configFileName, errors)
     log.debug(`Requested changes for PR #%d in %s.`, number, changeRequestId)
   } else if (onlyChangesConfiguration) {
     const approvedReviewId = await approvePullRequestChanges(repository, number)
@@ -125,9 +133,11 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   if (!filesChanged.includes(configFileName)) return
 
   const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
-  const { configuration: defaultValues } = await getTemplateInformation(parsed.version)
 
-  const combined = combineConfigurations(defaultValues, parsed)
+  if (!parsed.repositoryConfiguration) return
+  const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
+
+  const combined = combineConfigurations(defaultValues, parsed.repositoryConfiguration)
   if (!combined) return
 
   const { version, templates: processed } = await renderTemplates(combined)

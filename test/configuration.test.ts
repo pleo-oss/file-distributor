@@ -37,7 +37,7 @@ values:
 
     const result = await determineConfigurationChanges('', repositoryDetails, '')
 
-    expect(result).toEqual(expected)
+    expect(result.repositoryConfiguration).toEqual(expected)
   })
 
   test('combines configurations as expected', () => {

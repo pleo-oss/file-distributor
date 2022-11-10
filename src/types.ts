@@ -1,4 +1,5 @@
 import { ProbotOctokit } from 'probot'
+import { Token } from 'yaml/dist/parse/cst'
 
 export interface PathConfiguration {
   source: string
@@ -6,6 +7,16 @@ export interface PathConfiguration {
 }
 
 export type ConfigurationValues = { [key: string]: string | undefined }
+
+export interface TemplateConfig {
+  repositoryConfiguration: RepositoryConfiguration | undefined
+  cstYamlRepresentation: CSTRepresentation
+}
+
+export interface CSTRepresentation {
+  tokens: Token[]
+  lines: number[]
+}
 
 export interface RepositoryConfiguration {
   version: string
@@ -57,9 +68,14 @@ export type UpdateCheckInput = CreateCheckInput & {
   checkRunId: number
 }
 
+export interface ValidationError {
+  message: string | undefined
+  line: number | undefined
+}
+
 export interface TemplateValidation {
   result: boolean
-  errors: string[]
+  errors: ValidationError[]
 }
 
 export type OctokitInstance = InstanceType<typeof ProbotOctokit>

@@ -1095,7 +1095,7 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@swc/cli@^0.1.57":
+"@swc/cli@0.1.57":
   version "0.1.57"
   resolved "https://registry.yarnpkg.com/@swc/cli/-/cli-0.1.57.tgz#a9c424de5a217ec20a4b7c2c0e5c343980537e83"
   integrity sha512-HxM8TqYHhAg+zp7+RdTU69bnkl4MWdt1ygyp6BDIPjTiaJVH6Dizn2ezbgDS8mnFZI1FyhKvxU/bbaUs8XhzQg==
@@ -1182,7 +1182,7 @@
   resolved "https://registry.yarnpkg.com/@swc/core-win32-x64-msvc/-/core-win32-x64-msvc-1.3.10.tgz#59ee9a8e250ffd431295cb8e142462413f04cd62"
   integrity sha512-40yeeov6XcJHm99anMeEn/NwhDcoM2fhBQHWRVZfCa43QC45AUjJ3kWrD76U6MPGnGy7MsCOXdFyu1mJOAHKEw==
 
-"@swc/core@^1.3.10":
+"@swc/core@1.3.10":
   version "1.3.10"
   resolved "https://registry.yarnpkg.com/@swc/core/-/core-1.3.10.tgz#32f4d5ac4c7f09e90f421791b0d325d86c46bbbd"
   integrity sha512-A5YjYFa45ThHOwftKqIQKNbukxJGTsdBQAqoTr+QD1/L6jbRg3xxhU5UDyVdUIULz40PH6YQiulyUVbyrjl1Iw==
@@ -1374,7 +1374,7 @@
   resolved "https://registry.yarnpkg.com/@types/mustache/-/mustache-4.2.1.tgz#724a2fca5763117dee626aa4ca3e3f6e546e7434"
   integrity sha512-gFAlWL9Ik21nJioqjlGCnNYbf9zHi0sVbaZ/1hQEBcCEuxfLJDvz4bVJSV6v6CUaoLOz0XEIoP7mSrhJ6o237w==
 
-"@types/node@*":
+"@types/node@*", "@types/node@>=13.7.0":
   version "18.11.5"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.5.tgz#1bc94cf2f9ab5fe33353bc7c79c797dcc5325bef"
   integrity sha512-3JRwhbjI+cHLAkUorhf8RnqUbFXajvzX4q6fMn5JwkgtuwfYtRQYI3u4V92vI6NJuTsbBQWWh3RZjFsuevyMGQ==
@@ -1383,11 +1383,6 @@
   version "18.8.2"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-18.8.2.tgz#17d42c6322d917764dd3d2d3a10d7884925de067"
   integrity sha512-cRMwIgdDN43GO4xMWAfJAecYn8wV4JbsOGHNfNUIDiuYkUYAR5ec4Rj7IO2SAhFPEfpPtLtUTbbny/TCT7aDwA==
-
-"@types/node@>=13.7.0":
-  version "18.11.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.5.tgz#1bc94cf2f9ab5fe33353bc7c79c797dcc5325bef"
-  integrity sha512-3JRwhbjI+cHLAkUorhf8RnqUbFXajvzX4q6fMn5JwkgtuwfYtRQYI3u4V92vI6NJuTsbBQWWh3RZjFsuevyMGQ==
 
 "@types/pino-http@^5.0.6":
   version "5.8.1"
@@ -2133,7 +2128,7 @@ dateformat@^4.5.1:
   resolved "https://registry.yarnpkg.com/dateformat/-/dateformat-4.6.3.tgz#556fa6497e5217fedb78821424f8a1c22fa3f4b5"
   integrity sha512-2P0p0pFGzHS5EMnhdxQi7aJN+iMheud0UhG4dlE1DLAlvL8JHjJJTX/CSm4JXwV0Ka5nGk3zC5mcb5bUQUxxMA==
 
-dd-trace@^3.6.0:
+dd-trace@3.6.0:
   version "3.6.0"
   resolved "https://registry.yarnpkg.com/dd-trace/-/dd-trace-3.6.0.tgz#c2701f13ff407ed139a5463b8decd968e3d0909a"
   integrity sha512-r7D93QmYjacAeb3oozChsAt84QePNI52qq05Ls8DwCjtDzlvFwASw9qE5EwPS3yfgspxDxmOAQVeqlF19QvZzA==

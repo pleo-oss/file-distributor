@@ -1,6 +1,6 @@
 import { Logger } from 'probot'
-import { parse } from 'yaml'
-import { RepositoryDetails, RepositoryConfiguration, OctokitInstance, PathConfiguration } from './types'
+import { LineCounter, parse, Parser } from 'yaml'
+import { RepositoryDetails, RepositoryConfiguration, OctokitInstance, PathConfiguration, TemplateConfig } from './types'
 
 export const combineConfigurations = (
   base: RepositoryConfiguration,
@@ -45,6 +45,16 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
     const decodedContent = Buffer.from(content, 'base64').toString()
     log.debug('%s contains: %s', fileName, decodedContent)
 
+    const lineCounter = new LineCounter()
+
+    const cst = new Parser(lineCounter.addNewLine).parse(decodedContent)
+    const tokens = Array.from(cst)
+
+    const rep = {
+      tokens: tokens,
+      lines: lineCounter.lineStarts,
+    }
+
     const parsed: RepositoryConfiguration = parse(decodedContent)
     log.debug('Saw configuration file contents %o', parsed)
 
@@ -60,7 +70,10 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
 
     log.debug('Saw combined configuration contents %o', combinedConfiguration)
 
-    return combinedConfiguration
+    return {
+      repositoryConfiguration: combinedConfiguration,
+      cstYamlRepresentation: rep,
+    } as TemplateConfig
   }
 
   return {
