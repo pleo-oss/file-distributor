@@ -15,7 +15,10 @@
       "type": "array",
       "nullable": true,
       "items": {
-        "type": ["object", "string"],
+        "type": [
+          "object",
+          "string"
+        ],
         "properties": {
           "source": {
             "type": "string"
@@ -34,6 +37,8 @@
       "type": "object"
     }
   },
-  "required": [],
+  "required": [
+    "version"
+  ],
   "additionalProperties": false
 }
