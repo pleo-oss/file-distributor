@@ -37,6 +37,9 @@ const getLineFromOffset = (lines: number[], offset: number): number => {
 const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): number | undefined => {
   const pathItems = instancePath.split('/').slice(1)
 
+  // If there is no path no line can be found
+  if (pathItems.length === 0) return
+
   const getLineFromDoc = (doc: Document) => {
     let line = undefined
     CST.visit(doc, (item, path) => {
@@ -47,6 +50,8 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): 
         if (!CST.isScalar(item.value)) return
 
         const key = item.key as SourceToken
+
+        if (!key) return
 
         // If note key is not the current path value skip this node and its childs and go to next sibling
         if (key.source !== currentPathValue) {
