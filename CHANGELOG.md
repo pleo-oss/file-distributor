@@ -1,3 +1,16 @@
+# v2.10.1 (Mon Nov 14 2022)
+
+#### 🐞 Fixes
+
+- Avoid creating PRs with no changes [#69](https://github.com/pleo-oss/file-distributor/pull/69) ([@andersfischernielsen](https://github.com/andersfischernielsen) [@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.10.0 (Thu Nov 10 2022)
 
 #### 🎁 Features
