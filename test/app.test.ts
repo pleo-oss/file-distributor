@@ -109,8 +109,8 @@ describe('Probot Tests', () => {
   })
 
   test('can handle empty files in commit', async () => {
-    baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [] })
+    baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
 
     const pushEvent = {
       name: 'push',
@@ -128,8 +128,8 @@ describe('Probot Tests', () => {
   })
 
   test('can handle non-config files in commit', async () => {
-    baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [{ filename: 'somefile.txt' }] })
+    baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
 
     const pushEvent = {
       name: 'push',
@@ -147,8 +147,8 @@ describe('Probot Tests', () => {
   })
 
   test('can handle error requests', async () => {
-    baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(500, {})
+    baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
 
     const pushEvent = {
       name: 'push',
@@ -166,29 +166,29 @@ describe('Probot Tests', () => {
   })
 
   test('can fetch changes, fetch configuration changes, render templates, create PR (smoke test)', async () => {
-    baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
+    baseNock.get('/repos/pleo-oss/template-repository/zipball/0.0.7').reply(200, zipContents)
+    baseNock.get('/repos/pleo-oss/test').reply(200, { default_branch: 'baseBranch' })
     baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [{ filename: '.github/templates.yaml' }] })
+    baseNock.get('/repos/pleo-oss/test/compare/baseBranch...newBranch').reply(200, { files: ['somefile'] })
     baseNock
       .get('/repos/pleo-oss/test/contents/.github%2Ftemplates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
-    baseNock
-      .persist()
-      .get('/repos/pleo-oss/template-repository/releases/tags/v0.0.7')
-      .reply(200, { zipball_url: 'test', tag_name: '0.0.7' })
-
-    baseNock.get('/repos/pleo-oss/template-repository/zipball/0.0.7').reply(200, zipContents)
-    baseNock.get('/repos/pleo-oss/test').reply(200, { default_branch: 'baseBranch' })
+    baseNock.get('/repos/pleo-oss/test/git/commits/baseBranchRef').reply(200, { sha: 'currentCommitSha' })
     baseNock.get('/repos/pleo-oss/test/git/ref/heads%2FbaseBranch').reply(200, { object: { sha: 'baseBranchRef' } })
     baseNock
       .get('/repos/pleo-oss/test/git/ref/heads%2Fcentralized-templates')
       .reply(200, { object: { sha: 'newBranch' } })
-    baseNock.get('/repos/pleo-oss/test/git/commits/baseBranchRef').reply(200, { sha: 'currentCommitSha' })
     baseNock.get('/repos/pleo-oss/test/git/trees/baseBranchRef').reply(200, { tree: 'existingTree' })
-    baseNock.post('/repos/pleo-oss/test/git/trees').reply(200, { sha: 'createdTreeSha' })
-    baseNock.post('/repos/pleo-oss/test/git/commits').reply(200, { sha: 'newCommitSha' })
-    baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-templates').reply(200, { ref: 'updatedRef' })
-    baseNock.get('/repos/pleo-oss/test/pulls?head=refs/heads/centralized-templates&state=open').reply(200, [])
     baseNock.get('/repos/pleo-oss/test/pulls?head=pleo-oss:centralized-templates&state=open').reply(200, [])
+    baseNock.get('/repos/pleo-oss/test/pulls?head=refs/heads/centralized-templates&state=open').reply(200, [])
+    baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-templates').reply(200, { ref: 'updatedRef' })
+    baseNock
+      .persist()
+      .get('/repos/pleo-oss/template-repository/releases/tags/v0.0.7')
+      .reply(200, { zipball_url: 'test', tag_name: '0.0.7' })
+    baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
+    baseNock.post('/repos/pleo-oss/test/git/commits').reply(200, { sha: 'newCommitSha' })
+    baseNock.post('/repos/pleo-oss/test/git/trees').reply(200, { sha: 'createdTreeSha' })
     baseNock.post('/repos/pleo-oss/test/pulls').reply(200, { number: 'prNumber' })
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation()
@@ -238,17 +238,12 @@ describe('Probot Tests', () => {
   })
 
   test('can receive a pull request event with a template configuration change and process the event', async () => {
-    baseNock.get('/repos/pleo-oss/test/pulls/27/files').reply(200, [
-      {
-        filename: '.github/templates.yaml',
-      },
-    ])
     baseNock
       .get('/repos/pleo-oss/test/contents/.github/templates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
-
-    baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)
+    baseNock.get('/repos/pleo-oss/test/pulls/27/files').reply(200, [{ filename: '.github/templates.yaml' }])
     baseNock.patch('/repos/pleo-oss/test/check-runs/').reply(200)
+    baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)
     baseNock.post('/repos/pleo-oss/test/pulls/27/reviews').reply(200)
 
     const pullRequestEvent = {
@@ -271,20 +266,13 @@ describe('Probot Tests', () => {
   })
 
   test('can receive a pull request event with a wrong template configuration change and process the event', async () => {
-    baseNock.get('/repos/pleo-oss/test/pulls/27/files').reply(200, [
-      {
-        filename: '.github/templates.yaml',
-      },
-    ])
-
     configuration.version = 'Version not following pattern'
-
     baseNock
       .get('/repos/pleo-oss/test/contents/.github/templates.yaml?ref=sha')
       .reply(200, { content: Buffer.from(JSON.stringify(configuration)).toString('base64') })
-
-    baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)
+    baseNock.get('/repos/pleo-oss/test/pulls/27/files').reply(200, [{ filename: '.github/templates.yaml' }])
     baseNock.patch('/repos/pleo-oss/test/check-runs/').reply(200)
+    baseNock.post('/repos/pleo-oss/test/check-runs').reply(200)
     baseNock.post('/repos/pleo-oss/test/pulls/27/reviews').reply(200)
 
     const pullRequestEvent = {
