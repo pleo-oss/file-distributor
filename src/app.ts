@@ -116,7 +116,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
   const { log, octokit } = context
-  const { commitFiles, getCommitFiles } = git(log, octokit)
+  const { commitFilesToPR, getCommitFiles } = git(log, octokit)
   const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
   const { getTemplateInformation, renderTemplates } = templates(log, octokit)
 
@@ -141,7 +141,7 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   if (!combined) return
 
   const { version, templates: processed } = await renderTemplates(combined)
-  const pullRequestNumber = await commitFiles(repository, version, processed)
+  const pullRequestNumber = await commitFilesToPR(repository, version, processed)
 
   if (!pullRequestNumber) {
     log.info('Commit leads to no changes.')

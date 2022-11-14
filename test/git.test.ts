@@ -18,29 +18,64 @@ describe('Pull Request reviews', () => {
       get: jest.fn(() => {
         return {
           data: {
-            default_branch: 'main'
-          }
+            default_branch: 'main',
+          },
         }
-      })
+      }),
+      compareCommits: jest.fn(() => {
+        return {
+          data: {
+            files: [],
+          },
+        }
+      }),
     },
     git: {
       getRef: jest.fn(() => {
         return {
           data: {
             object: {
-              sha: 'sha'
-            }
-          }
+              sha: 'sha',
+            },
+          },
         }
       }),
       getCommit: jest.fn(() => {
         return {
           data: {
-            sha: 'shaCurrentCommit'
-          }
+            sha: 'shaCurrentCommit',
+          },
         }
-      })
-    }
+      }),
+      getTree: jest.fn(() => {
+        return {
+          data: {
+            tree: [],
+          },
+        }
+      }),
+      createCommit: jest.fn(() => {
+        return {
+          data: {
+            sha: 'createTreeSha',
+          },
+        }
+      }),
+      createTree: jest.fn(() => {
+        return {
+          data: {
+            sha: 'createdTreeSha',
+          },
+        }
+      }),
+      updateRef: jest.fn(() => {
+        return {
+          data: {
+            ref: 'updatedRef',
+          },
+        }
+      }),
+    },
   } as unknown as OctokitInstance
 
   const testRepository = {
@@ -50,7 +85,7 @@ describe('Pull Request reviews', () => {
 
   const testPullRequestNumber = 1
 
-  const { approvePullRequestChanges, requestPullRequestChanges, commitFiles } = git(log, octokitMock)
+  const { approvePullRequestChanges, requestPullRequestChanges, commitFilesToPR } = git(log, octokitMock)
 
   describe('Create reviews', () => {
     beforeEach(() => {
@@ -104,8 +139,118 @@ Check the PR comments for any additional errors.`
   })
 
   describe('Commit files', () => {
-    test('can commit files', async () => {
-      const result = await commitFiles(testRepository, 'v1.0,0', [])
+    test('when no changes return undefined', async () => {
+      const result = await commitFilesToPR(testRepository, 'v1.0,0', [])
+      expect(octokitMock.repos.compareCommits).toBeCalledTimes(1)
+
+      expect(result).toBeUndefined()
+    })
+
+    test('when changes ', async () => {
+      const octokitMockDifferentFiles = {
+        pulls: {
+          createReview: jest.fn(() => {
+            return {
+              data: {
+                id: 'reviewId',
+              },
+            }
+          }),
+          list: jest.fn(() => {
+            return {
+              data: [],
+            }
+          }),
+          create: jest.fn(() => {
+            return {
+              data: {
+                number: 1,
+              },
+            }
+          }),
+        },
+        repos: {
+          get: jest.fn(() => {
+            return {
+              data: {
+                default_branch: 'main',
+              },
+            }
+          }),
+          compareCommits: jest.fn(() => {
+            return {
+              data: {
+                files: [
+                  {
+                    filename: 'test',
+                  },
+                ],
+              },
+            }
+          }),
+        },
+        git: {
+          getRef: jest.fn(() => {
+            return {
+              data: {
+                object: {
+                  sha: 'sha',
+                },
+              },
+            }
+          }),
+          getCommit: jest.fn(() => {
+            return {
+              data: {
+                sha: 'shaCurrentCommit',
+              },
+            }
+          }),
+          getTree: jest.fn(() => {
+            return {
+              data: {
+                tree: [],
+              },
+            }
+          }),
+          createCommit: jest.fn(() => {
+            return {
+              data: {
+                sha: 'createTreeSha',
+              },
+            }
+          }),
+          createTree: jest.fn(() => {
+            return {
+              data: {
+                sha: 'createdTreeSha',
+              },
+            }
+          }),
+          updateRef: jest.fn(() => {
+            return {
+              data: {
+                ref: 'updatedRef',
+              },
+            }
+          }),
+        },
+        issues: {
+          setLabers: jest.fn(() => {
+            return {
+              data: {},
+            }
+          }),
+        },
+      } as unknown as OctokitInstance
+      const { commitFilesToPR } = git(log, octokitMockDifferentFiles)
+
+      const result = await commitFilesToPR(testRepository, 'v1.0,0', [])
+      expect(octokitMockDifferentFiles.repos.compareCommits).toBeCalledTimes(1)
+      expect(octokitMockDifferentFiles.pulls.list).toBeCalledTimes(1)
+      expect(octokitMockDifferentFiles.pulls.create).toBeCalledTimes(1)
+
+      expect(result).toBe(1)
     })
   })
 })

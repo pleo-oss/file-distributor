@@ -181,7 +181,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     return merged
   }
 
-  const maintainPullRequest = async (
+  const createOrUpdatePullRequest = async (
     repository: RepositoryDetails,
     details: PRDetails,
     baseBranch: string,
@@ -269,7 +269,11 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     return filenames
   }
 
-  const commitFiles = async (repository: RepositoryDetails, version: string, templates: Template[]) => {
+  const commitFilesToPR = async (
+    repository: RepositoryDetails,
+    version: string,
+    templates: Template[],
+  ): Promise<number | undefined> => {
     const { baseBranch, currentCommitSha, newBranch, baseBranchRef } = await extractBranchInformation(repository)
 
     const title = 'Update templates based on repository configuration'
@@ -288,7 +292,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       description: generatePullRequestDescription(version, changes),
     }
 
-    return maintainPullRequest(repository, prDetails, baseBranch)
+    return createOrUpdatePullRequest(repository, prDetails, baseBranch)
   }
 
   const requestPullRequestChanges = async (
@@ -350,7 +354,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
 
   return {
     approvePullRequestChanges,
-    commitFiles,
+    commitFilesToPR,
     getCommitFiles,
     getFilesChanged,
     requestPullRequestChanges,
