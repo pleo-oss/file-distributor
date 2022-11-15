@@ -268,29 +268,10 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   const requestPullRequestChanges = async (
     repository: RepositoryDetails,
     pullRequestNumber: number,
-    configFileName: string,
-    errors: ValidationError[],
+    checkId: number
   ) => {
-    const errorsWithoutLine = errors.filter(e => !e.line)
+    const body = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}/checks?check_run_id=${checkId})`
 
-    const comments = errors
-      .filter(e => e.line)
-      .map(e => ({
-        path: configFileName,
-        body: `\`${e.message}\`` ?? '',
-        line: e.line,
-      }))
-
-    let body = `🤖 It looks like your template changes are invalid.\n\n`
-
-    if (errorsWithoutLine.length > 0) {
-      body = body.concat(`There were the following errors:
-        ${errorsWithoutLine.map(e => `- \`${e.message}\``).join('\n')}`)
-    }
-
-    if (comments.length > 0) {
-      body = body.concat('\n\nCheck the PR comments for any additional errors.')
-    }
 
     log.debug('Creating change request review on PR #%d.', pullRequestNumber)
     const {
@@ -300,7 +281,6 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       pull_number: pullRequestNumber,
       event: 'REQUEST_CHANGES',
       body,
-      comments,
     })
 
     log.debug("Created change request review '%d'.", id)

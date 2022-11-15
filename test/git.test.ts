@@ -93,17 +93,10 @@ describe('Pull Request reviews', () => {
     })
 
     test('can request changes on PRs', async () => {
-      const expectedMainBody = `🤖 It looks like your template changes are invalid.
+      const checkId = 123
+      const expectedMainBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${testRepository.owner}/${testRepository.repo}/pull/${testPullRequestNumber}/checks?check_run_id=${checkId})`
 
-There were the following errors:
-        - \`hello\`
-
-Check the PR comments for any additional errors.`
-
-      const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, '.github/templates.yaml', [
-        { message: 'hello', line: undefined },
-        { message: 'world', line: 13 },
-      ])
+      const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, checkId)
 
       expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
       expect(octokitMock.pulls.createReview).toHaveBeenCalledWith({
@@ -111,13 +104,6 @@ Check the PR comments for any additional errors.`
         pull_number: testPullRequestNumber,
         event: 'REQUEST_CHANGES',
         body: expectedMainBody,
-        comments: [
-          {
-            path: '.github/templates.yaml',
-            body: '`world`',
-            line: 13,
-          },
-        ],
       })
 
       expect(result).toEqual('reviewId')

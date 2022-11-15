@@ -99,6 +99,7 @@ describe('Github api calls', () => {
       sha: testSha,
       conclusion: 'failure',
       checkRunId: 98,
+      errors: [],
     }
 
     beforeEach(() => {
@@ -129,9 +130,15 @@ describe('Github api calls', () => {
         sha: testSha,
         conclusion: 'failure',
         checkRunId: 98,
+        errors: [
+          {
+            message: "There is an error",
+            line: 1
+          }
+        ]
       }
 
-      await resolveCheckRun(testInput)
+      await resolveCheckRun(testInput, '.github/templates.yaml')
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).not.toHaveBeenCalledWith({
@@ -143,6 +150,16 @@ describe('Github api calls', () => {
         output: {
           title: 'Schema validation',
           summary: testInput.conclusion,
+          annotations: [
+            {
+
+              path: '.github/templates.yaml',
+              start_line: 1,
+              end_line: 1,
+              annotation_level: 'failure',
+              message: "There is an error"
+            }
+          ]
         },
       })
     })
@@ -153,6 +170,7 @@ describe('Github api calls', () => {
         sha: testSha,
         conclusion: 'failure',
         checkRunId: 98,
+        errors: [],
       }
 
       const { resolveCheckRun } = checks(log, throwingOctokit)

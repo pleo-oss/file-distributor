@@ -24,27 +24,63 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
     return id
   }
 
-  const resolveCheckRun = async (input: UpdateCheckInput) => {
-    const { repo, owner, checkRunId, sha, conclusion: result } = input
+  const resolveCheckRun = async (input: UpdateCheckInput, configFilePath?: string) => {
+    const { repo, owner, checkRunId, sha, conclusion } = input
 
-    log.debug('Updating check run %d.', checkRunId)
-    const {
-      data: { conclusion },
-    } = await octokit.checks.update({
-      owner,
-      repo,
-      name: 'Configuration validation',
-      check_run_id: checkRunId,
-      status: 'completed',
-      head_sha: sha,
-      conclusion: result,
-      output: {
-        title: 'Schema validation',
-        summary: result,
-      },
-    })
-    log.debug('Updated check run %d with conclusion %s.', checkRunId, conclusion)
-    return conclusion
+    if (input.errors.length > 0) {
+      const errorsWithoutLine = input.errors.filter(e => !e.line)
+      const errorsWithLine = input.errors.filter(e => e.line)
+
+
+      log.debug('Updating check run %d.', checkRunId)
+      const {
+        data: { conclusion: result },
+      } = await octokit.checks.update({
+        owner,
+        repo,
+        name: 'Configuration validation',
+        check_run_id: checkRunId,
+        status: 'completed',
+        head_sha: sha,
+        conclusion,
+        output: {
+          title: 'Schema validation',
+          summary: "There has been some errors during the validation",
+          text: `The following errors don't have a line associated: 
+            ${errorsWithoutLine.map(e => `- \`${e.message}\``).join('\n')}`,
+          annotations: errorsWithLine.map(err => ({
+            path: configFilePath,
+            start_line: err.line,
+            end_line: err.line,
+            annotation_level: 'failure',
+            message: err.message
+          }))
+        },
+      })
+      log.debug('Updated check run %d with conclusion %s.', checkRunId, result)
+      return result
+    } else {
+      log.debug('Updating check run %d.', checkRunId)
+      const {
+        data: { conclusion: result },
+      } = await octokit.checks.update({
+        owner,
+        repo,
+        name: 'Configuration validation',
+        check_run_id: checkRunId,
+        status: 'completed',
+        head_sha: sha,
+        conclusion,
+        output: {
+          title: 'Schema validation',
+          summary: conclusion,
+        },
+      })
+      log.debug('Updated check run %d with conclusion %s.', checkRunId, result)
+      return result
+    }
+
+
   }
 
   return {

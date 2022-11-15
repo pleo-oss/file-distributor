@@ -120,14 +120,14 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
 
   if (errors.length > 0) {
-    const changeRequestId = await requestPullRequestChanges(repository, prNumber, configFileName, errors)
+    const changeRequestId = await requestPullRequestChanges(repository, prNumber, checkId)
     log.debug(`Requested changes for PR #%d in %s.`, prNumber, changeRequestId)
   } else if (onlyChangesConfiguration) {
     const approvedReviewId = await approvePullRequestChanges(repository, prNumber)
     log.debug(`Approved PR #%d in %s.`, prNumber, approvedReviewId)
   }
 
-  const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion(errors), checkRunId: checkId })
+  const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion(errors), checkRunId: checkId, errors }, configFileName)
 
   log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
 }
