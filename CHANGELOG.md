@@ -1,3 +1,15 @@
+# v2.10.2 (Tue Nov 15 2022)
+
+#### 🐞 Fixes
+
+- Push event ignored in case of branch removal action [#74](https://github.com/pleo-oss/file-distributor/pull/74) ([@dpotyralski](https://github.com/dpotyralski))
+
+#### Authors: 1
+
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+
+---
+
 # v2.10.1 (Mon Nov 14 2022)
 
 #### 🐞 Fixes
