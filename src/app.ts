@@ -163,9 +163,8 @@ export = async (app: Probot) => {
   }
 
   app.on('push', async (context: Context<'push'>) => {
-    const log = context.log
     if (isBranchRemoved(context)) {
-      log.debug('Push event after branch removal - ignoring.')
+      context.log.debug('Push event after branch removal - ignoring.')
       return
     }
     await processPushEvent(context.payload as PushEvent, context)
