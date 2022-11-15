@@ -10,6 +10,10 @@ import 'dotenv/config'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
+const isBranchRemoved = (context: Context<'push'>) => {
+  return context.payload.deleted
+}
+
 const extractRepositoryInformation = (payload: PushEvent) => {
   const {
     repository: {
@@ -159,6 +163,11 @@ export = async (app: Probot) => {
   }
 
   app.on('push', async (context: Context<'push'>) => {
+    const log = context.log
+    if (isBranchRemoved(context)) {
+      log.debug('Push event after branch removal - ignoring.')
+      return
+    }
     await processPushEvent(context.payload as PushEvent, context)
   })
 
