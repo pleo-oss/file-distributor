@@ -39,10 +39,11 @@ const extractPullRequestInformation = (payload: PullRequestEvent) => {
     repository: {
       owner: { login },
       name,
+      default_branch,
     },
   } = payload
 
-  return { number, sha, repository: { owner: login, repo: name } }
+  return { number, sha, repository: { owner: login, repo: name, defaultBranch: default_branch } }
 }
 
 const validateChanges = async (
@@ -90,15 +91,16 @@ const validateChanges = async (
 }
 
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
+  const { number: prNumber, sha, repository } = extractPullRequestInformation(payload)
   const { log, octokit } = context
+  const enrichedWithRepoLog = log.child({ owner: repository.owner, repository: repository.repo })
 
-  const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(log, octokit)
+  const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(enrichedWithRepoLog, octokit)
 
-  const { createCheckRun, resolveCheckRun } = checks(log, octokit)
-  const { determineConfigurationChanges } = configuration(log, octokit)
+  const { createCheckRun, resolveCheckRun } = checks(enrichedWithRepoLog, octokit)
+  const { determineConfigurationChanges } = configuration(enrichedWithRepoLog, octokit)
   const conclusion = (errors: ValidationError[]) => (errors.length > 0 ? 'failure' : 'success')
 
-  const { number: prNumber, sha, repository } = extractPullRequestInformation(payload)
   log.info('Pull request event happened on #%d', prNumber)
 
   const filesChanged = await getFilesChanged(repository, prNumber)
@@ -131,12 +133,14 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 }
 
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
+  const repository = extractRepositoryInformation(payload)
   const { log, octokit } = context
   const { commitFilesToPR, getCommitFiles } = git(log, octokit)
-  const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
-  const { getTemplateInformation, renderTemplates } = templates(log, octokit)
 
-  const repository = extractRepositoryInformation(payload)
+  const enrichedWithRepoLog = log.child({ owner: repository.owner, repository: repository.repo })
+  const { combineConfigurations, determineConfigurationChanges } = configuration(enrichedWithRepoLog, octokit)
+  const { getTemplateInformation, renderTemplates } = templates(enrichedWithRepoLog, octokit)
+
   const branchRegex = new RegExp(repository.defaultBranch)
 
   log.info('%s event happened on %s', context.name, payload.ref)
@@ -165,7 +169,7 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   }
 
   log.info('Committed templates to %s/%s in #%d', repository.owner, repository.repo, pullRequestNumber)
-  log.info('See: https://github.com/%s/%S/pull/%d', repository.owner, repository.repo, pullRequestNumber)
+  log.info('See: https://github.com/%s/%s/pull/%d', repository.owner, repository.repo, pullRequestNumber)
 }
 
 export = async (app: Probot) => {

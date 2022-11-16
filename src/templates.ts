@@ -4,7 +4,6 @@ import {
   ExtractedContent,
   OctokitInstance,
   RepositoryConfiguration,
-  RepositoryDetails,
   Template,
   TemplateInformation,
   Templates,
@@ -72,9 +71,10 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     }
   }
 
-  const getReleaseFromTag = async (tag: string, repository: RepositoryDetails) => {
+  const getReleaseFromTag = async (tag: string, owner: string, repo: string) => {
     const { data } = await octokit.repos.getReleaseByTag({
-      ...repository,
+      owner,
+      repo,
       tag,
     })
     return data
@@ -89,7 +89,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
     let release
     try {
-      release = await getReleaseFromTag(templateVersion, templateRepository)
+      release = await getReleaseFromTag(templateVersion, templateRepository.owner, templateRepository.repo)
     } catch (error) {
       if (error instanceof RequestError && error.status === 404) {
         throw new VersionNotFoundError(
@@ -148,7 +148,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates> => {
     log.debug('Processing configuration changes.')
     const { version } = configuration
-    log.debug("Configuration uses template version '%s'.", version)
+    log.debug("Configuration uses template version '%s' and values %o.", version, configuration.values)
 
     const { contents, version: fetchedVersion } = await downloadTemplates(version)
     const extractedContent = await extractZipContents(contents, configuration)
@@ -170,24 +170,17 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   }
 
   const getTemplateInformation = async (version: string) => {
-    log.debug("Configuration uses template version '%s'.", version)
-
     log.debug("Downloading templates with version '%s'.", version)
     const { contents } = await downloadTemplates(version)
 
-    log.debug('Extracting ZIP contents.')
     const loaded = await loadAsync(contents)
-    log.debug('Extracting default configuration.')
 
     const defaults = await extract(loaded, 'defaults.yaml')
     log.debug('Saw default configuration: %o', defaults)
 
-    log.debug('Extracting template files')
     const allFiles = Object.keys(loaded.files)
 
-    log.debug('Parsing default configuration.')
     const parsed = parse(defaults) as RepositoryConfiguration
-    log.debug('Parsed default configuration. %o', parsed)
 
     return { configuration: parsed, files: allFiles }
   }
