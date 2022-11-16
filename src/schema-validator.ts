@@ -26,7 +26,7 @@ const getLineFromOffset = (lines: number[], offset: number): number => {
       return index
     }
   }
-  return -1
+  return lines.length
 }
 
 /**
@@ -61,10 +61,8 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): 
         if (path.length === pathItems.length) {
           // If it has the same value, check if it is the last item in the path, if so the item is found and finish visit
           const index = getLineFromOffset(cst.lines, key.offset)
-          if (index > 0) {
-            line = index
-            return CST.visit.BREAK
-          }
+          line = index
+          return CST.visit.BREAK
         }
       } else {
         if (num !== path[path.length - 1][1]) {
