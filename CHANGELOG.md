@@ -1,3 +1,20 @@
+# v2.11.0 (Thu Nov 17 2022)
+
+#### 🎁 Features
+
+- Add line comment on values errors [#73](https://github.com/pleo-oss/file-distributor/pull/73) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### 🏠 Internal
+
+- Removes support for DataDog APM [#75](https://github.com/pleo-oss/file-distributor/pull/75) ([@dpotyralski](https://github.com/dpotyralski))
+
+#### Authors: 2
+
+- Damian Potyralski ([@dpotyralski](https://github.com/dpotyralski))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.10.2 (Tue Nov 15 2022)
 
 #### 🐞 Fixes
