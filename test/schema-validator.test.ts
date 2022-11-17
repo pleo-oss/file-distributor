@@ -18,7 +18,8 @@ const getCst = (content: string): CSTRepresentation => {
 }
 
 describe('Schema Tests', () => {
-  const { generateSchema, validateTemplateConfiguration, validateFiles } = schemaValidator(log)
+  const { generateSchema, validateTemplateConfiguration, validateFiles, getDefaultSchema, mergeSchemaToDefault } =
+    schemaValidator(log)
 
   test('returns false for an invalid input', async () => {
     const input = {
@@ -29,19 +30,7 @@ describe('Schema Tests', () => {
       },
     }
 
-    const { result, errors } = validateTemplateConfiguration(input)
-    expect(result).toBeFalsy()
-    expect(errors?.length).not.toEqual(0)
-  })
-
-  test('returns false for undefined input', async () => {
-    const { result, errors } = validateTemplateConfiguration({
-      repositoryConfiguration: undefined,
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
-    })
+    const { result, errors } = validateTemplateConfiguration(input, getDefaultSchema())
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
@@ -59,13 +48,16 @@ describe('Schema Tests', () => {
           - source: null
             destination: path/to/template-destination/filename.yaml
         `)
-    const { result, errors } = validateTemplateConfiguration({
-      repositoryConfiguration: input,
-      cstYamlRepresentation: {
-        tokens: [],
-        lines: [],
+    const { result, errors } = validateTemplateConfiguration(
+      {
+        repositoryConfiguration: input,
+        cstYamlRepresentation: {
+          tokens: [],
+          lines: [],
+        },
       },
-    })
+      getDefaultSchema(),
+    )
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
@@ -90,7 +82,7 @@ describe('Schema Tests', () => {
         tokens: [],
       },
     }
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -115,7 +107,7 @@ describe('Schema Tests', () => {
         tokens: [],
       },
     }
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -137,7 +129,7 @@ describe('Schema Tests', () => {
 
       cstYamlRepresentation: getCst(content),
     }
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(5)
@@ -160,7 +152,7 @@ describe('Schema Tests', () => {
 
       cstYamlRepresentation: getCst(content),
     }
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(9)
@@ -183,7 +175,7 @@ describe('Schema Tests', () => {
 
       cstYamlRepresentation: getCst(content),
     }
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(2)
     expect(errors[0].line).toBe(5)
@@ -206,7 +198,7 @@ describe('Schema Tests', () => {
 
       cstYamlRepresentation: getCst(content),
     }
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(9)
@@ -230,17 +222,17 @@ describe('Schema Tests', () => {
       },
     }
 
-    const valuesSchema = `{
-      "$schema": "http://json-schema.org/draft-07/schema",
-      "type": "object",
-      "properties": {
-        "jdkVersion": {
-          "type": "integer"
-        }
-      }
-    }`
+    const valuesSchema = {
+      $schema: 'http://json-schema.org/draft-07/schema',
+      type: 'object',
+      properties: {
+        jdkVersion: {
+          type: 'integer',
+        },
+      },
+    }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, valuesSchema)
+    const { result, errors } = validateTemplateConfiguration(configuration, mergeSchemaToDefault(valuesSchema))
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -263,17 +255,17 @@ describe('Schema Tests', () => {
       },
     }
 
-    const valuesSchema = `{
-      "$schema": "http://json-schema.org/draft-07/schema",
-      "type": "object",
-      "properties": {
-        "jdkVersion": {
-          "type": "integer"
-        }
-      }
-    }`
+    const valuesSchema = {
+      $schema: 'http://json-schema.org/draft-07/schema',
+      type: 'object',
+      properties: {
+        jdkVersion: {
+          type: 'integer',
+        },
+      },
+    }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, valuesSchema)
+    const { result, errors } = validateTemplateConfiguration(configuration, mergeSchemaToDefault(valuesSchema))
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBeUndefined()
@@ -305,7 +297,7 @@ describe('Schema Tests', () => {
 
     const result = generateSchema(configuration.values)
     expect(result).not.toBeUndefined()
-    expect(JSON.parse(result as string)).toEqual(expected)
+    expect(result).toEqual(expected)
   })
 
   test('validates valid versions', async () => {
@@ -317,7 +309,7 @@ describe('Schema Tests', () => {
       },
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -331,7 +323,7 @@ describe('Schema Tests', () => {
       },
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
   })
@@ -345,7 +337,7 @@ describe('Schema Tests', () => {
       },
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
   })

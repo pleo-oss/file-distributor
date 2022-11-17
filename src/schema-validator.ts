@@ -5,7 +5,6 @@ import {
   RepositoryConfiguration,
   TemplateConfig,
   TemplateValidation,
-  ValidationError,
 } from './types'
 import Ajv, { ErrorObject } from 'ajv'
 import templateSchema from './template-schema.json'
@@ -13,10 +12,12 @@ import { Logger } from 'probot'
 import { createSchema } from 'genson-js'
 import { ensurePathConfiguration } from './configuration'
 import { CST } from 'yaml'
+
 import { Document, SourceToken } from 'yaml/dist/parse/cst'
+import ajvMergePatch from 'ajv-merge-patch'
 
 const ajv = new Ajv({ allowUnionTypes: true, allErrors: true })
-const validateConfiguration = ajv.compile<RepositoryConfiguration>(templateSchema)
+ajvMergePatch(ajv)
 
 const getLineFromOffset = (lines: number[], offset: number): number => {
   for (let index = 1; index < lines.length; index++) {
@@ -25,7 +26,7 @@ const getLineFromOffset = (lines: number[], offset: number): number => {
       return index
     }
   }
-  return -1
+  return lines.length
 }
 
 /**
@@ -60,10 +61,8 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): 
         if (path.length === pathItems.length) {
           // If it has the same value, check if it is the last item in the path, if so the item is found and finish visit
           const index = getLineFromOffset(cst.lines, key.offset)
-          if (index > 0) {
-            line = index
-            return CST.visit.BREAK
-          }
+          line = index
+          return CST.visit.BREAK
         }
       } else {
         if (num !== path[path.length - 1][1]) {
@@ -106,27 +105,43 @@ export const schemaValidator = (log: Logger) => {
       })
       ?.filter(error => error !== '') ?? []
 
-  const validateTemplateConfiguration = (configuration: TemplateConfig, valuesSchema?: string): TemplateValidation => {
-    const validateValues = ajv.compile<ConfigurationValues>(JSON.parse(valuesSchema ?? '{}'))
+  const getDefaultSchema = () => {
+    return templateSchema
+  }
+
+  const mergeSchemaToDefault = (valuesSchema: object) => {
+    return {
+      $merge: {
+        source: getDefaultSchema(),
+        with: {
+          properties: {
+            values: valuesSchema,
+          },
+        },
+      },
+    }
+  }
+
+  const validateTemplateConfiguration = (configuration: TemplateConfig, schema: object): TemplateValidation => {
+    const validateConfiguration = ajv.compile<RepositoryConfiguration>(schema)
+
     const isValidConfiguration = validateConfiguration(configuration?.repositoryConfiguration)
-    const hasValidValues = validateValues(configuration?.repositoryConfiguration?.values)
 
-    const validationErrors = (validateConfiguration.errors ?? []).map(e => ({
-      message: e.message,
-      line: getLineFromInstancePath(e.instancePath, configuration.cstYamlRepresentation),
-    }))
+    // Needed to filter $merge due to https://github.com/ajv-validator/ajv-merge-patch/issues/8
+    const validationErrors = (validateConfiguration.errors ?? [])
+      .filter(e => e.keyword != '$merge')
+      .map(e => ({
+        message: e.message,
+        line: getLineFromInstancePath(e.instancePath, configuration.cstYamlRepresentation),
+      }))
 
-    const validationValueErrors = (validateValues.errors ?? []).map(
-      e => ({ message: e.message, line: undefined } as ValidationError),
-    )
-
-    if (!isValidConfiguration || !hasValidValues) {
+    if (!isValidConfiguration) {
       log.debug('Saw validation errors: %s', prettifyErrors(validateConfiguration.errors).join(','))
     }
 
     return {
-      result: isValidConfiguration && hasValidValues,
-      errors: validationValueErrors.concat(validationErrors),
+      result: isValidConfiguration,
+      errors: validationErrors,
     }
   }
 
@@ -136,7 +151,7 @@ export const schemaValidator = (log: Logger) => {
       (errors, file) =>
         templates.some(t => new RegExp(file.source).test(t))
           ? errors
-          : errors.add(`\`${file.source}\` was not found in the templates`),
+          : errors.add(`${file.source} was not found in the templates`),
       new Set<string>(),
     )
 
@@ -149,19 +164,21 @@ export const schemaValidator = (log: Logger) => {
     }
   }
 
-  const generateSchema = (input?: ConfigurationValues) => {
-    if (!input) return undefined
+  const generateSchema = (input?: ConfigurationValues): object => {
+    if (!input) return {}
 
     log.debug('Generating JSON schema from input. %o', input)
     const generated = createSchema(input, { noRequired: true })
     log.debug('Generated JSON schema. %o', generated)
 
-    return JSON.stringify(generated)
+    return generated
   }
 
   return {
     validateFiles,
     validateTemplateConfiguration,
     generateSchema,
+    getDefaultSchema,
+    mergeSchemaToDefault,
   }
 }

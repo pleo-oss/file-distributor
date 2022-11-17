@@ -8,12 +8,14 @@ import {
   Template,
   TemplateInformation,
   Templates,
+  VersionNotFoundError,
 } from './types'
 import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
 import { parse } from 'yaml'
 import { ensurePathConfiguration } from './configuration'
+import { RequestError } from '@octokit/request-error'
 
 export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
@@ -85,7 +87,20 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     }
 
     log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
-    const release = await getReleaseFromTag(templateVersion, templateRepository)
+    let release
+    try {
+      release = await getReleaseFromTag(templateVersion, templateRepository)
+    } catch (error) {
+      if (error instanceof RequestError && error.status === 404) {
+        throw new VersionNotFoundError(
+          error.message,
+          templateRepository.owner,
+          templateRepository.repo,
+          templateVersion,
+        )
+      }
+      throw error
+    }
     log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
 
     if (!release.zipball_url) {

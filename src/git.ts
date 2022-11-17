@@ -313,12 +313,14 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
 
     let body = `🤖 It looks like your template changes are invalid.\n\n`
 
-    if (errorsWithoutLine) {
+    if (errorsWithoutLine.length > 0) {
       body = body.concat(`There were the following errors:
         ${errorsWithoutLine.map(e => `- \`${e.message}\``).join('\n')}`)
     }
 
-    body = body.concat('\n\nCheck the PR comments for any additional errors.')
+    if (comments.length > 0) {
+      body = body.concat('\n\nCheck the PR comments for any additional errors.')
+    }
 
     log.debug('Creating change request review on PR #%d.', pullRequestNumber)
     const {
