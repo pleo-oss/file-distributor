@@ -1,3 +1,15 @@
+# v2.11.1 (Thu Nov 17 2022)
+
+#### 🐞 Fixes
+
+- Simplify code and fix createTreeChanges [#76](https://github.com/pleo-oss/file-distributor/pull/76) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 1
+
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.11.0 (Thu Nov 17 2022)
 
 #### 🎁 Features
