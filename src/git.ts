@@ -49,19 +49,20 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     }
   }
 
-  const createTreeWithChanges = async (templates: Template[], repository: RepositoryDetails, base_tree: string) => {
+  const createTreeWithChanges = async (templates: Template[], repository: RepositoryDetails, baseTree: string) => {
     log.debug('Creating git tree with modified templates.')
+    const templateTree = templates.map(template => ({
+      path: template.destinationPath,
+      mode: '100644' as const,
+      type: 'blob' as const,
+      content: template.contents,
+    }))
     const {
       data: { sha: createdTreeSha },
     } = await octokit.git.createTree({
       ...repository,
-      base_tree: base_tree,
-      tree: templates.map(template => ({
-        path: template.destinationPath,
-        mode: '100644',
-        type: 'blob',
-        content: template.contents,
-      })),
+      base_tree: baseTree,
+      tree: templateTree,
     })
     log.debug("Created git tree with SHA '%s'.", createdTreeSha)
 
