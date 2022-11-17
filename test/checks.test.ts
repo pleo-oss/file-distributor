@@ -132,10 +132,10 @@ describe('Github api calls', () => {
         checkRunId: 98,
         errors: [
           {
-            message: "There is an error",
-            line: 1
-          }
-        ]
+            message: 'There is an error',
+            line: 1,
+          },
+        ],
       }
 
       await resolveCheckRun(testInput, '.github/templates.yaml')
@@ -152,14 +152,13 @@ describe('Github api calls', () => {
           summary: testInput.conclusion,
           annotations: [
             {
-
               path: '.github/templates.yaml',
               start_line: 1,
               end_line: 1,
               annotation_level: 'failure',
-              message: "There is an error"
-            }
-          ]
+              message: 'There is an error',
+            },
+          ],
         },
       })
     })

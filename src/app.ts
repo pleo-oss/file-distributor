@@ -127,7 +127,10 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
     log.debug(`Approved PR #%d in %s.`, prNumber, approvedReviewId)
   }
 
-  const checkConclusion = await resolveCheckRun({ ...checkInput, conclusion: conclusion(errors), checkRunId: checkId, errors }, configFileName)
+  const checkConclusion = await resolveCheckRun(
+    { ...checkInput, conclusion: conclusion(errors), checkRunId: checkId, errors },
+    configFileName,
+  )
 
   log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
 }

@@ -268,10 +268,9 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   const requestPullRequestChanges = async (
     repository: RepositoryDetails,
     pullRequestNumber: number,
-    checkId: number
+    checkId: number,
   ) => {
     const body = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}/checks?check_run_id=${checkId})`
-
 
     log.debug('Creating change request review on PR #%d.', pullRequestNumber)
     const {

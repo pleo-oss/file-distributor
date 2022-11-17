@@ -31,7 +31,6 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
       const errorsWithoutLine = input.errors.filter(e => !e.line)
       const errorsWithLine = input.errors.filter(e => e.line)
 
-
       log.debug('Updating check run %d.', checkRunId)
       const {
         data: { conclusion: result },
@@ -45,7 +44,7 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
         conclusion,
         output: {
           title: 'Schema validation',
-          summary: "There has been some errors during the validation",
+          summary: 'There has been some errors during the validation',
           text: `The following errors don't have a line associated: 
             ${errorsWithoutLine.map(e => `- \`${e.message}\``).join('\n')}`,
           annotations: errorsWithLine.map(err => ({
@@ -53,8 +52,8 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
             start_line: err.line,
             end_line: err.line,
             annotation_level: 'failure',
-            message: err.message
-          }))
+            message: err.message,
+          })),
         },
       })
       log.debug('Updated check run %d with conclusion %s.', checkRunId, result)
@@ -79,8 +78,6 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
       log.debug('Updated check run %d with conclusion %s.', checkRunId, result)
       return result
     }
-
-
   }
 
   return {
