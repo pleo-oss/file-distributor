@@ -158,6 +158,7 @@ describe('Probot Tests', () => {
         repository: {
           owner: { login: 'pleo-oss' },
           name: 'test',
+          default_branch: 'main',
         },
       },
     }
@@ -201,6 +202,7 @@ describe('Probot Tests', () => {
         repository: {
           owner: { login: 'pleo-oss' },
           name: 'test',
+          default_branch: 'baseBranch',
         },
       },
     }

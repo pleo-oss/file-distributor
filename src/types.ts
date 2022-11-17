@@ -28,7 +28,7 @@ export interface RepositoryConfiguration {
 export interface RepositoryDetails {
   owner: string
   repo: string
-  defaultBranch?: string
+  defaultBranch: string
 }
 
 export interface ExtractedContent {
