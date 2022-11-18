@@ -14,7 +14,7 @@ import { CST } from 'yaml'
 
 import { Document, SourceToken } from 'yaml/dist/parse/cst'
 import ajvMergePatch from 'ajv-merge-patch'
-import { default as AjvPatch } from "ajv-merge-patch/node_modules/ajv/dist/ajv";
+import { default as AjvPatch } from 'ajv-merge-patch/node_modules/ajv/dist/ajv'
 
 const ajv = new Ajv({ allowUnionTypes: true, allErrors: true })
 ajvMergePatch(ajv as unknown as AjvPatch)
