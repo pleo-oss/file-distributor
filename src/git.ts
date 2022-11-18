@@ -1,5 +1,5 @@
 import { Logger } from 'probot'
-import { OctokitInstance, PRDetails, RepositoryDetails, Template, ValidationError } from './types'
+import { OctokitInstance, PRDetails, RepositoryDetails, Template } from './types'
 
 const baseBranchName = 'centralized-templates'
 const reducedBranchName = `heads/${baseBranchName}`

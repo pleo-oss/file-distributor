@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {
   ConfigurationValues,
   CSTRepresentation,
@@ -15,9 +14,10 @@ import { CST } from 'yaml'
 
 import { Document, SourceToken } from 'yaml/dist/parse/cst'
 import ajvMergePatch from 'ajv-merge-patch'
+import { default as AjvPatch } from "ajv-merge-patch/node_modules/ajv/dist/ajv";
 
 const ajv = new Ajv({ allowUnionTypes: true, allErrors: true })
-ajvMergePatch(ajv)
+ajvMergePatch(ajv as unknown as AjvPatch)
 
 const getLineFromOffset = (lines: number[], offset: number): number => {
   for (let index = 1; index < lines.length; index++) {
