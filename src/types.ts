@@ -66,6 +66,7 @@ export interface CreateCheckInput {
 export type UpdateCheckInput = CreateCheckInput & {
   conclusion: string
   checkRunId: number
+  errors: ValidationError[]
 }
 
 export interface ValidationError {
