@@ -1,3 +1,15 @@
+# v2.12.0 (Tue Nov 22 2022)
+
+#### 🎁 Features
+
+- Move comments to checks [#77](https://github.com/pleo-oss/file-distributor/pull/77) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 1
+
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.11.1 (Thu Nov 17 2022)
 
 #### 🐞 Fixes
