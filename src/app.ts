@@ -23,11 +23,7 @@ const extractRepositoryInformation = (payload: PushEvent) => {
     },
   } = payload
 
-  return {
-    owner: login,
-    repo: name,
-    defaultBranch: default_branch,
-  }
+  return { owner: login, repo: name, defaultBranch: default_branch }
 }
 
 const extractPullRequestInformation = (payload: PullRequestEvent) => {
@@ -43,7 +39,15 @@ const extractPullRequestInformation = (payload: PullRequestEvent) => {
     },
   } = payload
 
-  return { number, sha, repository: { owner: login, repo: name, defaultBranch: default_branch } }
+  return {
+    number,
+    sha,
+    repository: {
+      owner: login,
+      repo: name,
+      defaultBranch: default_branch,
+    },
+  }
 }
 
 const validateChanges = async (
@@ -108,8 +112,14 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   if (!configFile) return
 
-  const checkInput = { ...repository, sha: sha }
-  const checkId = await createCheckRun({ ...repository, sha: sha })
+  const checkInput = {
+    ...repository,
+    sha: sha,
+  }
+  const checkId = await createCheckRun({
+    ...repository,
+    sha: sha,
+  })
 
   log.debug('Found repository configuration file: %s.', configFile)
 
@@ -128,7 +138,12 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   }
 
   const checkConclusion = await resolveCheckRun(
-    { ...checkInput, conclusion: conclusion(errors), checkRunId: checkId, errors },
+    {
+      ...checkInput,
+      conclusion: conclusion(errors),
+      checkRunId: checkId,
+      errors,
+    },
     configFileName,
   )
 
@@ -158,6 +173,7 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
 
   if (!parsed.repositoryConfiguration) return
+
   const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
 
   const combined = combineConfigurations(defaultValues, parsed.repositoryConfiguration)
