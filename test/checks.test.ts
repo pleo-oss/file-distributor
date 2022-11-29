@@ -3,7 +3,11 @@ import { OctokitInstance } from '../src/types'
 import { Logger } from 'probot'
 
 describe('Github api calls', () => {
-  const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
+  const log = {
+    info: () => ({}),
+    error: () => ({}),
+    debug: () => ({}),
+  } as unknown as Logger
   const octokitMock = {
     checks: {
       create: jest.fn(() => {
