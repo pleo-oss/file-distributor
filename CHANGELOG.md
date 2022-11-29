@@ -1,3 +1,15 @@
+# v2.12.1 (Tue Nov 29 2022)
+
+#### 🐞 Fixes
+
+- Change start script to inject custom octokit retry options [#78](https://github.com/pleo-oss/file-distributor/pull/78) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 1
+
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.12.0 (Tue Nov 22 2022)
 
 #### 🎁 Features
