@@ -12,3 +12,5 @@ service:
     tags:
         - key: type
           value: service
+        - key: open-source
+          value: true
