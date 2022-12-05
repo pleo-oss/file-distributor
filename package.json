@@ -26,6 +26,7 @@
     "dotenv": "16.0.3",
     "genson-js": "0.0.8",
     "jszip": "3.10.1",
+    "monet": "^0.9.3",
     "mustache": "4.2.0",
     "node-stream-zip": "1.15.0",
     "probot": "12.2.8",

@@ -1,5 +1,6 @@
 import { Logger } from 'probot'
-import { LineCounter, parse, Parser } from 'yaml'
+import { LineCounter, parse, Parser, YAMLParseError } from 'yaml'
+import { Either } from 'monet'
 import { RepositoryDetails, RepositoryConfiguration, OctokitInstance, PathConfiguration, TemplateConfig } from './types'
 
 export const combineConfigurations = (
@@ -33,7 +34,11 @@ export const ensurePathConfiguration = (files?: (PathConfiguration | string)[]) 
 }
 
 export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
-  const determineConfigurationChanges = async (fileName: string, repository: RepositoryDetails, sha: string) => {
+  const determineConfigurationChanges = async (
+    fileName: string,
+    repository: RepositoryDetails,
+    sha: string,
+  ): Promise<Either<YAMLParseError, TemplateConfig>> => {
     log.debug('Saw changes to %s.', fileName)
     const { data: fileContents } = await octokit.repos.getContent({
       ...repository,
@@ -45,35 +50,42 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
     const decodedContent = Buffer.from(content, 'base64').toString()
     log.debug('%s contains: %s', fileName, decodedContent)
 
-    const lineCounter = new LineCounter()
+    try {
+      const parsed: RepositoryConfiguration = parse(decodedContent)
+      log.debug('Saw configuration file contents %o', parsed)
 
-    const cst = new Parser(lineCounter.addNewLine).parse(decodedContent)
-    const tokens = Array.from(cst)
+      const combinedConfiguration: RepositoryConfiguration = {
+        ...parsed,
+        files: ensurePathConfiguration(parsed.files),
+        values: {
+          ...parsed.values,
+          repositoryName: repository.repo,
+          defaultBranch: repository.defaultBranch,
+        },
+      }
 
-    const rep = {
-      tokens: tokens,
-      lines: lineCounter.lineStarts,
+      log.debug('Saw combined configuration contents %o', combinedConfiguration)
+
+      const lineCounter = new LineCounter()
+
+      const cst = new Parser(lineCounter.addNewLine).parse(decodedContent)
+      const tokens = Array.from(cst)
+
+      const rep = {
+        tokens: tokens,
+        lines: lineCounter.lineStarts,
+      }
+
+      return Either.Right({
+        repositoryConfiguration: combinedConfiguration,
+        cstYamlRepresentation: rep,
+      } as TemplateConfig)
+    } catch (error) {
+      if (error instanceof YAMLParseError) {
+        return Either.Left(error)
+      }
+      throw error
     }
-
-    const parsed: RepositoryConfiguration = parse(decodedContent)
-    log.debug('Saw configuration file contents %o', parsed)
-
-    const combinedConfiguration: RepositoryConfiguration = {
-      ...parsed,
-      files: ensurePathConfiguration(parsed.files),
-      values: {
-        ...parsed.values,
-        repositoryName: repository.repo,
-        defaultBranch: repository.defaultBranch,
-      },
-    }
-
-    log.debug('Saw combined configuration contents %o', combinedConfiguration)
-
-    return {
-      repositoryConfiguration: combinedConfiguration,
-      cstYamlRepresentation: rep,
-    } as TemplateConfig
   }
 
   return {
