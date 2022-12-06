@@ -6,7 +6,10 @@ import { git } from './git'
 import { schemaValidator } from './schema-validator'
 import { checks } from './checks'
 import 'dotenv/config'
-import { OctokitInstance, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
+import { OctokitInstance, TemplateConfig, ValidationError } from './types'
+import { pipe } from 'fp-ts/function'
+import { Either, left } from 'fp-ts/lib/Either'
+import { map, separate } from 'fp-ts/lib/Array'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
@@ -54,44 +57,42 @@ const validateChanges = async (
   log: Logger,
   octokit: Pick<OctokitInstance, 'repos'>,
   configurationChanges: TemplateConfig,
-): Promise<ValidationError[]> => {
+): Promise<Either<ValidationError[], boolean>> => {
   const { getTemplateInformation } = templates(log, octokit)
   const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault, getDefaultSchema } =
     schemaValidator(log)
 
   const { combineConfigurations } = configuration(log, octokit)
 
-  try {
-    const { configuration: defaultValuesConfiguration, files } = await getTemplateInformation(
-      configurationChanges.repositoryConfiguration.version,
-    )
+  const templateInformation = await getTemplateInformation(configurationChanges.repositoryConfiguration.version)
+  const defaultValidation = validateTemplateConfiguration(configurationChanges, getDefaultSchema())
+  const validated = pipe(defaultValidation, () => templateInformation)
 
-    const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
+  if (validated._tag === 'Left') return validated
 
-    const combined = combineConfigurations(defaultValuesConfiguration, configurationChanges.repositoryConfiguration)
+  const { configuration: defaultValuesConfiguration, files } = validated.right
 
-    const validatedTemplates = validateTemplateConfiguration(
-      {
-        repositoryConfiguration: combined,
-        cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
-      },
-      mergeSchemaToDefault(defaultValueSchema),
-    )
-    const validatedFiles = validateFiles(combined, files)
+  const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
+  const combined = combineConfigurations(defaultValuesConfiguration, configurationChanges.repositoryConfiguration)
 
-    return validatedTemplates.errors.concat(validatedFiles.errors)
-  } catch (error) {
-    if (error instanceof VersionNotFoundError) {
-      log.debug('Version for %s/%s:%s has not been found', error.owner, error.name, error.version)
-      const validatedTemplate = validateTemplateConfiguration(configurationChanges, getDefaultSchema())
-      return validatedTemplate.errors.concat({
-        message: `Version could not be found at ${error.owner}/${error.repo}:${error.version}`,
-        line: undefined,
-      })
-    } else {
-      throw error
-    }
-  }
+  const validatedTemplates = validateTemplateConfiguration(
+    {
+      repositoryConfiguration: combined,
+      cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
+    },
+    mergeSchemaToDefault(defaultValueSchema),
+  )
+
+  const validatedFiles = validateFiles(combined, files)
+
+  const combinedErrors = pipe(
+    [validatedTemplates, validatedFiles],
+    map(it => it),
+    separate,
+  )
+
+  if (!combinedErrors.right) return left(combinedErrors.left.flat())
+  return validatedFiles
 }
 
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
@@ -99,7 +100,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { log, octokit } = context
   const enrichedWithRepoLog = log.child({ owner: repository.owner, repository: repository.repo })
 
-  const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(enrichedWithRepoLog, octokit)
+  const { getFilesChanged } = git(enrichedWithRepoLog, octokit)
 
   const { createCheckRun, resolveCheckRun } = checks(enrichedWithRepoLog, octokit)
   const { determineConfigurationChanges } = configuration(enrichedWithRepoLog, octokit)
@@ -125,18 +126,8 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
 
-  const errors = await validateChanges(log, octokit, configurationChanges)
-
-  const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
-
-  if (errors.length > 0) {
-    const changeRequestId = await requestPullRequestChanges(repository, prNumber, checkId)
-    log.debug(`Requested changes for PR #%d in %s.`, prNumber, changeRequestId)
-  } else if (onlyChangesConfiguration) {
-    const approvedReviewId = await approvePullRequestChanges(repository, prNumber)
-    log.debug(`Approved PR #%d in %s.`, prNumber, approvedReviewId)
-  }
-
+  const result = await validateChanges(log, octokit, configurationChanges)
+  const errors = result._tag === 'Left' ? result.left : []
   const checkConclusion = await resolveCheckRun(
     {
       ...checkInput,
@@ -174,12 +165,20 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
   if (!parsed.repositoryConfiguration) return
 
-  const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
+  const templateInformation = await getTemplateInformation(parsed.repositoryConfiguration.version)
+
+  if (templateInformation._tag === 'Left') return
+
+  const { configuration: defaultValues } = templateInformation.right
 
   const combined = combineConfigurations(defaultValues, parsed.repositoryConfiguration)
   if (!combined) return
 
-  const { version, templates: processed } = await renderTemplates(combined)
+  const rendered = await renderTemplates(combined)
+
+  if (rendered._tag === 'Left') return
+
+  const { version, templates: processed } = rendered.right
   const pullRequestNumber = await commitFilesToPR(repository, version, processed)
 
   if (!pullRequestNumber) {
