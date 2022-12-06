@@ -1,6 +1,6 @@
 import { Logger } from 'probot'
-import { LineCounter, parse, Parser, YAMLParseError } from 'yaml'
 import * as E from 'fp-ts/Either'
+import { LineCounter, parse, Parser, YAMLParseError } from 'yaml'
 import { RepositoryDetails, RepositoryConfiguration, OctokitInstance, PathConfiguration, TemplateConfig } from './types'
 
 export const combineConfigurations = (
