@@ -63,10 +63,17 @@ export interface CreateCheckInput {
   sha: string
 }
 
+export enum CheckResultion {
+  ERROR,
+  FAILURE,
+  SUCCESS,
+}
+
 export type UpdateCheckInput = CreateCheckInput & {
   conclusion: string
   checkRunId: number
   errors: ValidationError[]
+  checkResolution: CheckResultion
 }
 
 export interface ValidationError {

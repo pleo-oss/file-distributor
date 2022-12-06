@@ -1,14 +1,10 @@
-import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
-import { Context, Logger, Probot } from 'probot'
+import { CheckRunRerequestedEvent, PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
+import { Context, Probot } from 'probot'
 import { configuration } from './configuration'
 import { templates } from './templates'
 import { git } from './git'
-import { schemaValidator } from './schema-validator'
-import { checks } from './checks'
-import { Either } from 'monet'
 import 'dotenv/config'
-import { OctokitInstance, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
-import { YAMLParseError } from 'yaml'
+import { processCheckRun } from './core-validation'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
@@ -52,63 +48,34 @@ const extractPullRequestInformation = (payload: PullRequestEvent) => {
   }
 }
 
-const validateChanges = async (
-  log: Logger,
-  octokit: Pick<OctokitInstance, 'repos'>,
-  configurationChangesOrError: Either<YAMLParseError, TemplateConfig>,
-): Promise<ValidationError[]> => {
-  const { getTemplateInformation } = templates(log, octokit)
-  const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault, getDefaultSchema } =
-    schemaValidator(log)
+const extractCheckRunInformation = (payload: CheckRunRerequestedEvent) => {
+  const {
+    check_run: { pull_requests, id },
+    repository,
+  } = payload
 
-  const { combineConfigurations } = configuration(log, octokit)
-
-  async function validateCorrectYamlChanges(configurationChanges: TemplateConfig) {
-    try {
-      const { configuration: defaultValuesConfiguration, files } = await getTemplateInformation(
-        configurationChanges.repositoryConfiguration.version,
-      )
-
-      const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
-
-      const combined = combineConfigurations(defaultValuesConfiguration, configurationChanges.repositoryConfiguration)
-
-      const validatedTemplates = validateTemplateConfiguration(
-        {
-          repositoryConfiguration: combined,
-          cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
-        },
-        mergeSchemaToDefault(defaultValueSchema),
-      )
-      const validatedFiles = validateFiles(combined, files)
-
-      return validatedTemplates.errors.concat(validatedFiles.errors)
-    } catch (error) {
-      if (error instanceof VersionNotFoundError) {
-        log.debug('Version for %s/%s:%s has not been found', error.owner, error.name, error.version)
-        const validatedTemplate = validateTemplateConfiguration(configurationChanges, getDefaultSchema())
-        return validatedTemplate.errors.concat({
-          message: `Version could not be found at ${error.owner}/${error.repo}:${error.version}`,
-          line: undefined,
-        })
-      } else {
-        throw error
-      }
-    }
-  }
-
-  return configurationChangesOrError.cata(
-    failure =>
-      Promise.resolve([
-        {
-          message: failure.message,
-          line: failure.linePos?.[0].line,
-        } as ValidationError,
-      ]),
-    success => {
-      return validateCorrectYamlChanges(success)
+  if (pull_requests.length != 1) return undefined
+  return {
+    number: pull_requests[0].number,
+    sha: pull_requests[0].head.sha,
+    checkId: id,
+    repository: {
+      owner: repository.owner.login,
+      repo: repository.name,
+      defaultBranch: repository.default_branch,
     },
-  )
+  }
+}
+
+const processCheckRerun = async (payload: CheckRunRerequestedEvent, context: Context<'check_run'>) => {
+  const extracted = extractCheckRunInformation(payload)
+  if (extracted === undefined) return
+  const { number: prNumber, sha, repository, checkId } = extracted
+
+  const { log, octokit } = context
+  const enrichedWithRepoLog = log.child({ owner: repository.owner, repository: repository.repo })
+
+  await processCheckRun(enrichedWithRepoLog, octokit, configFileName, prNumber, repository, sha, checkId)
 }
 
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
@@ -116,55 +83,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { log, octokit } = context
   const enrichedWithRepoLog = log.child({ owner: repository.owner, repository: repository.repo })
 
-  const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(enrichedWithRepoLog, octokit)
-
-  const { createCheckRun, resolveCheckRun } = checks(enrichedWithRepoLog, octokit)
-  const { determineConfigurationChanges } = configuration(enrichedWithRepoLog, octokit)
-  const conclusion = (errors: ValidationError[]) => (errors.length > 0 ? 'failure' : 'success')
-
-  log.info('Pull request event happened on #%d', prNumber)
-
-  const filesChanged = await getFilesChanged(repository, prNumber)
-  const configFile = filesChanged.find((filename: string) => filename === configFileName)
-
-  if (!configFile) return
-
-  const checkInput = {
-    ...repository,
-    sha: sha,
-  }
-  const checkId = await createCheckRun({
-    ...repository,
-    sha: sha,
-  })
-
-  log.debug('Found repository configuration file: %s.', configFile)
-
-  const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
-
-  const errors = await validateChanges(log, octokit, configurationChanges)
-
-  const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
-
-  if (errors.length > 0) {
-    const changeRequestId = await requestPullRequestChanges(repository, prNumber, checkId)
-    log.debug(`Requested changes for PR #%d in %s.`, prNumber, changeRequestId)
-  } else if (onlyChangesConfiguration) {
-    const approvedReviewId = await approvePullRequestChanges(repository, prNumber)
-    log.debug(`Approved PR #%d in %s.`, prNumber, approvedReviewId)
-  }
-
-  const checkConclusion = await resolveCheckRun(
-    {
-      ...checkInput,
-      conclusion: conclusion(errors),
-      checkRunId: checkId,
-      errors,
-    },
-    configFileName,
-  )
-
-  log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
+  await processCheckRun(enrichedWithRepoLog, octokit, configFileName, prNumber, repository, sha)
 }
 
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
@@ -221,6 +140,10 @@ export = async (app: Probot) => {
       return
     }
     await processPushEvent(context.payload as PushEvent, context)
+  })
+
+  app.on('check_run.rerequested', async (context: Context<'check_run'>) => {
+    await processCheckRerun(context.payload as CheckRunRerequestedEvent, context)
   })
 
   app.on(['pull_request.opened', 'pull_request.synchronize'], async (context: Context<'pull_request'>) => {
