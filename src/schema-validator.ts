@@ -1,10 +1,4 @@
-import {
-  ConfigurationValues,
-  CSTRepresentation,
-  RepositoryConfiguration,
-  TemplateConfig,
-  TemplateValidation,
-} from './types'
+import { ConfigurationValues, RepositoryConfiguration, TemplateValidation } from './types'
 import Ajv, { ErrorObject } from 'ajv'
 import templateSchema from './template-schema.json'
 import { Logger } from 'probot'
@@ -12,107 +6,94 @@ import { createSchema } from 'genson-js'
 import { ensurePathConfiguration } from './configuration'
 import { CST } from 'yaml'
 
-import { Document, SourceToken } from 'yaml/dist/parse/cst'
+import { Document, Token } from 'yaml/dist/parse/cst'
 import ajvMergePatch from 'ajv-merge-patch'
 import { default as AjvPatch } from 'ajv-merge-patch/node_modules/ajv/dist/ajv'
 
-const ajv = new Ajv({ allowUnionTypes: true, allErrors: true })
-ajvMergePatch(ajv as unknown as AjvPatch)
-
-const getLineFromOffset = (lines: number[], offset: number): number => {
-  for (let index = 1; index < lines.length; index++) {
-    const newLineOffset = lines[index]
-    if (newLineOffset > offset) {
-      return index
-    }
-  }
-  return lines.length
+interface ConcreteSyntaxTree {
+  tokens: Token[]
+  lines: number[]
 }
 
-/**
- * Returns the line in the CST representation of the YAML given an instance path
- * @param instancePath Path as given by tools like ajv (i.e. /files/1/destination)
- * @param cst CST representation of the YAML file https://eemeli.org/yaml/#parser
- * @returns the line number or undefined if not found
- */
-const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): number | undefined => {
-  const pathItems = instancePath.split('/').slice(1)
+interface TemplateConfig {
+  repositoryConfiguration: RepositoryConfiguration
+  cstYamlRepresentation: ConcreteSyntaxTree
+}
 
-  // If there is no path no line can be found
+const ajv = (() => {
+  const instance = new Ajv({ allowUnionTypes: true, allErrors: true })
+  ajvMergePatch(instance as unknown as AjvPatch)
+  return instance
+})()
+
+const getLineFromOffset = (lines: number[], offset: number): number =>
+  lines.findIndex(value => value > offset) ?? lines.length
+
+const findErrorLine = (instancePath: string, tree: ConcreteSyntaxTree): number | undefined => {
+  const pathItems = instancePath.split('/').slice(1)
   if (pathItems.length === 0) return
 
-  const getLineFromDoc = (doc: Document) => {
-    let line = undefined
+  const findLineInDocument = (doc: Document) => {
+    let currentLine: number | undefined = undefined
     CST.visit(doc, (item, path) => {
       const currentPathValue = pathItems[path.length - 1]
-      const num = Number(currentPathValue)
-      // If path step is a number
-      if (isNaN(num)) {
-        if (!CST.isScalar(item.value)) return
+      const pathValueNumber = parseInt(currentPathValue)
+      // If path step is a number.
+      if (isNaN(pathValueNumber)) {
+        if (!CST.isScalar(item.value) || !item.key) return
 
-        const key = item.key as SourceToken
-
-        if (!key) return
-
-        // If note key is not the current path value skip this node and its childs and go to next sibling
-        if (key.source !== currentPathValue) {
+        // If the note key is not the current path value, skip this node and its children and
+        // continue to next sibling in the tree.
+        if ('source' in item.key && item.key.source !== currentPathValue) {
           return CST.visit.SKIP
         }
         if (path.length === pathItems.length) {
-          // If it has the same value, check if it is the last item in the path, if so the item is found and finish visit
-          const index = getLineFromOffset(cst.lines, key.offset)
-          line = index
+          // If it has the same value, check if it is the last item in the path.
+          // If so, the item is found and we finish the visit
+          const index = getLineFromOffset(tree.lines, item.key.offset)
+          currentLine = index
           return CST.visit.BREAK
         }
       } else {
-        if (num !== path[path.length - 1][1]) {
-          // If number in the instance path provided is not the same as the current traversal path skip to the next sibling
-          // I.e. instancePath: /files/1/source, num = 1, path = [['value', 0], ['value', 0]] <- This is not a match because 1 != 0
+        // If the number in the instance path provided is not the same as the current traversal path,
+        // skip to the next sibling, i.e.:
+        // instancePath: /files/1/source, num = 1, path = [['value', 0], ['value', 0]]'.
+        // Here we don't see a match, since num = 1 != 0.
+        if (pathValueNumber !== path[path.length - 1][1]) {
           return CST.visit.SKIP
         }
 
         if (!CST.isScalar(item.value)) return
 
+        // If it has the same value, check if it is the last item in the path.
+        // If so the item is found and finish the visit.
         if (path.length === pathItems.length) {
-          // If it has the same value, check if it is the last item in the path, if so the item is found and finish visit
-
-          const index = getLineFromOffset(cst.lines, item.value.offset)
-          if (index > 0) {
-            line = index
-            return CST.visit.BREAK
-          }
+          const index = getLineFromOffset(tree.lines, item.value.offset)
+          currentLine = index > 0 ? index : currentLine
+          return CST.visit.BREAK
         }
       }
-      // Otherwise go on visiting
       return
     })
-    return line
+    return currentLine
   }
 
-  for (const t of cst.tokens) {
-    const l = getLineFromDoc(t as Document)
-    if (l !== undefined) return l
-  }
-  return
+  return tree.tokens.reduce((result, t) => result ?? findLineInDocument(t as never), undefined)
 }
 
 export const schemaValidator = (log: Logger) => {
   const prettifyErrors = (errors?: ErrorObject<string, Record<string, unknown>, unknown>[] | null) =>
-    errors
-      ?.map(error => {
-        if (!error) return ''
-        return `${error.instancePath} ${error?.message}`
-      })
-      ?.filter(error => error !== '') ?? []
+    errors?.reduce<string[]>(
+      (acc, error) => (error ? [...acc, `${error?.instancePath} ${error?.message}`] : acc),
+      [],
+    ) ?? []
 
-  const getDefaultSchema = () => {
-    return templateSchema
-  }
+  const defaultSchema = () => templateSchema
 
-  const mergeSchemaToDefault = (valuesSchema: object) => {
+  const mergeSchemaToDefault = (valuesSchema: Record<string, string>) => {
     return {
       $merge: {
-        source: getDefaultSchema(),
+        source: defaultSchema(),
         with: {
           properties: {
             values: valuesSchema,
@@ -124,7 +105,6 @@ export const schemaValidator = (log: Logger) => {
 
   const validateTemplateConfiguration = (configuration: TemplateConfig, schema: object): TemplateValidation => {
     const validateConfiguration = ajv.compile<RepositoryConfiguration>(schema)
-
     const isValidConfiguration = validateConfiguration(configuration?.repositoryConfiguration)
 
     // Needed to filter $merge due to https://github.com/ajv-validator/ajv-merge-patch/issues/8
@@ -132,7 +112,7 @@ export const schemaValidator = (log: Logger) => {
       .filter(e => e.keyword != '$merge')
       .map(e => ({
         message: e.message,
-        line: getLineFromInstancePath(e.instancePath, configuration.cstYamlRepresentation),
+        line: findErrorLine(e.instancePath, configuration.cstYamlRepresentation),
       }))
 
     if (!isValidConfiguration) {
@@ -178,7 +158,7 @@ export const schemaValidator = (log: Logger) => {
     validateFiles,
     validateTemplateConfiguration,
     generateSchema,
-    getDefaultSchema,
+    getDefaultSchema: defaultSchema,
     mergeSchemaToDefault,
   }
 }

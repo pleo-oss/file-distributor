@@ -1,5 +1,4 @@
 import { ProbotOctokit } from 'probot'
-import { Token } from 'yaml/dist/parse/cst'
 
 export interface PathConfiguration {
   source: string
@@ -7,16 +6,6 @@ export interface PathConfiguration {
 }
 
 export type ConfigurationValues = { [key: string]: string | undefined }
-
-export interface TemplateConfig {
-  repositoryConfiguration: RepositoryConfiguration
-  cstYamlRepresentation: CSTRepresentation
-}
-
-export interface CSTRepresentation {
-  tokens: Token[]
-  lines: number[]
-}
 
 export interface RepositoryConfiguration {
   version: string
