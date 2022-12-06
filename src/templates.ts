@@ -7,14 +7,14 @@ import {
   Template,
   TemplateInformation,
   Templates,
-  VersionNotFoundError,
+  ValidationError,
 } from './types'
 import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
-import { parse } from 'yaml'
+import { parse, YAMLError } from 'yaml'
 import { ensurePathConfiguration } from './configuration'
-import { RequestError } from '@octokit/request-error'
+import { Either, left, right } from 'fp-ts/lib/Either'
 
 export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
@@ -80,43 +80,36 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return data
   }
 
-  const downloadTemplates = async (templateVersion: string): Promise<TemplateInformation> => {
+  const downloadTemplates = async (
+    templateVersion: string,
+  ): Promise<Either<ValidationError[], TemplateInformation>> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
     log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
-    let release
     try {
-      release = await getReleaseFromTag(templateVersion, templateRepository.owner, templateRepository.repo)
-    } catch (error) {
-      if (error instanceof RequestError && error.status === 404) {
-        throw new VersionNotFoundError(
-          error.message,
-          templateRepository.owner,
-          templateRepository.repo,
-          templateVersion,
-        )
+      const release = await getReleaseFromTag(templateVersion, templateRepository.owner, templateRepository.repo)
+      log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
+
+      if (!release.zipball_url) {
+        return left([{ message: `Release '${release.id}' has no zipball URL.`, line: undefined }])
       }
-      throw error
-    }
-    log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
 
-    if (!release.zipball_url) {
-      throw new Error(`Release '${release.id}' has no zipball URL.`)
-    }
+      log.debug("Fetching release information from '%s'.", release.zipball_url)
+      const { data: contents } = (await octokit.repos.downloadZipballArchive({
+        ...templateRepository,
+        ref: release.tag_name,
+      })) as OctokitResponse<ArrayBuffer>
+      log.debug('Fetched release contents.')
 
-    log.debug("Fetching release information from '%s'.", release.zipball_url)
-    const { data: contents } = (await octokit.repos.downloadZipballArchive({
-      ...templateRepository,
-      ref: release.tag_name,
-    })) as OctokitResponse<ArrayBuffer>
-    log.debug('Fetched release contents.')
-
-    return {
-      contents,
-      version: release.tag_name,
+      return right({
+        contents,
+        version: release.tag_name,
+      })
+    } catch (error) {
+      return left([{ message: `Failed to fetch release ${templateVersion}`, line: undefined }])
     }
   }
 
@@ -145,12 +138,17 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return `${renderedPrePendingHeader}\n\n${mustacheRenderedContent}`
   }
 
-  const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates> => {
+  const renderTemplates = async (
+    configuration: RepositoryConfiguration,
+  ): Promise<Either<ValidationError[], Templates>> => {
     log.debug('Processing configuration changes.')
     const { version } = configuration
     log.debug("Configuration uses template version '%s' and values %o.", version, configuration.values)
 
-    const { contents, version: fetchedVersion } = await downloadTemplates(version)
+    const templates = await downloadTemplates(version)
+    if (templates._tag === 'Left') return templates
+
+    const { contents, version: fetchedVersion } = templates.right
     const extractedContent = await extractZipContents(contents, configuration)
 
     const delimiters: [string, string] = ['<<<', '>>>']
@@ -166,23 +164,37 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
       }
     })
     log.debug('Processed %d templates.', rendered.length)
-    return { version: fetchedVersion, templates: rendered }
+    return right({ version: fetchedVersion, templates: rendered })
   }
 
   const getTemplateInformation = async (version: string) => {
     log.debug("Downloading templates with version '%s'.", version)
-    const { contents } = await downloadTemplates(version)
+    const templates = await downloadTemplates(version)
+
+    if (templates._tag === 'Left') return templates
+
+    const { contents } = templates.right
 
     const loaded = await loadAsync(contents)
-
     const defaults = await extract(loaded, 'defaults.yaml')
     log.debug('Saw default configuration: %o', defaults)
 
     const allFiles = Object.keys(loaded.files)
 
-    const parsed = parse(defaults) as RepositoryConfiguration
-
-    return { configuration: parsed, files: allFiles }
+    try {
+      const parsed = parse(defaults, { prettyErrors: true }) as RepositoryConfiguration
+      return right({ configuration: parsed, files: allFiles })
+    } catch (e: unknown) {
+      if (e instanceof YAMLError) {
+        return left([
+          {
+            line: e.linePos?.[0].line,
+            message: e.message,
+          },
+        ])
+      }
+      return left([{ message: `Failed to parse default template values with version ${version}`, line: undefined }])
+    }
   }
 
   return {

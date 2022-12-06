@@ -3,7 +3,7 @@ import {
   CSTRepresentation,
   RepositoryConfiguration,
   TemplateConfig,
-  TemplateValidation,
+  ValidationError as SimplifiedValidationError,
 } from './types'
 import Ajv, { ErrorObject } from 'ajv'
 import templateSchema from './template-schema.json'
@@ -15,6 +15,7 @@ import { CST } from 'yaml'
 import { Document, SourceToken } from 'yaml/dist/parse/cst'
 import ajvMergePatch from 'ajv-merge-patch'
 import { default as AjvPatch } from 'ajv-merge-patch/node_modules/ajv/dist/ajv'
+import { Either, right, left } from 'fp-ts/lib/Either'
 
 const ajv = new Ajv({ allowUnionTypes: true, allErrors: true })
 ajvMergePatch(ajv as unknown as AjvPatch)
@@ -122,13 +123,16 @@ export const schemaValidator = (log: Logger) => {
     }
   }
 
-  const validateTemplateConfiguration = (configuration: TemplateConfig, schema: object): TemplateValidation => {
+  const validateTemplateConfiguration = (
+    configuration: TemplateConfig,
+    schema: object,
+  ): Either<SimplifiedValidationError[], boolean> => {
     const validateConfiguration = ajv.compile<RepositoryConfiguration>(schema)
 
     const isValidConfiguration = validateConfiguration(configuration?.repositoryConfiguration)
 
     // Needed to filter $merge due to https://github.com/ajv-validator/ajv-merge-patch/issues/8
-    const validationErrors = (validateConfiguration.errors ?? [])
+    const validationErrors: SimplifiedValidationError[] = (validateConfiguration.errors ?? [])
       .filter(e => e.keyword != '$merge')
       .map(e => ({
         message: e.message,
@@ -139,13 +143,13 @@ export const schemaValidator = (log: Logger) => {
       log.debug('Saw validation errors: %s', prettifyErrors(validateConfiguration.errors).join(','))
     }
 
-    return {
-      result: isValidConfiguration,
-      errors: validationErrors,
-    }
+    return isValidConfiguration ? right(true) : left(validationErrors)
   }
 
-  const validateFiles = (configuration: RepositoryConfiguration, templates: string[]): TemplateValidation => {
+  const validateFiles = (
+    configuration: RepositoryConfiguration,
+    templates: string[],
+  ): Either<SimplifiedValidationError[], boolean> => {
     const paths = ensurePathConfiguration(configuration.files) ?? []
     const errors = paths?.reduce(
       (errors, file) =>
@@ -155,13 +159,14 @@ export const schemaValidator = (log: Logger) => {
       new Set<string>(),
     )
 
-    return {
-      result: errors.size === 0,
-      errors: Array.from(errors).map(e => ({
-        message: e,
-        line: undefined,
-      })),
-    }
+    return errors.size === 0
+      ? right(true)
+      : left(
+          Array.from(errors).map(e => ({
+            message: e,
+            line: undefined,
+          })),
+        )
   }
 
   const generateSchema = (input?: ConfigurationValues): object => {
