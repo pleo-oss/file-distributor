@@ -109,7 +109,7 @@ describe('Probot Tests', () => {
   })
 
   test('can handle empty files in commit', async () => {
-    baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [] })
+    baseNock.get('/repos/pleo-oss/test/commits/sha?sha=sha').reply(200, { files: [] })
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
 
     const pushEvent = {
@@ -128,7 +128,7 @@ describe('Probot Tests', () => {
   })
 
   test('can handle non-config files in commit', async () => {
-    baseNock.get('/repos/pleo-oss/test/commits/sha').reply(200, { files: [{ filename: 'somefile.txt' }] })
+    baseNock.get('/repos/pleo-oss/test/commits/sha?sha=sha').reply(200, { files: [{ filename: 'somefile.txt' }] })
     baseNock.post('/app/installations/2/access_tokens').reply(200, { token: 'testToken' })
 
     const pushEvent = {

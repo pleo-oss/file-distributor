@@ -1,14 +1,12 @@
 import { PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Logger, Probot } from 'probot'
-import { configuration } from './configuration'
+import { combineConfigurations, configuration, generateSyntaxTree } from './configuration'
 import { templates } from './templates'
 import { git } from './git'
-import { schemaValidator } from './schema-validator'
+import { defaultSchema, mergeSchemaToDefault, schemaValidator, validateFiles } from './schema-validator'
 import { checks } from './checks'
-import { Either } from 'monet'
 import 'dotenv/config'
-import { OctokitInstance, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
-import { YAMLParseError } from 'yaml'
+import { err, present, OctokitInstance, Possibly, RepositoryConfiguration, ConcreteSyntaxTree } from './types'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
@@ -23,9 +21,10 @@ const extractRepositoryInformation = (payload: PushEvent) => {
       name,
       default_branch,
     },
+    after,
   } = payload
 
-  return { owner: login, repo: name, defaultBranch: default_branch }
+  return { owner: login, repo: name, defaultBranch: default_branch, sha: after }
 }
 
 const extractPullRequestInformation = (payload: PullRequestEvent) => {
@@ -55,60 +54,42 @@ const extractPullRequestInformation = (payload: PullRequestEvent) => {
 const validateChanges = async (
   log: Logger,
   octokit: Pick<OctokitInstance, 'repos'>,
-  configurationChangesOrError: Either<YAMLParseError, TemplateConfig>,
-): Promise<ValidationError[]> => {
+  configuration: Possibly<RepositoryConfiguration>,
+  syntaxTree: ConcreteSyntaxTree,
+): Promise<Possibly<boolean>> => {
   const { getTemplateInformation } = templates(log, octokit)
-  const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault, getDefaultSchema } =
-    schemaValidator(log)
+  const { validateTemplateConfiguration, generateSchema } = schemaValidator(log)
 
-  const { combineConfigurations } = configuration(log, octokit)
+  if (configuration.type === 'error') return err(configuration.errors)
+  const { value: changes } = configuration
+  const information = await getTemplateInformation(changes.version)
 
-  async function validateCorrectYamlChanges(configurationChanges: TemplateConfig) {
-    try {
-      const { configuration: defaultValuesConfiguration, files } = await getTemplateInformation(
-        configurationChanges.repositoryConfiguration.version,
-      )
+  if (information.type === 'error') return information
 
-      const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
-
-      const combined = combineConfigurations(defaultValuesConfiguration, configurationChanges.repositoryConfiguration)
-
-      const validatedTemplates = validateTemplateConfiguration(
-        {
-          repositoryConfiguration: combined,
-          cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
-        },
-        mergeSchemaToDefault(defaultValueSchema),
-      )
-      const validatedFiles = validateFiles(combined, files)
-
-      return validatedTemplates.errors.concat(validatedFiles.errors)
-    } catch (error) {
-      if (error instanceof VersionNotFoundError) {
-        log.debug('Version for %s/%s:%s has not been found', error.owner, error.name, error.version)
-        const validatedTemplate = validateTemplateConfiguration(configurationChanges, getDefaultSchema())
-        return validatedTemplate.errors.concat({
-          message: `Version could not be found at ${error.owner}/${error.repo}:${error.version}`,
-          line: undefined,
-        })
-      } else {
-        throw error
-      }
-    }
+  const validatedTemplate = await validateTemplateConfiguration(changes, syntaxTree, defaultSchema())
+  if (validatedTemplate.length > 0) {
+    return err([
+      ...validatedTemplate,
+      {
+        message: `Version could not be found at ${changes.version}`,
+      },
+    ])
   }
 
-  return configurationChangesOrError.cata(
-    failure =>
-      Promise.resolve([
-        {
-          message: failure.message,
-          line: failure.linePos?.[0].line,
-        } as ValidationError,
-      ]),
-    success => {
-      return validateCorrectYamlChanges(success)
-    },
-  )
+  const { configuration: defaultValuesConfiguration, files } = information.value
+  const [defaultValueSchema, combined] = await Promise.all([
+    generateSchema(defaultValuesConfiguration.values),
+    combineConfigurations(defaultValuesConfiguration, changes),
+  ])
+
+  const [validatedTemplates, validatedFiles] = await Promise.all([
+    validateTemplateConfiguration(combined, syntaxTree, mergeSchemaToDefault(defaultValueSchema)),
+    validateFiles(combined, files),
+  ])
+  const allErrors = [...validatedTemplates, ...validatedFiles]
+
+  if (allErrors.length > 0) return err(allErrors)
+  return present(true)
 }
 
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
@@ -116,11 +97,11 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { log, octokit } = context
   const enrichedWithRepoLog = log.child({ owner: repository.owner, repository: repository.repo })
 
-  const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(enrichedWithRepoLog, octokit)
+  const { getFilesChanged } = git(enrichedWithRepoLog, octokit)
 
   const { createCheckRun, resolveCheckRun } = checks(enrichedWithRepoLog, octokit)
-  const { determineConfigurationChanges } = configuration(enrichedWithRepoLog, octokit)
-  const conclusion = (errors: ValidationError[]) => (errors.length > 0 ? 'failure' : 'success')
+  const { determineConfigurationChanges, extractConfiguration } = configuration(enrichedWithRepoLog, octokit)
+  const conclusion = (result: Possibly<boolean>) => (result.type === 'error' ? 'failure' : 'success')
 
   log.info('Pull request event happened on #%d', prNumber)
 
@@ -129,10 +110,6 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   if (!configFile) return
 
-  const checkInput = {
-    ...repository,
-    sha: sha,
-  }
   const checkId = await createCheckRun({
     ...repository,
     sha: sha,
@@ -140,26 +117,21 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   log.debug('Found repository configuration file: %s.', configFile)
 
-  const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
-
-  const errors = await validateChanges(log, octokit, configurationChanges)
-
-  const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
-
-  if (errors.length > 0) {
-    const changeRequestId = await requestPullRequestChanges(repository, prNumber, checkId)
-    log.debug(`Requested changes for PR #%d in %s.`, prNumber, changeRequestId)
-  } else if (onlyChangesConfiguration) {
-    const approvedReviewId = await approvePullRequestChanges(repository, prNumber)
-    log.debug(`Approved PR #%d in %s.`, prNumber, approvedReviewId)
-  }
+  const configurationContents = await extractConfiguration(repository, configFileName, sha)
+  const [configurationChanges, syntaxTree] = await Promise.all([
+    determineConfigurationChanges(configurationContents, configFileName, repository),
+    generateSyntaxTree(configurationContents),
+  ])
+  const validated = await validateChanges(log, octokit, configurationChanges, syntaxTree)
+  const errors = validated.type === 'error' && validated.errors
 
   const checkConclusion = await resolveCheckRun(
     {
-      ...checkInput,
-      conclusion: conclusion(errors),
+      ...repository,
+      sha: sha,
+      conclusion: conclusion(validated),
       checkRunId: checkId,
-      errors,
+      errors: errors === false ? [] : errors,
     },
     configFileName,
   )
@@ -173,7 +145,7 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   const { commitFilesToPR, getCommitFiles } = git(log, octokit)
 
   const enrichedWithRepoLog = log.child({ owner: repository.owner, repository: repository.repo })
-  const { combineConfigurations, determineConfigurationChanges } = configuration(enrichedWithRepoLog, octokit)
+  const { determineConfigurationChanges, extractConfiguration } = configuration(enrichedWithRepoLog, octokit)
   const { getTemplateInformation, renderTemplates } = templates(enrichedWithRepoLog, octokit)
 
   const branchRegex = new RegExp(repository.defaultBranch)
@@ -182,22 +154,30 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
   if (!branchRegex.test(payload.ref)) return
 
-  log.info('Processing changes made in commit %s.', payload.after)
+  const { sha } = repository
+  log.info('Processing changes made in commit %s.', sha)
 
-  const filesChanged = await getCommitFiles(repository, payload.after)
+  const filesChanged = await getCommitFiles(repository, sha)
   if (!filesChanged.includes(configFileName)) return
 
-  const either = await determineConfigurationChanges(configFileName, repository, payload.after)
+  const configurationContents = await extractConfiguration(repository, configFileName, sha)
+  const changes = await determineConfigurationChanges(configurationContents, configFileName, repository)
 
-  if (either.isLeft()) return
-  const parsed = either.right()
+  if (changes.type === 'error') return
+  const { value: parsed } = changes
 
-  const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
+  const information = await getTemplateInformation(parsed.version)
+  if (information.type === 'error') return
 
-  const combined = combineConfigurations(defaultValues, parsed.repositoryConfiguration)
-  if (!combined) return
+  const {
+    value: { configuration: defaultValues },
+  } = information
 
-  const { version, templates: processed } = await renderTemplates(combined)
+  const combined = await combineConfigurations(defaultValues, parsed)
+  const rendered = await renderTemplates(combined)
+  if (!rendered) return
+
+  const { version, templates: processed } = rendered
   const pullRequestNumber = await commitFilesToPR(repository, version, processed)
 
   if (!pullRequestNumber) {
