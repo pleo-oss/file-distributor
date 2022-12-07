@@ -1,5 +1,5 @@
 import { Logger } from 'probot'
-import { OctokitInstance, PRDetails, RepositoryDetails, Template } from './types'
+import { OctokitInstance, PRDetails, RepositoryDetails, TemplateFile } from './types'
 
 const baseBranchName = 'centralized-templates'
 const reducedBranchName = `heads/${baseBranchName}`
@@ -49,7 +49,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     }
   }
 
-  const createTreeWithChanges = async (templates: Template[], repository: RepositoryDetails, baseTree: string) => {
+  const createTreeWithChanges = async (templates: TemplateFile[], repository: RepositoryDetails, baseTree: string) => {
     log.debug('Creating git tree with modified templates.')
     const templateTree = templates.map(template => ({
       path: template.destinationPath,
@@ -242,7 +242,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   const commitFilesToPR = async (
     repository: RepositoryDetails,
     version: string,
-    templates: Template[],
+    templates: TemplateFile[],
   ): Promise<number | undefined> => {
     const baseBranchLastCommitSha = await extractBranchInformation(repository)
 
