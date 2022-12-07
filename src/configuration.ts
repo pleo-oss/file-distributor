@@ -1,6 +1,6 @@
 import { Logger } from 'probot'
+import * as E from 'fp-ts/Either'
 import { LineCounter, parse, Parser, YAMLParseError } from 'yaml'
-import { Either } from 'monet'
 import { RepositoryDetails, RepositoryConfiguration, OctokitInstance, PathConfiguration, TemplateConfig } from './types'
 
 export const combineConfigurations = (
@@ -38,7 +38,7 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
     fileName: string,
     repository: RepositoryDetails,
     sha: string,
-  ): Promise<Either<YAMLParseError, TemplateConfig>> => {
+  ): Promise<E.Either<YAMLParseError, TemplateConfig>> => {
     log.debug('Saw changes to %s.', fileName)
     const { data: fileContents } = await octokit.repos.getContent({
       ...repository,
@@ -76,13 +76,13 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
         lines: lineCounter.lineStarts,
       }
 
-      return Either.Right({
+      return E.right({
         repositoryConfiguration: combinedConfiguration,
         cstYamlRepresentation: rep,
       } as TemplateConfig)
     } catch (error) {
       if (error instanceof YAMLParseError) {
-        return Either.Left(error)
+        return E.left(error)
       }
       throw error
     }

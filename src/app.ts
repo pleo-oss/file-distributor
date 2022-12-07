@@ -2,6 +2,7 @@ import { CheckRunRerequestedEvent, PullRequestEvent, PushEvent } from '@octokit/
 import { Context, Probot } from 'probot'
 import { configuration } from './configuration'
 import { templates } from './templates'
+import * as E from 'fp-ts/Either'
 import { git } from './git'
 import 'dotenv/config'
 import { processCheckRun } from './core-validation'
@@ -108,8 +109,8 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
   const either = await determineConfigurationChanges(configFileName, repository, payload.after)
 
-  if (either.isLeft()) return
-  const parsed = either.right()
+  if (E.isLeft(either)) return
+  const parsed = either.right
 
   const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
 

@@ -3,7 +3,10 @@ import { YAMLParseError } from 'yaml'
 import { configuration } from './configuration'
 import { schemaValidator } from './schema-validator'
 import { templates } from './templates'
-import { Either } from 'monet'
+import { Either } from 'fp-ts/Either'
+import * as E from 'fp-ts/Either'
+import { pipe } from 'fp-ts/function'
+
 import {
   CheckResultion,
   OctokitInstance,
@@ -19,7 +22,7 @@ import { git } from './git'
 const validateChanges = async (
   log: Logger,
   octokit: Pick<OctokitInstance, 'repos'>,
-  configurationChangesOrError: Either<YAMLParseError, TemplateConfig>,
+  configurationChangesOrError: E.Either<YAMLParseError, TemplateConfig>,
 ): Promise<ValidationError[]> => {
   const { getTemplateInformation } = templates(log, octokit)
   const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault, getDefaultSchema } =
@@ -61,17 +64,20 @@ const validateChanges = async (
     }
   }
 
-  return configurationChangesOrError.cata(
-    failure =>
-      Promise.resolve([
-        {
-          message: failure.message,
-          line: failure.linePos?.[0].line,
-        } as ValidationError,
-      ]),
-    success => {
-      return validateCorrectYamlChanges(success)
-    },
+  return pipe(
+    configurationChangesOrError,
+    E.match(
+      failure =>
+        Promise.resolve([
+          {
+            message: failure.message,
+            line: failure.linePos?.[0].line,
+          } as ValidationError,
+        ]),
+      success => {
+        return validateCorrectYamlChanges(success)
+      },
+    ),
   )
 }
 
