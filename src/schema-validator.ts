@@ -1,24 +1,14 @@
-import { ConfigurationValues, RepositoryConfiguration, TemplateValidation } from './types'
-import Ajv, { ErrorObject } from 'ajv'
+import { ConcreteSyntaxTree, ConfigurationValues, RepositoryConfiguration, ValidationError } from './types'
+import Ajv, { ErrorObject, Schema } from 'ajv'
 import templateSchema from './template-schema.json'
 import { Logger } from 'probot'
 import { createSchema } from 'genson-js'
 import { ensurePathConfiguration } from './configuration'
 import { CST } from 'yaml'
 
-import { Document, Token } from 'yaml/dist/parse/cst'
+import { Document } from 'yaml/dist/parse/cst'
 import ajvMergePatch from 'ajv-merge-patch'
 import { default as AjvPatch } from 'ajv-merge-patch/node_modules/ajv/dist/ajv'
-
-interface ConcreteSyntaxTree {
-  tokens: Token[]
-  lines: number[]
-}
-
-interface TemplateConfig {
-  repositoryConfiguration: RepositoryConfiguration
-  cstYamlRepresentation: ConcreteSyntaxTree
-}
 
 const ajv = (() => {
   const instance = new Ajv({ allowUnionTypes: true, allErrors: true })
@@ -81,6 +71,40 @@ const findErrorLine = (instancePath: string, tree: ConcreteSyntaxTree): number |
   return tree.tokens.reduce((result, t) => result ?? findLineInDocument(t as never), undefined)
 }
 
+export const validateFiles = async (
+  configuration: RepositoryConfiguration,
+  templates: string[],
+): Promise<ValidationError[]> => {
+  const paths = ensurePathConfiguration(configuration.files) ?? []
+  const errors = paths?.reduce(
+    (errors, file) =>
+      templates.some(t => new RegExp(file.source).test(t))
+        ? errors
+        : errors.add(`${file.source} was not found in the templates`),
+    new Set<string>(),
+  )
+
+  return Array.from(errors).map(e => ({
+    message: e,
+    line: undefined,
+  }))
+}
+
+export const defaultSchema = () => templateSchema
+
+export const mergeSchemaToDefault = (valuesSchema: Schema) => {
+  return {
+    $merge: {
+      source: defaultSchema(),
+      with: {
+        properties: {
+          values: valuesSchema,
+        },
+      },
+    },
+  }
+}
+
 export const schemaValidator = (log: Logger) => {
   const prettifyErrors = (errors?: ErrorObject<string, Record<string, unknown>, unknown>[] | null) =>
     errors?.reduce<string[]>(
@@ -88,63 +112,30 @@ export const schemaValidator = (log: Logger) => {
       [],
     ) ?? []
 
-  const defaultSchema = () => templateSchema
-
-  const mergeSchemaToDefault = (valuesSchema: Record<string, string>) => {
-    return {
-      $merge: {
-        source: defaultSchema(),
-        with: {
-          properties: {
-            values: valuesSchema,
-          },
-        },
-      },
-    }
-  }
-
-  const validateTemplateConfiguration = (configuration: TemplateConfig, schema: object): TemplateValidation => {
+  const validateTemplateConfiguration = async (
+    configuration: RepositoryConfiguration,
+    syntaxTree: ConcreteSyntaxTree,
+    schema: Schema,
+  ): Promise<ValidationError[]> => {
     const validateConfiguration = ajv.compile<RepositoryConfiguration>(schema)
-    const isValidConfiguration = validateConfiguration(configuration?.repositoryConfiguration)
+    const isValidConfiguration = validateConfiguration(configuration)
 
     // Needed to filter $merge due to https://github.com/ajv-validator/ajv-merge-patch/issues/8
     const validationErrors = (validateConfiguration.errors ?? [])
       .filter(e => e.keyword != '$merge')
       .map(e => ({
         message: e.message,
-        line: findErrorLine(e.instancePath, configuration.cstYamlRepresentation),
+        line: findErrorLine(e.instancePath, syntaxTree),
       }))
 
     if (!isValidConfiguration) {
       log.debug('Saw validation errors: %s', prettifyErrors(validateConfiguration.errors).join(','))
     }
 
-    return {
-      result: isValidConfiguration,
-      errors: validationErrors,
-    }
+    return validationErrors
   }
 
-  const validateFiles = (configuration: RepositoryConfiguration, templates: string[]): TemplateValidation => {
-    const paths = ensurePathConfiguration(configuration.files) ?? []
-    const errors = paths?.reduce(
-      (errors, file) =>
-        templates.some(t => new RegExp(file.source).test(t))
-          ? errors
-          : errors.add(`${file.source} was not found in the templates`),
-      new Set<string>(),
-    )
-
-    return {
-      result: errors.size === 0,
-      errors: Array.from(errors).map(e => ({
-        message: e,
-        line: undefined,
-      })),
-    }
-  }
-
-  const generateSchema = (input?: ConfigurationValues): object => {
+  const generateSchema = async (input?: ConfigurationValues): Promise<Schema> => {
     if (!input) return {}
 
     log.debug('Generating JSON schema from input. %o', input)
@@ -155,10 +146,7 @@ export const schemaValidator = (log: Logger) => {
   }
 
   return {
-    validateFiles,
     validateTemplateConfiguration,
     generateSchema,
-    getDefaultSchema: defaultSchema,
-    mergeSchemaToDefault,
   }
 }
