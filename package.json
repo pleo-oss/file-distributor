@@ -12,7 +12,7 @@
     "probot-app"
   ],
   "scripts": {
-    "build": "swc src -d lib -s --copy-files",
+    "build": "tsc --noEmit && swc src -d lib -s --copy-files",
     "build:run": "yarn build && yarn start",
     "start": "node ./lib/start.js",
     "test": "jest",
@@ -26,7 +26,6 @@
     "dotenv": "16.0.3",
     "genson-js": "0.0.8",
     "jszip": "3.10.1",
-    "monet": "^0.9.3",
     "mustache": "4.2.0",
     "node-stream-zip": "1.15.0",
     "probot": "12.2.8",
@@ -41,8 +40,7 @@
     "@types/ajv-merge-patch": "^4.1.2",
     "@types/jest": "29.1.2",
     "@types/mustache": "4.2.1",
-    "@types/node": "18.8.2",
-    "@types/yauzl": "2.10.0",
+    "@types/node": "18.11.1",
     "@typescript-eslint/eslint-plugin": "5.40.0",
     "@typescript-eslint/parser": "5.40.0",
     "eslint": "8.25.0",
