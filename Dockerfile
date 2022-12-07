@@ -6,7 +6,7 @@ COPY yarn.lock package.json tsconfig.json .
 COPY src/ ./src
 COPY .swcrc ./.swcrc
 
-RUN yarn && yarn build && rm -rf node_modules && yarn --production
+RUN yarn && yarn build:dist && rm -rf node_modules && yarn --production
 
 ###################
 

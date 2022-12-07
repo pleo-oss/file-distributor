@@ -13,6 +13,7 @@
   ],
   "scripts": {
     "build": "tsc --noEmit && swc src -d lib -s --copy-files",
+    "build:dist": "swc src -d lib -s --copy-files",
     "build:run": "yarn build && yarn start",
     "start": "node ./lib/start.js",
     "test": "jest",
