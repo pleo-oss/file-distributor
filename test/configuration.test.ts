@@ -3,7 +3,6 @@ import { OctokitInstance, RepositoryConfiguration } from '../src/types'
 import { combineConfigurations, configuration as configurationSetup } from '../src/configuration'
 import * as E from 'fp-ts/Either'
 import { YAMLParseError } from 'yaml'
-import { assert } from 'console'
 
 describe('Configuration', () => {
   const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger

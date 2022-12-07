@@ -3,7 +3,6 @@ import { YAMLParseError } from 'yaml'
 import { configuration } from './configuration'
 import { schemaValidator } from './schema-validator'
 import { templates } from './templates'
-import { Either } from 'fp-ts/Either'
 import * as E from 'fp-ts/Either'
 import { pipe } from 'fp-ts/function'
 
