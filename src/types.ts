@@ -1,4 +1,5 @@
 import { ProbotOctokit } from 'probot'
+import { Token } from 'yaml/dist/parse/cst'
 
 export interface PathConfiguration {
   source: string
@@ -22,10 +23,10 @@ export interface RepositoryDetails {
 
 export interface ExtractedContent {
   codeOwners?: string
-  templates: Template[]
+  templates: TemplateFile[]
 }
 
-export interface Template {
+export interface TemplateFile {
   sourcePath: string
   destinationPath: string
   contents: string
@@ -33,10 +34,10 @@ export interface Template {
 
 export interface Templates {
   version: string
-  templates: Template[]
+  templates: TemplateFile[]
 }
 
-export interface TemplateInformation {
+export interface Template {
   contents: ArrayBuffer
   version: string
 }
@@ -59,29 +60,24 @@ export type UpdateCheckInput = CreateCheckInput & {
 }
 
 export interface ValidationError {
-  message: string | undefined
-  line: number | undefined
+  message?: string
+  line?: number
 }
 
-export interface TemplateValidation {
-  result: boolean
+export interface ConcreteSyntaxTree {
+  tokens: Token[]
+  lines: number[]
+}
+
+export type Error = {
+  type: 'error'
   errors: ValidationError[]
 }
 
-export type OctokitInstance = InstanceType<typeof ProbotOctokit>
+export type Present<T> = { type: 'present'; value: T }
+export type Possibly<T> = Error | Present<T>
 
-export class VersionNotFoundError extends Error {
-  name = 'VersionNotFoundError'
-  version: string
-  owner: string
-  repo: string
-  constructor(message: string, owner: string, repo: string, version: string) {
-    super(message)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor)
-    }
-    this.owner = owner
-    this.repo = repo
-    this.version = version
-  }
-}
+export const err = (errors: ValidationError[]): Error => ({ type: 'error', errors })
+export const present = <T>(value: T): Present<T> => ({ type: 'present', value })
+
+export type OctokitInstance = InstanceType<typeof ProbotOctokit>
