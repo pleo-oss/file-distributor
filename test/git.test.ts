@@ -1,5 +1,5 @@
 import { git } from '../src/git'
-import { OctokitInstance } from '../src/types'
+import { OctokitInstance, RepositoryDetails } from '../src/types'
 import { Logger } from 'probot'
 
 describe('Pull Request reviews', () => {
@@ -78,9 +78,10 @@ describe('Pull Request reviews', () => {
     },
   } as unknown as OctokitInstance
 
-  const testRepository = {
+  const testRepository: RepositoryDetails = {
     owner: 'pleo',
     repo: 'workflows',
+    defaultBranch: 'test',
   }
 
   const testPullRequestNumber = 1
