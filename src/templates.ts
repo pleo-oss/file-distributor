@@ -1,20 +1,20 @@
 import JSZip, { loadAsync } from 'jszip'
-import { render } from 'mustache'
+import { OpeningAndClosingTags, render } from 'mustache'
 import {
   ExtractedContent,
   OctokitInstance,
   RepositoryConfiguration,
+  TemplateFile,
   Template,
-  TemplateInformation,
   Templates,
-  VersionNotFoundError,
+  Possibly,
+  err,
 } from './types'
 import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
-import { parse } from 'yaml'
+import { parse, parseDocument } from 'yaml'
 import { ensurePathConfiguration } from './configuration'
-import { RequestError } from '@octokit/request-error'
 
 export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
@@ -34,7 +34,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     log.debug('Extracting ZIP contents.')
     const loaded = await loadAsync(contents)
 
-    const extractTemplates: Promise<Template>[] =
+    const extractTemplates: Promise<TemplateFile>[] =
       ensurePathConfiguration(configuration.files)
         ?.filter(file => {
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
@@ -59,7 +59,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
 
     const extractCodeOwners: Promise<string> = extract(loaded, 'CODEOWNERS')
 
-    const toProcess: [string, Template[]] = await Promise.all([extractCodeOwners, Promise.all(extractTemplates)])
+    const toProcess: [string, TemplateFile[]] = await Promise.all([extractCodeOwners, Promise.all(extractTemplates)])
 
     const codeOwners = toProcess[0]
     const templates = toProcess[1].filter(it => it?.contents)
@@ -80,55 +80,50 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return data
   }
 
-  const downloadTemplates = async (templateVersion: string): Promise<TemplateInformation> => {
+  const downloadTemplates = async (templateVersion: string): Promise<Template | undefined> => {
     const templateRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
     log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
-    let release
     try {
-      release = await getReleaseFromTag(templateVersion, templateRepository.owner, templateRepository.repo)
-    } catch (error) {
-      if (error instanceof RequestError && error.status === 404) {
-        throw new VersionNotFoundError(
-          error.message,
-          templateRepository.owner,
-          templateRepository.repo,
-          templateVersion,
-        )
+      const { tag_name, id, zipball_url } = await getReleaseFromTag(
+        templateVersion,
+        templateRepository.owner,
+        templateRepository.repo,
+      )
+      log.debug("Fetching templates from URL: '%s'.", zipball_url)
+
+      if (!zipball_url) {
+        const message = `Release '${id}' has no zipball URL.`
+        log.error(message)
+        return undefined
       }
-      throw error
-    }
-    log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
 
-    if (!release.zipball_url) {
-      throw new Error(`Release '${release.id}' has no zipball URL.`)
-    }
+      log.debug("Fetching release information from '%s'.", zipball_url)
+      const { data: contents } = (await octokit.repos.downloadZipballArchive({
+        ...templateRepository,
+        ref: tag_name,
+      })) as OctokitResponse<ArrayBuffer>
+      log.debug('Fetched release contents.')
 
-    log.debug("Fetching release information from '%s'.", release.zipball_url)
-    const { data: contents } = (await octokit.repos.downloadZipballArchive({
-      ...templateRepository,
-      ref: release.tag_name,
-    })) as OctokitResponse<ArrayBuffer>
-    log.debug('Fetched release contents.')
-
-    return {
-      contents,
-      version: release.tag_name,
+      const fetched: Template = {
+        contents,
+        version: tag_name,
+      }
+      return fetched
+    } catch (error: unknown) {
+      return undefined
     }
   }
 
-  const enrichWithPrePendingHeader = (
-    mustacheRenderedContent: string,
-    template: Template,
-    codeowners: string,
-  ): string => {
+  const supportedExtensions = ['yaml', 'toml', 'yml']
+  const prependHeader = (renderedContent: string, template: TemplateFile, codeowners: string): string => {
     const templateExtension = template.destinationPath.split('.').pop()
-    if (!(templateExtension === 'yaml' || templateExtension === 'toml' || templateExtension === 'yml')) {
-      log.debug('File extension: %s with not supported comments', templateExtension)
-      return mustacheRenderedContent
+    if (templateExtension && !supportedExtensions.includes(templateExtension)) {
+      log.debug('File extension: %s does not support comments', templateExtension)
+      return renderedContent
     }
 
     const codeOwnersEntries = parseCodeowners(codeowners)
@@ -142,47 +137,61 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
       stewards: matchedCodeOwner?.owners,
     })
 
-    return `${renderedPrePendingHeader}\n\n${mustacheRenderedContent}`
+    return `${renderedPrePendingHeader}\n\n${renderedContent}`
   }
 
-  const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates> => {
+  const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates | undefined> => {
     log.debug('Processing configuration changes.')
     const { version } = configuration
     log.debug("Configuration uses template version '%s' and values %o.", version, configuration.values)
 
-    const { contents, version: fetchedVersion } = await downloadTemplates(version)
-    const extractedContent = await extractZipContents(contents, configuration)
+    const templates = await downloadTemplates(version)
+    if (!templates) return undefined
 
-    const delimiters: [string, string] = ['<<<', '>>>']
+    const extractedContent = await extractZipContents(templates.contents, configuration)
+
+    const delimiters: OpeningAndClosingTags = ['<<<', '>>>']
     const rendered = extractedContent.templates.map(template => {
-      const mustacheRenderedContent = render(template.contents, configuration.values, {}, delimiters)
+      const renderedContent = render(template.contents, configuration.values, {}, delimiters)
 
-      if (!extractedContent.codeOwners) {
-        return { ...template, contents: mustacheRenderedContent }
-      }
       return {
         ...template,
-        contents: enrichWithPrePendingHeader(mustacheRenderedContent, template, extractedContent.codeOwners),
+        contents: extractedContent.codeOwners
+          ? prependHeader(renderedContent, template, extractedContent.codeOwners)
+          : renderedContent,
       }
     })
     log.debug('Processed %d templates.', rendered.length)
+    const fetchedVersion = templates.version ?? version
     return { version: fetchedVersion, templates: rendered }
   }
 
-  const getTemplateInformation = async (version: string) => {
+  const getTemplateInformation = async (
+    version: string,
+  ): Promise<
+    Possibly<{
+      configuration: RepositoryConfiguration
+      files: string[]
+    }>
+  > => {
     log.debug("Downloading templates with version '%s'.", version)
-    const { contents } = await downloadTemplates(version)
+    const templates = await downloadTemplates(version)
 
-    const loaded = await loadAsync(contents)
+    if (!templates) return err([{ message: `Templates for version ${version} could not be found.` }])
+
+    const loaded = await loadAsync(templates.contents)
 
     const defaults = await extract(loaded, 'defaults.yaml')
     log.debug('Saw default configuration: %o', defaults)
 
     const allFiles = Object.keys(loaded.files)
 
+    const doc = parseDocument(defaults)
+    if (doc.errors.length > 0) return err(doc.errors)
     const parsed = parse(defaults) as RepositoryConfiguration
 
-    return { configuration: parsed, files: allFiles }
+    const value = { configuration: parsed, files: allFiles }
+    return { type: 'present', value }
   }
 
   return {
