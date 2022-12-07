@@ -1,12 +1,19 @@
 import { Logger } from 'probot'
-import { LineCounter, parse, Parser, YAMLParseError } from 'yaml'
-import { Either } from 'monet'
-import { RepositoryDetails, RepositoryConfiguration, OctokitInstance, PathConfiguration, TemplateConfig } from './types'
+import { LineCounter, parseDocument, Parser } from 'yaml'
+import {
+  RepositoryDetails,
+  RepositoryConfiguration,
+  OctokitInstance,
+  PathConfiguration,
+  Possibly,
+  present,
+  err,
+} from './types'
 
-export const combineConfigurations = (
+export const combineConfigurations = async (
   base: RepositoryConfiguration,
   override: Partial<RepositoryConfiguration>,
-): RepositoryConfiguration => {
+): Promise<RepositoryConfiguration> => {
   const baseFiles = new Set((base.files ?? []).map(entry => JSON.stringify(entry)))
   const overrideFiles = new Set((override.files ?? []).map(entry => JSON.stringify(entry)))
   return {
@@ -33,13 +40,49 @@ export const ensurePathConfiguration = (files?: (PathConfiguration | string)[]) 
   })
 }
 
+export const generateSyntaxTree = async (input: string) => {
+  const lineCounter = new LineCounter()
+
+  const cst = new Parser(lineCounter.addNewLine).parse(input)
+  const tokens = Array.from(cst)
+
+  const rep = {
+    tokens: tokens,
+    lines: lineCounter.lineStarts,
+  }
+
+  return rep
+}
+
 export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const determineConfigurationChanges = async (
+    configuration: string,
     fileName: string,
     repository: RepositoryDetails,
-    sha: string,
-  ): Promise<Either<YAMLParseError, TemplateConfig>> => {
+  ): Promise<Possibly<RepositoryConfiguration>> => {
     log.debug('Saw changes to %s.', fileName)
+
+    const document = parseDocument(configuration)
+    if (document.errors.length > 0) return err(document.errors)
+
+    const parsed = document.toJS() as RepositoryConfiguration
+    log.debug('Saw configuration file contents %o', parsed)
+
+    const combinedConfiguration: RepositoryConfiguration = {
+      ...parsed,
+      files: ensurePathConfiguration(parsed.files),
+      values: {
+        ...parsed.values,
+        repositoryName: repository.repo,
+        defaultBranch: repository.defaultBranch,
+      },
+    }
+
+    log.debug('Saw combined configuration contents %o', combinedConfiguration)
+    return present(combinedConfiguration)
+  }
+
+  const extractConfiguration = async (repository: RepositoryDetails, fileName: string, sha: string) => {
     const { data: fileContents } = await octokit.repos.getContent({
       ...repository,
       path: fileName,
@@ -49,47 +92,11 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
     const { content } = fileContents as { content: string }
     const decodedContent = Buffer.from(content, 'base64').toString()
     log.debug('%s contains: %s', fileName, decodedContent)
-
-    try {
-      const parsed: RepositoryConfiguration = parse(decodedContent)
-      log.debug('Saw configuration file contents %o', parsed)
-
-      const combinedConfiguration: RepositoryConfiguration = {
-        ...parsed,
-        files: ensurePathConfiguration(parsed.files),
-        values: {
-          ...parsed.values,
-          repositoryName: repository.repo,
-          defaultBranch: repository.defaultBranch,
-        },
-      }
-
-      log.debug('Saw combined configuration contents %o', combinedConfiguration)
-
-      const lineCounter = new LineCounter()
-
-      const cst = new Parser(lineCounter.addNewLine).parse(decodedContent)
-      const tokens = Array.from(cst)
-
-      const rep = {
-        tokens: tokens,
-        lines: lineCounter.lineStarts,
-      }
-
-      return Either.Right({
-        repositoryConfiguration: combinedConfiguration,
-        cstYamlRepresentation: rep,
-      } as TemplateConfig)
-    } catch (error) {
-      if (error instanceof YAMLParseError) {
-        return Either.Left(error)
-      }
-      throw error
-    }
+    return decodedContent
   }
 
   return {
     determineConfigurationChanges,
-    combineConfigurations,
+    extractConfiguration,
   }
 }

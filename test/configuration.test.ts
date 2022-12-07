@@ -36,10 +36,8 @@ values:
       automerge: false,
     }
 
-    const either = await determineConfigurationChanges('', repositoryDetails, '')
-
-    expect(either.isRight).toBeTruthy()
-    expect(either.right().repositoryConfiguration).toEqual(expected)
+    const result = await determineConfigurationChanges(configuration, '', repositoryDetails)
+    expect(result.type === 'present' && result.value).toEqual(expected)
   })
 
   test('when receiving a broken YAML it should not break and report failures', async () => {
@@ -63,13 +61,11 @@ values:
 
     const repositoryDetails = { repo: 'repository', owner: 'pleo-oss', defaultBranch: 'main' }
 
-    const result = await determineConfigurationChanges('', repositoryDetails, '')
-
-    expect(result.isLeft()).toBeTruthy()
-    expect(result.left()).toBeInstanceOf(YAMLParseError)
+    const result = await determineConfigurationChanges(configuration, '', repositoryDetails)
+    expect(result.type === 'error' && result.errors[0]).toBeInstanceOf(YAMLParseError)
   })
 
-  test('combines configurations as expected', () => {
+  test('combines configurations as expected', async () => {
     const base: RepositoryConfiguration = {
       version: 'v2.0.0',
       files: [{ destination: 'destination', source: 'source' }],
@@ -84,7 +80,7 @@ values:
       values: { someValue: 'hello', someOtherValue: '43' },
     }
 
-    const result = combineConfigurations(base, override)
+    const result = await combineConfigurations(base, override)
     const expected = {
       version: 'v2.0.0',
       files: [

@@ -25,9 +25,9 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
   }
 
   const resolveCheckRun = async (input: UpdateCheckInput, configFilePath?: string) => {
-    const { repo, owner, checkRunId, sha, conclusion } = input
+    const { repo, owner, checkRunId, sha, conclusion, errors } = input
 
-    if (input.errors.length > 0) {
+    if (errors.length > 0) {
       const errorsWithoutLine = input.errors.filter(e => !e.line)
       const errorsWithLine = input.errors.filter(e => e.line)
 
