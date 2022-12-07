@@ -74,10 +74,10 @@ export type Error = {
   errors: ValidationError[]
 }
 
-export type Present<T> = { type: 'present'; value: T }
-export type Possibly<T> = Error | Present<T>
+export type Successful<T> = { type: 'present'; value: T }
+export type Validated<T> = Error | Successful<T>
 
 export const err = (errors: ValidationError[]): Error => ({ type: 'error', errors })
-export const present = <T>(value: T): Present<T> => ({ type: 'present', value })
+export const present = <T>(value: T): Successful<T> => ({ type: 'present', value })
 
 export type OctokitInstance = InstanceType<typeof ProbotOctokit>

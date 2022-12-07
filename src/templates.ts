@@ -7,7 +7,7 @@ import {
   TemplateFile,
   Template,
   Templates,
-  Possibly,
+  Validated,
   err,
 } from './types'
 import { OctokitResponse } from '@octokit/types'
@@ -169,7 +169,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
   const getTemplateInformation = async (
     version: string,
   ): Promise<
-    Possibly<{
+    Validated<{
       configuration: RepositoryConfiguration
       files: string[]
     }>

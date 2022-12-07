@@ -5,7 +5,7 @@ import {
   RepositoryConfiguration,
   OctokitInstance,
   PathConfiguration,
-  Possibly,
+  Validated,
   present,
   err,
 } from './types'
@@ -59,7 +59,7 @@ export const configuration = (log: Logger, octokit: Pick<OctokitInstance, 'repos
     configuration: string,
     fileName: string,
     repository: RepositoryDetails,
-  ): Promise<Possibly<RepositoryConfiguration>> => {
+  ): Promise<Validated<RepositoryConfiguration>> => {
     log.debug('Saw changes to %s.', fileName)
 
     const document = parseDocument(configuration)

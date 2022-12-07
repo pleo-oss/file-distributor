@@ -6,7 +6,7 @@ import { git } from './git'
 import { defaultSchema, mergeSchemaToDefault, schemaValidator, validateFiles } from './schema-validator'
 import { checks } from './checks'
 import 'dotenv/config'
-import { err, present, OctokitInstance, Possibly, RepositoryConfiguration, ConcreteSyntaxTree } from './types'
+import { err, present, OctokitInstance, Validated, RepositoryConfiguration, ConcreteSyntaxTree } from './types'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
@@ -54,9 +54,9 @@ const extractPullRequestInformation = (payload: PullRequestEvent) => {
 const validateChanges = async (
   log: Logger,
   octokit: Pick<OctokitInstance, 'repos'>,
-  configuration: Possibly<RepositoryConfiguration>,
+  configuration: Validated<RepositoryConfiguration>,
   syntaxTree: ConcreteSyntaxTree,
-): Promise<Possibly<boolean>> => {
+): Promise<Validated<boolean>> => {
   const { getTemplateInformation } = templates(log, octokit)
   const { validateTemplateConfiguration, generateSchema } = schemaValidator(log)
 
@@ -101,7 +101,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
 
   const { createCheckRun, resolveCheckRun } = checks(enrichedWithRepoLog, octokit)
   const { determineConfigurationChanges, extractConfiguration } = configuration(enrichedWithRepoLog, octokit)
-  const conclusion = (result: Possibly<boolean>) => (result.type === 'error' ? 'failure' : 'success')
+  const conclusion = (result: Validated<boolean>) => (result.type === 'error' ? 'failure' : 'success')
 
   log.info('Pull request event happened on #%d', prNumber)
 
