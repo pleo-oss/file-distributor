@@ -1,4 +1,4 @@
-import { OctokitInstance, CreateCheckInput, UpdateCheckInput } from './types'
+import { OctokitInstance, CreateCheckInput, UpdateCheckInput, CheckResultion } from './types'
 import { Logger } from 'probot'
 
 export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) => {
@@ -27,9 +27,35 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
   const resolveCheckRun = async (input: UpdateCheckInput, configFilePath?: string) => {
     const { repo, owner, checkRunId, sha, conclusion } = input
 
-    if (input.errors.length > 0) {
+    if (
+      input.checkResolution === CheckResultion.ERROR ||
+      (input.checkResolution === CheckResultion.FAILURE && input.errors.length === 0)
+    ) {
+      const {
+        data: { conclusion: result },
+      } = await octokit.checks.update({
+        owner,
+        repo,
+        name: 'Configuration validation',
+        check_run_id: checkRunId,
+        status: 'completed',
+        head_sha: sha,
+        conclusion,
+        output: {
+          title: 'Schema validation',
+          summary:
+            'There was an unexpected error running the check. Please try again and if the error persists contact the stewards.',
+        },
+      })
+      return result
+    } else if (input.checkResolution === CheckResultion.FAILURE) {
       const errorsWithoutLine = input.errors.filter(e => !e.line)
       const errorsWithLine = input.errors.filter(e => e.line)
+      const text =
+        errorsWithoutLine.length > 0
+          ? `The following errors don't have a line associated: 
+            ${errorsWithoutLine.map(e => `- \`${e.message}\``).join('\n')}`
+          : undefined
 
       log.debug('Updating check run %d.', checkRunId)
       const {
@@ -45,8 +71,7 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
         output: {
           title: 'Schema validation',
           summary: 'There has been some errors during the validation',
-          text: `The following errors don't have a line associated: 
-            ${errorsWithoutLine.map(e => `- \`${e.message}\``).join('\n')}`,
+          text: text,
           annotations: errorsWithLine.map(err => ({
             path: configFilePath,
             start_line: err.line,

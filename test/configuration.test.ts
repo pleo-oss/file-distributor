@@ -1,6 +1,7 @@
 import { Logger } from 'probot'
 import { OctokitInstance, RepositoryConfiguration } from '../src/types'
 import { combineConfigurations, configuration as configurationSetup } from '../src/configuration'
+import * as E from 'fp-ts/Either'
 import { YAMLParseError } from 'yaml'
 
 describe('Configuration', () => {
@@ -38,8 +39,10 @@ values:
 
     const either = await determineConfigurationChanges('', repositoryDetails, '')
 
-    expect(either.isRight).toBeTruthy()
-    expect(either.right().repositoryConfiguration).toEqual(expected)
+    expect(E.isRight(either)).toBeTruthy()
+    if (E.isRight(either)) {
+      expect(either.right.repositoryConfiguration).toEqual(expected)
+    }
   })
 
   test('when receiving a broken YAML it should not break and report failures', async () => {
@@ -65,8 +68,10 @@ values:
 
     const result = await determineConfigurationChanges('', repositoryDetails, '')
 
-    expect(result.isLeft()).toBeTruthy()
-    expect(result.left()).toBeInstanceOf(YAMLParseError)
+    expect(E.isLeft(result)).toBeTruthy()
+    if (E.isLeft(result)) {
+      expect(result.left).toBeInstanceOf(YAMLParseError)
+    }
   })
 
   test('combines configurations as expected', () => {
