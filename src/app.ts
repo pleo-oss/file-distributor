@@ -5,7 +5,8 @@ import { templates } from './templates'
 import { git } from './git'
 import { schemaValidator } from './schema-validator'
 import { checks } from './checks'
-import { Either } from 'monet'
+import * as E from 'fp-ts/Either'
+import { pipe } from 'fp-ts/function'
 import 'dotenv/config'
 import { OctokitInstance, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
 import { YAMLParseError } from 'yaml'
@@ -55,7 +56,7 @@ const extractPullRequestInformation = (payload: PullRequestEvent) => {
 const validateChanges = async (
   log: Logger,
   octokit: Pick<OctokitInstance, 'repos'>,
-  configurationChangesOrError: Either<YAMLParseError, TemplateConfig>,
+  configurationChangesOrError: E.Either<YAMLParseError, TemplateConfig>,
 ): Promise<ValidationError[]> => {
   const { getTemplateInformation } = templates(log, octokit)
   const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault, getDefaultSchema } =
@@ -97,17 +98,20 @@ const validateChanges = async (
     }
   }
 
-  return configurationChangesOrError.cata(
-    failure =>
-      Promise.resolve([
-        {
-          message: failure.message,
-          line: failure.linePos?.[0].line,
-        } as ValidationError,
-      ]),
-    success => {
-      return validateCorrectYamlChanges(success)
-    },
+  return pipe(
+    configurationChangesOrError,
+    E.match(
+      failure =>
+        Promise.resolve([
+          {
+            message: failure.message,
+            line: failure.linePos?.[0].line,
+          } as ValidationError,
+        ]),
+      success => {
+        return validateCorrectYamlChanges(success)
+      },
+    ),
   )
 }
 
