@@ -7,6 +7,7 @@ npm-debug.log
 .env
 coverage
 lib
+.yarn
 
 # Logs
 logs

@@ -5,8 +5,11 @@ import { templates } from './templates'
 import { git } from './git'
 import { schemaValidator } from './schema-validator'
 import { checks } from './checks'
+import * as E from 'fp-ts/Either'
+import { pipe } from 'fp-ts/function'
 import 'dotenv/config'
 import { OctokitInstance, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
+import { YAMLParseError } from 'yaml'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
@@ -53,7 +56,7 @@ const extractPullRequestInformation = (payload: PullRequestEvent) => {
 const validateChanges = async (
   log: Logger,
   octokit: Pick<OctokitInstance, 'repos'>,
-  configurationChanges: TemplateConfig,
+  configurationChangesOrError: E.Either<YAMLParseError, TemplateConfig>,
 ): Promise<ValidationError[]> => {
   const { getTemplateInformation } = templates(log, octokit)
   const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault, getDefaultSchema } =
@@ -61,37 +64,55 @@ const validateChanges = async (
 
   const { combineConfigurations } = configuration(log, octokit)
 
-  try {
-    const { configuration: defaultValuesConfiguration, files } = await getTemplateInformation(
-      configurationChanges.repositoryConfiguration.version,
-    )
+  async function validateCorrectYamlChanges(configurationChanges: TemplateConfig) {
+    try {
+      const { configuration: defaultValuesConfiguration, files } = await getTemplateInformation(
+        configurationChanges.repositoryConfiguration.version,
+      )
 
-    const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
+      const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
 
-    const combined = combineConfigurations(defaultValuesConfiguration, configurationChanges.repositoryConfiguration)
+      const combined = combineConfigurations(defaultValuesConfiguration, configurationChanges.repositoryConfiguration)
 
-    const validatedTemplates = validateTemplateConfiguration(
-      {
-        repositoryConfiguration: combined,
-        cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
-      },
-      mergeSchemaToDefault(defaultValueSchema),
-    )
-    const validatedFiles = validateFiles(combined, files)
+      const validatedTemplates = validateTemplateConfiguration(
+        {
+          repositoryConfiguration: combined,
+          cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
+        },
+        mergeSchemaToDefault(defaultValueSchema),
+      )
+      const validatedFiles = validateFiles(combined, files)
 
-    return validatedTemplates.errors.concat(validatedFiles.errors)
-  } catch (error) {
-    if (error instanceof VersionNotFoundError) {
-      log.debug('Version for %s/%s:%s has not been found', error.owner, error.name, error.version)
-      const validatedTemplate = validateTemplateConfiguration(configurationChanges, getDefaultSchema())
-      return validatedTemplate.errors.concat({
-        message: `Version could not be found at ${error.owner}/${error.repo}:${error.version}`,
-        line: undefined,
-      })
-    } else {
-      throw error
+      return validatedTemplates.errors.concat(validatedFiles.errors)
+    } catch (error) {
+      if (error instanceof VersionNotFoundError) {
+        log.debug('Version for %s/%s:%s has not been found', error.owner, error.name, error.version)
+        const validatedTemplate = validateTemplateConfiguration(configurationChanges, getDefaultSchema())
+        return validatedTemplate.errors.concat({
+          message: `Version could not be found at ${error.owner}/${error.repo}:${error.version}`,
+          line: undefined,
+        })
+      } else {
+        throw error
+      }
     }
   }
+
+  return pipe(
+    configurationChangesOrError,
+    E.match(
+      failure =>
+        Promise.resolve([
+          {
+            message: failure.message,
+            line: failure.linePos?.[0].line,
+          } as ValidationError,
+        ]),
+      success => {
+        return validateCorrectYamlChanges(success)
+      },
+    ),
+  )
 }
 
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
@@ -108,7 +129,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   log.info('Pull request event happened on #%d', prNumber)
 
   const filesChanged = await getFilesChanged(repository, prNumber)
-  const configFile = filesChanged.find(filename => filename === configFileName)
+  const configFile = filesChanged.find((filename: string) => filename === configFileName)
 
   if (!configFile) return
 
@@ -170,9 +191,13 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   const filesChanged = await getCommitFiles(repository, payload.after)
   if (!filesChanged.includes(configFileName)) return
 
-  const parsed = await determineConfigurationChanges(configFileName, repository, payload.after)
+  const parsedOrError = await determineConfigurationChanges(configFileName, repository, payload.after)
 
-  if (!parsed.repositoryConfiguration) return
+  if (E.isLeft(parsedOrError)) {
+    log.error('There has been an error while processing event %o', parsedOrError.left)
+    return
+  }
+  const parsed = parsedOrError.right
 
   const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
 

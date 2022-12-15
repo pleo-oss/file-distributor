@@ -1,6 +1,8 @@
 import { Logger } from 'probot'
 import { OctokitInstance, RepositoryConfiguration } from '../src/types'
 import { combineConfigurations, configuration as configurationSetup } from '../src/configuration'
+import * as E from 'fp-ts/Either'
+import { YAMLParseError } from 'yaml'
 
 describe('Configuration', () => {
   const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
@@ -35,9 +37,41 @@ values:
       automerge: false,
     }
 
+    const either = await determineConfigurationChanges('', repositoryDetails, '')
+
+    expect(E.isRight(either)).toBeTruthy()
+    if (E.isRight(either)) {
+      expect(either.right.repositoryConfiguration).toEqual(expected)
+    }
+  })
+
+  test('when receiving a broken YAML it should not break and report failures', async () => {
+    const configuration = `
+version: 1.1.1
+automerge: false
+values:
+  autoApproveRenovatePrs: true
+   someValue: 42
+`
+
+    const mockedOctokit = {
+      repos: {
+        getContent: () => {
+          return { data: { content: Buffer.from(configuration, 'binary').toString('base64') } }
+        },
+      },
+    } as unknown as OctokitInstance
+
+    const { determineConfigurationChanges } = configurationSetup(log, mockedOctokit)
+
+    const repositoryDetails = { repo: 'repository', owner: 'pleo-oss', defaultBranch: 'main' }
+
     const result = await determineConfigurationChanges('', repositoryDetails, '')
 
-    expect(result.repositoryConfiguration).toEqual(expected)
+    expect(E.isLeft(result)).toBeTruthy()
+    if (E.isLeft(result)) {
+      expect(result.left).toBeInstanceOf(YAMLParseError)
+    }
   })
 
   test('combines configurations as expected', () => {

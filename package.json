@@ -24,6 +24,7 @@
     "ajv-merge-patch": "^5.0.1",
     "codeowners-utils": "1.0.2",
     "dotenv": "16.0.3",
+    "fp-ts": "^2.13.1",
     "genson-js": "0.0.8",
     "jszip": "3.10.1",
     "mustache": "4.2.0",
@@ -55,5 +56,9 @@
     "smee-client": "1.2.3",
     "ts-jest": "29.0.3",
     "typescript": "4.8.4"
+  },
+  "volta": {
+    "node": "18.12.1",
+    "yarn": "1.22.19"
   }
 }
