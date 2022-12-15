@@ -193,8 +193,11 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
   const either = await determineConfigurationChanges(configFileName, repository, payload.after)
 
-  if (either.isLeft()) return
-  const parsed = either.right()
+  if (E.isLeft(either)) {
+    log.error('There has been an error while processing event %o', either.left)
+    return
+  }
+  const parsed = either.right
 
   const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
 
