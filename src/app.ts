@@ -191,13 +191,13 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
   const filesChanged = await getCommitFiles(repository, payload.after)
   if (!filesChanged.includes(configFileName)) return
 
-  const either = await determineConfigurationChanges(configFileName, repository, payload.after)
+  const parsedOrError = await determineConfigurationChanges(configFileName, repository, payload.after)
 
-  if (E.isLeft(either)) {
-    log.error('There has been an error while processing event %o', either.left)
+  if (E.isLeft(parsedOrError)) {
+    log.error('There has been an error while processing event %o', parsedOrError.left)
     return
   }
-  const parsed = either.right
+  const parsed = parsedOrError.right
 
   const { configuration: defaultValues } = await getTemplateInformation(parsed.repositoryConfiguration.version)
 
