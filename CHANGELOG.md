@@ -1,3 +1,20 @@
+# v2.12.2 (Thu Dec 15 2022)
+
+#### 🐞 Fixes
+
+- Broken yaml bug [#84](https://github.com/pleo-oss/file-distributor/pull/84) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### 🏠 Internal
+
+- Add open-source tag for OpsLevel filtering [#79](https://github.com/pleo-oss/file-distributor/pull/79) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.12.1 (Tue Nov 29 2022)
 
 #### 🐞 Fixes
