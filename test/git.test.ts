@@ -6,7 +6,7 @@ describe('Pull Request reviews', () => {
   const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
   const octokitMock = {
     pulls: {
-      createReview: jest.fn(() => {
+      createReviewComment: jest.fn(() => {
         return {
           data: {
             id: 'reviewId',
@@ -81,43 +81,43 @@ describe('Pull Request reviews', () => {
   const testRepository = {
     owner: 'pleo',
     repo: 'workflows',
+    defaultBranch: 'main',
   }
 
   const testPullRequestNumber = 1
 
-  const { approvePullRequestChanges, requestPullRequestChanges, commitFilesToPR } = git(log, octokitMock)
+  const { commentOnPullRequest, commitFilesToPR } = git(log, octokitMock)
 
   describe('Create reviews', () => {
     beforeEach(() => {
       jest.clearAllMocks()
     })
 
-    test('can request changes on PRs', async () => {
+    test('can create failure comments on on PRs', async () => {
       const checkId = 123
-      const expectedMainBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${testRepository.owner}/${testRepository.repo}/pull/${testPullRequestNumber}/checks?check_run_id=${checkId})`
+      const expectedMainBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${testRepository.owner}/${testRepository.repo}/pull/${testPullRequestNumber}/checks?check_run_id=${checkId}).`
 
-      const result = await requestPullRequestChanges(testRepository, testPullRequestNumber, checkId)
+      const result = await commentOnPullRequest(testRepository, testPullRequestNumber, checkId, 'failure')
 
-      expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
-      expect(octokitMock.pulls.createReview).toHaveBeenCalledWith({
+      expect(octokitMock.pulls.createReviewComment).toBeCalledTimes(1)
+      expect(octokitMock.pulls.createReviewComment).toHaveBeenCalledWith({
         ...testRepository,
         pull_number: testPullRequestNumber,
-        event: 'REQUEST_CHANGES',
         body: expectedMainBody,
       })
 
       expect(result).toEqual('reviewId')
     })
 
-    test('can approve PRs', async () => {
-      const expectedBody = '🤖 Well done!'
-      const result = await approvePullRequestChanges(testRepository, testPullRequestNumber)
+    test('can create success comments on PRs', async () => {
+      const checkId = 123
+      const expectedBody = '🤖 Well done! The configuration is valid.'
+      const result = await commentOnPullRequest(testRepository, testPullRequestNumber, checkId, 'success')
 
-      expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
-      expect(octokitMock.pulls.createReview).toHaveBeenCalledWith({
+      expect(octokitMock.pulls.createReviewComment).toBeCalledTimes(1)
+      expect(octokitMock.pulls.createReviewComment).toHaveBeenCalledWith({
         ...testRepository,
         pull_number: testPullRequestNumber,
-        event: 'APPROVE',
         body: expectedBody,
       })
       expect(result).toEqual('reviewId')

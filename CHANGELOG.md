@@ -1,3 +1,15 @@
+# v2.12.3 (Tue Dec 20 2022)
+
+#### 🐞 Fixes
+
+- Prefer commenting on PRs to submitting reviews [#85](https://github.com/pleo-oss/file-distributor/pull/85) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v2.12.2 (Thu Dec 15 2022)
 
 #### 🐞 Fixes
