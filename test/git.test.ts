@@ -6,7 +6,7 @@ describe('Pull Request reviews', () => {
   const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
   const octokitMock = {
     pulls: {
-      createReviewComment: jest.fn(() => {
+      createReview: jest.fn(() => {
         return {
           data: {
             id: 'reviewId',
@@ -99,10 +99,11 @@ describe('Pull Request reviews', () => {
 
       const result = await commentOnPullRequest(testRepository, testPullRequestNumber, checkId, 'failure')
 
-      expect(octokitMock.pulls.createReviewComment).toBeCalledTimes(1)
-      expect(octokitMock.pulls.createReviewComment).toHaveBeenCalledWith({
+      expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
+      expect(octokitMock.pulls.createReview).toHaveBeenCalledWith({
         ...testRepository,
         pull_number: testPullRequestNumber,
+        event: 'COMMENT',
         body: expectedMainBody,
       })
 
@@ -114,10 +115,11 @@ describe('Pull Request reviews', () => {
       const expectedBody = '🤖 Well done! The configuration is valid.'
       const result = await commentOnPullRequest(testRepository, testPullRequestNumber, checkId, 'success')
 
-      expect(octokitMock.pulls.createReviewComment).toBeCalledTimes(1)
-      expect(octokitMock.pulls.createReviewComment).toHaveBeenCalledWith({
+      expect(octokitMock.pulls.createReview).toBeCalledTimes(1)
+      expect(octokitMock.pulls.createReview).toHaveBeenCalledWith({
         ...testRepository,
         pull_number: testPullRequestNumber,
+        event: 'COMMENT',
         body: expectedBody,
       })
       expect(result).toEqual('reviewId')
