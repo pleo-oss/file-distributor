@@ -272,7 +272,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     result: 'failure' | 'success',
   ) => {
     log.debug('Creating review comment on PR #%d.', pullRequestNumber)
-    const invalidBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}/checks?check_run_id=${checkId})`
+    const invalidBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}/checks?check_run_id=${checkId}).`
     const validBody = '🤖 Well done! The configuration is valid.'
     const wasSuccessful = result === 'success'
     const {

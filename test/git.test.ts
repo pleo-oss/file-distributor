@@ -95,7 +95,7 @@ describe('Pull Request reviews', () => {
 
     test('can create failure comments on on PRs', async () => {
       const checkId = 123
-      const expectedMainBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${testRepository.owner}/${testRepository.repo}/pull/${testPullRequestNumber}/checks?check_run_id=${checkId})`
+      const expectedMainBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${testRepository.owner}/${testRepository.repo}/pull/${testPullRequestNumber}/checks?check_run_id=${checkId}).`
 
       const result = await commentOnPullRequest(testRepository, testPullRequestNumber, checkId, 'failure')
 
