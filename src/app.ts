@@ -120,7 +120,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { log, octokit } = context
   const enrichedWithRepoLog = log.child({ owner: repository.owner, repository: repository.repo })
 
-  const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(enrichedWithRepoLog, octokit)
+  const { getFilesChanged, commentOnPullRequest } = git(enrichedWithRepoLog, octokit)
 
   const { createCheckRun, resolveCheckRun } = checks(enrichedWithRepoLog, octokit)
   const { determineConfigurationChanges } = configuration(enrichedWithRepoLog, octokit)
@@ -147,16 +147,8 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
 
   const errors = await validateChanges(log, octokit, configurationChanges)
-
-  const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
-
-  if (errors.length > 0) {
-    const changeRequestId = await requestPullRequestChanges(repository, prNumber, checkId)
-    log.debug(`Requested changes for PR #%d in %s.`, prNumber, changeRequestId)
-  } else if (onlyChangesConfiguration) {
-    const approvedReviewId = await approvePullRequestChanges(repository, prNumber)
-    log.debug(`Approved PR #%d in %s.`, prNumber, approvedReviewId)
-  }
+  const comment = await commentOnPullRequest(repository, prNumber, checkId, conclusion(errors))
+  log.debug(`Submitted comment on PR #%d in %s.`, prNumber, comment)
 
   const checkConclusion = await resolveCheckRun(
     {
