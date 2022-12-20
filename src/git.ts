@@ -265,49 +265,32 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     return createOrUpdatePullRequest(repository, prDetails, repository.defaultBranch)
   }
 
-  const requestPullRequestChanges = async (
+  const commentOnPullRequest = async (
     repository: RepositoryDetails,
     pullRequestNumber: number,
     checkId: number,
+    result: 'failure' | 'success',
   ) => {
-    const body = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}/checks?check_run_id=${checkId})`
-
-    log.debug('Creating change request review on PR #%d.', pullRequestNumber)
+    log.debug('Creating review comment on PR #%d.', pullRequestNumber)
+    const invalidBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}/checks?check_run_id=${checkId}).`
+    const validBody = '🤖 Well done! The configuration is valid.'
+    const wasSuccessful = result === 'success'
     const {
       data: { id },
-    } = await octokit.pulls.createReview({
+    } = await octokit.pulls.createReviewComment({
       ...repository,
       pull_number: pullRequestNumber,
-      event: 'REQUEST_CHANGES',
-      body,
+      body: wasSuccessful ? validBody : invalidBody,
     })
 
-    log.debug("Created change request review '%d'.", id)
-
-    return id
-  }
-
-  const approvePullRequestChanges = async (repository: RepositoryDetails, pullRequestNumber: number) => {
-    const body = '🤖 Well done!'
-    log.debug('Creating approved review on PR #%d.', pullRequestNumber)
-    const {
-      data: { id },
-    } = await octokit.pulls.createReview({
-      ...repository,
-      pull_number: pullRequestNumber,
-      event: 'APPROVE',
-      body,
-    })
-    log.debug("Created approved review '%d'.", id)
-
+    log.debug("Created review comment '%d'.", id)
     return id
   }
 
   return {
-    approvePullRequestChanges,
     commitFilesToPR,
     getCommitFiles,
     getFilesChanged,
-    requestPullRequestChanges,
+    commentOnPullRequest,
   }
 }
