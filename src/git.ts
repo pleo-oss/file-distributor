@@ -277,9 +277,10 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     const wasSuccessful = result === 'success'
     const {
       data: { id },
-    } = await octokit.pulls.createReviewComment({
+    } = await octokit.pulls.createReview({
       ...repository,
       pull_number: pullRequestNumber,
+      event: 'COMMENT',
       body: wasSuccessful ? validBody : invalidBody,
     })
 
