@@ -1,6 +1,6 @@
 {
   "name": "file-distributor",
-  "version": "2.12.3",
+  "version": "2.12.4",
   "private": true,
   "description": "A GitHub App for distributing files/templates to configured repositories in an organisation.",
   "author": "pleo-oss",
