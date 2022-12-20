@@ -1,3 +1,19 @@
+# v2.12.4 (Tue Dec 20 2022)
+
+#### 🐞 Fixes
+
+- Fix invalid GitHub endpoint for PR review commenting [#87](https://github.com/pleo-oss/file-distributor/pull/87) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Update CODEOWNERS [#86](https://github.com/pleo-oss/file-distributor/pull/86) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v2.12.3 (Tue Dec 20 2022)
 
 #### 🐞 Fixes
