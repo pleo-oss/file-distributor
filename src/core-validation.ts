@@ -74,7 +74,7 @@ const validateChanges = async (
 }
 export const coreValidation = (log: Logger, octokit: InstanceType<typeof ProbotOctokit>) => {
   const processCheckRun = async (input: ProcessCheckInput) => {
-    const { approvePullRequestChanges, getFilesChanged, requestPullRequestChanges } = git(log, octokit)
+    const { getFilesChanged, commentOnPullRequest } = git(log, octokit)
 
     const { resolveCheckRun, createCheckRun } = checks(log, octokit)
     const { determineConfigurationChanges } = configuration(log, octokit)
@@ -107,15 +107,8 @@ export const coreValidation = (log: Logger, octokit: InstanceType<typeof ProbotO
 
       const errors = await validateChanges(log, octokit, configurationChanges)
 
-      const onlyChangesConfiguration = filesChanged.length === 1 && filesChanged[0] === configFileName
-
-      if (errors.length > 0) {
-        const changeRequestId = await requestPullRequestChanges(repository, prNumber, checkId)
-        log.debug(`Requested changes for PR #%d in %s.`, prNumber, changeRequestId)
-      } else if (onlyChangesConfiguration) {
-        const approvedReviewId = await approvePullRequestChanges(repository, prNumber)
-        log.debug(`Approved PR #%d in %s.`, prNumber, approvedReviewId)
-      }
+      const comment = await commentOnPullRequest(repository, prNumber, checkId, conclusion(errors))
+      log.debug(`Submitted comment on PR #%d in %s.`, prNumber, comment)
 
       const checkConclusion = await resolveCheckRun(
         {
