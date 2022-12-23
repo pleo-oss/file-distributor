@@ -1,6 +1,6 @@
 import { CheckRunRerequestedEvent, PullRequestEvent, PushEvent } from '@octokit/webhooks-types'
 import { Context, Probot } from 'probot'
-import { coreValidation } from './validation'
+import { validation } from './validation'
 import {
   extractCheckRunInformation,
   extractPullRequestInformation,
@@ -17,7 +17,7 @@ const processCheckRerun = async (payload: CheckRunRerequestedEvent, context: Con
   const { number: prNumber, sha, repository, checkId } = extracted
 
   const repositoryLogger = log.child({ owner: repository.owner, repository: repository.repo })
-  const processCheckRun = coreValidation(repositoryLogger, octokit).processCheckRun
+  const processCheckRun = validation(repositoryLogger, octokit).processCheckRun
 
   await processCheckRun({ configFileName, prNumber, repository, sha, checkId })
 }
@@ -27,7 +27,7 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { log, octokit } = context
 
   const repositoryLogger = log.child({ owner: repository.owner, repository: repository.repo })
-  const { processCheckRun } = coreValidation(repositoryLogger, octokit)
+  const { processCheckRun } = validation(repositoryLogger, octokit)
 
   await processCheckRun({ configFileName, prNumber, repository, sha })
 }

@@ -10,7 +10,7 @@ import { OctokitInstance, ProcessCheckInput, TemplateConfig, ValidationError, Ve
 import { checks } from './checks'
 import { git } from './git'
 
-export const coreValidation = (
+export const validation = (
   log: Logger,
   octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues' | 'checks'>,
 ) => {
