@@ -83,7 +83,7 @@ export interface ProcessCheckInput {
   repository: RepositoryDetails
   configFileName: string
   sha: string
-  previousCheckId?: number
+  checkId?: number
 }
 
 export interface ValidationError {
