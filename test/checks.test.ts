@@ -1,5 +1,5 @@
 import { checks } from '../src/checks'
-import { OctokitInstance } from '../src/types'
+import { OctokitInstance, UpdateCheckInput } from '../src/types'
 import { Logger } from 'probot'
 
 describe('Github api calls', () => {
@@ -98,41 +98,68 @@ describe('Github api calls', () => {
   })
 
   describe('Update checks', () => {
-    const testInput = {
-      ...testRepository,
-      sha: testSha,
-      conclusion: 'failure',
-      checkRunId: 98,
-      errors: [],
-    }
-
     beforeEach(() => {
       jest.clearAllMocks()
     })
 
-    test('resolves GitHub checks', async () => {
-      await resolveCheckRun(testInput)
+    test('calls octokit to update check with success', async () => {
+      const successCheckInput = {
+        ...testRepository,
+        sha: testSha,
+        conclusion: 'success',
+        checkRunId: 98,
+        errors: [],
+      } as UpdateCheckInput
+
+      await resolveCheckRun(successCheckInput)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
-        check_run_id: testInput.checkRunId,
-        conclusion: testInput.conclusion,
+        check_run_id: successCheckInput.checkRunId,
+        conclusion: successCheckInput.conclusion,
         ...testRepository,
-        head_sha: testInput.sha,
+        head_sha: successCheckInput.sha,
         name: 'Configuration validation',
         status: 'completed',
         output: {
           title: 'Schema validation',
-          summary: testInput.conclusion,
+          summary: 'success',
         },
       })
     })
 
-    test('will not call GitHub multiple times with different checks', async () => {
-      const testInput = {
+    test('calls octokit to update check with failure', async () => {
+      const errorCheckInput = {
         ...testRepository,
         sha: testSha,
         conclusion: 'failure',
+        checkRunId: 98,
+        errors: [],
+      } as UpdateCheckInput
+
+      await resolveCheckRun(errorCheckInput)
+
+      expect(octokitMock.checks.update).toBeCalledTimes(1)
+      expect(octokitMock.checks.update).toHaveBeenCalledWith({
+        check_run_id: errorCheckInput.checkRunId,
+        conclusion: errorCheckInput.conclusion,
+        ...testRepository,
+        head_sha: errorCheckInput.sha,
+        name: 'Configuration validation',
+        status: 'completed',
+        output: {
+          title: 'Schema validation',
+          summary:
+            'There was an unexpected error running the check. Please try again and if the error persists contact the stewards.',
+        },
+      })
+    })
+
+    test('calls octokit to update check with an action required', async () => {
+      const actionRequiredCheckInput = {
+        ...testRepository,
+        sha: testSha,
+        conclusion: 'action_required',
         checkRunId: 98,
         errors: [
           {
@@ -140,20 +167,23 @@ describe('Github api calls', () => {
             line: 1,
           },
         ],
-      }
+      } as UpdateCheckInput
 
-      await resolveCheckRun(testInput, '.github/templates.yaml')
+      await resolveCheckRun(actionRequiredCheckInput, '.github/templates.yaml')
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
-      expect(octokitMock.checks.update).not.toHaveBeenCalledWith({
-        owner: 'not-pleo',
-        repo: testInput.repo,
-        head_sha: testInput.sha,
-        check_run_id: testInput.checkRunId,
+      expect(octokitMock.checks.update).toHaveBeenCalledWith({
+        owner: 'pleo',
+        repo: actionRequiredCheckInput.repo,
+        head_sha: actionRequiredCheckInput.sha,
+        check_run_id: actionRequiredCheckInput.checkRunId,
         status: 'completed',
+        conclusion: 'action_required',
+        name: 'Configuration validation',
+        text: undefined,
         output: {
           title: 'Schema validation',
-          summary: testInput.conclusion,
+          summary: 'There has been some errors during the validation',
           annotations: [
             {
               path: '.github/templates.yaml',
@@ -174,7 +204,7 @@ describe('Github api calls', () => {
         conclusion: 'failure',
         checkRunId: 98,
         errors: [],
-      }
+      } as UpdateCheckInput
 
       const { resolveCheckRun } = checks(log, throwingOctokit)
 

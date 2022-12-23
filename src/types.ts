@@ -63,10 +63,27 @@ export interface CreateCheckInput {
   sha: string
 }
 
+export type CheckConclusion =
+  | 'action_required'
+  | 'cancelled'
+  | 'failure'
+  | 'neutral'
+  | 'success'
+  | 'skipped'
+  | 'timed_out'
+
 export type UpdateCheckInput = CreateCheckInput & {
-  conclusion: string
+  conclusion: CheckConclusion
   checkRunId: number
   errors: ValidationError[]
+}
+
+export interface ProcessCheckInput {
+  prNumber: number
+  repository: RepositoryDetails
+  configFileName: string
+  sha: string
+  previousCheckId?: number
 }
 
 export interface ValidationError {
