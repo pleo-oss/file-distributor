@@ -7,6 +7,7 @@ import {
   extractRepositoryInformation,
 } from './payload-extraction'
 import { templateCreation } from './template-creation'
+import 'dotenv/config'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
