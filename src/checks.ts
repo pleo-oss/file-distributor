@@ -1,4 +1,4 @@
-import { OctokitInstance, CreateCheckInput, UpdateCheckInput } from './types'
+import { OctokitInstance, CreateCheckInput, UpdateCheckInput, ValidationError } from './types'
 import { Logger } from 'probot'
 
 export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) => {
@@ -52,7 +52,6 @@ export const checks = (log: Logger, octokit: Pick<OctokitInstance, 'checks'>) =>
   }
 }
 
-//#region Auxiliary Functions
 function createNewCheckInput(owner: string, repo: string, sha: string) {
   return {
     owner,
@@ -89,7 +88,7 @@ function createRequiredActionInput(
   checkRunId: number,
   sha: string,
   conclusion: string,
-  errors: import('/Users/marcos.arranz/Projects/pleo-oss/file-distributor/src/types').ValidationError[],
+  errors: ValidationError[],
   configFilePath: string | undefined,
 ) {
   const errorsWithoutLine = errors.filter(e => !e.line)
@@ -139,4 +138,3 @@ function createCheckErrorInput(owner: string, repo: string, checkRunId: number, 
     },
   }
 }
-//#endregion Auxiliary Functions
