@@ -1,3 +1,15 @@
+# v2.13.0 (Fri Dec 23 2022)
+
+#### 🎁 Features
+
+- Capture Unhandled errors and add rerun check listener [#80](https://github.com/pleo-oss/file-distributor/pull/80) ([@marcos-arranz](https://github.com/marcos-arranz))
+
+#### Authors: 1
+
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.12.4 (Tue Dec 20 2022)
 
 #### 🐞 Fixes
