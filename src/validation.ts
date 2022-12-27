@@ -6,7 +6,7 @@ import { templates } from './templates'
 import * as E from 'fp-ts/Either'
 import { pipe } from 'fp-ts/function'
 
-import { OctokitInstance, ProcessCheckInput, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
+import { OctokitInstance, CheckInput, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
 import { checks } from './checks'
 import { git } from './git'
 
@@ -74,10 +74,10 @@ export const validation = (
     )
   }
 
-  const processCheckRun = async (input: ProcessCheckInput) => {
+  const processCheck = async (input: CheckInput) => {
     const { getFilesChanged, commentOnPullRequest } = git(log, octokit)
 
-    const { resolveCheckRun, createCheckRun } = checks(log, octokit)
+    const { resolveCheck, createCheck } = checks(log, octokit)
     const { determineConfigurationChanges } = configuration(log, octokit)
     const conclusion = (errors: ValidationError[]) => (errors.length > 0 ? 'action_required' : 'success')
     const { prNumber, repository, configFileName, sha, checkId } = input
@@ -96,9 +96,12 @@ export const validation = (
 
     const previousCheckId =
       checkId ??
-      (await createCheckRun({
+      (await createCheck({
         ...repository,
-        sha: sha,
+        sha,
+        conclusion: 'neutral',
+        checkRunId: undefined,
+        errors: [],
       }))
 
     try {
@@ -111,7 +114,7 @@ export const validation = (
       const comment = await commentOnPullRequest(repository, prNumber, previousCheckId, conclusion(errors))
       log.debug(`Submitted comment on PR #%d in %s.`, prNumber, comment)
 
-      const checkConclusion = await resolveCheckRun(
+      const checkConclusion = await resolveCheck(
         {
           ...checkInput,
           conclusion: conclusion(errors),
@@ -123,7 +126,7 @@ export const validation = (
 
       log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
     } catch (error) {
-      await resolveCheckRun(
+      await resolveCheck(
         {
           ...checkInput,
           conclusion: 'failure',
@@ -137,6 +140,6 @@ export const validation = (
   }
 
   return {
-    processCheckRun,
+    processCheck,
   }
 }
