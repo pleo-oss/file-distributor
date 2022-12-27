@@ -1,11 +1,5 @@
-import {
-  ConfigurationValues,
-  CSTRepresentation,
-  RepositoryConfiguration,
-  TemplateConfig,
-  TemplateValidation,
-} from './types'
-import Ajv, { ErrorObject } from 'ajv'
+import { ConfigurationValues, CSTRepresentation, RepositoryConfiguration, TemplateValidation } from './types'
+import Ajv, { ErrorObject, Schema } from 'ajv'
 import templateSchema from './template-schema.json'
 import { Logger } from 'probot'
 import { createSchema } from 'genson-js'
@@ -109,7 +103,7 @@ export const schemaValidator = (log: Logger) => {
     return templateSchema
   }
 
-  const mergeSchemaToDefault = (valuesSchema: object) => {
+  const mergeSchemaToDefault = (valuesSchema: Schema) => {
     return {
       $merge: {
         source: getDefaultSchema(),
@@ -122,17 +116,21 @@ export const schemaValidator = (log: Logger) => {
     }
   }
 
-  const validateTemplateConfiguration = (configuration: TemplateConfig, schema: object): TemplateValidation => {
+  const validateTemplateConfiguration = (
+    configuration: RepositoryConfiguration,
+    schema: Schema,
+    cstRepresentation: CSTRepresentation,
+  ): TemplateValidation => {
     const validateConfiguration = ajv.compile<RepositoryConfiguration>(schema)
 
-    const isValidConfiguration = validateConfiguration(configuration?.repositoryConfiguration)
+    const isValidConfiguration = validateConfiguration(configuration)
 
     // Needed to filter $merge due to https://github.com/ajv-validator/ajv-merge-patch/issues/8
     const validationErrors = (validateConfiguration.errors ?? [])
       .filter(e => e.keyword != '$merge')
       .map(e => ({
         message: e.message,
-        line: getLineFromInstancePath(e.instancePath, configuration.cstYamlRepresentation),
+        line: getLineFromInstancePath(e.instancePath, cstRepresentation),
       }))
 
     if (!isValidConfiguration) {
@@ -164,7 +162,7 @@ export const schemaValidator = (log: Logger) => {
     }
   }
 
-  const generateSchema = (input?: ConfigurationValues): object => {
+  const generateSchema = (input?: ConfigurationValues): Schema => {
     if (!input) return {}
 
     log.debug('Generating JSON schema from input. %o', input)

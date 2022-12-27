@@ -1,12 +1,11 @@
 import { Logger } from 'pino'
-import { YAMLParseError } from 'yaml'
+import { stringify, YAMLError } from 'yaml'
 import { configuration } from './configuration'
 import { schemaValidator } from './schema-validator'
 import { templates } from './templates'
 import * as E from 'fp-ts/Either'
-import { pipe } from 'fp-ts/function'
 
-import { OctokitInstance, CheckInput, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
+import { OctokitInstance, CheckInput, ValidationError, RepositoryConfiguration } from './types'
 import { resolveCheck } from './checks'
 import { git } from './git'
 
@@ -15,63 +14,33 @@ export const validation = (
   octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues' | 'checks'>,
 ) => {
   const validateChanges = async (
-    configurationChangesOrError: E.Either<YAMLParseError, TemplateConfig>,
-  ): Promise<ValidationError[]> => {
+    configurationChanges: E.Either<YAMLError[], RepositoryConfiguration>,
+  ): Promise<E.Either<ValidationError[], RepositoryConfiguration>> => {
     const { getTemplateInformation } = templates(log, octokit)
-    const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault, getDefaultSchema } =
-      schemaValidator(log)
+    const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault } = schemaValidator(log)
 
-    const { combineConfigurations } = configuration(log, octokit)
+    const { combineConfigurations, generateCstRepresentation } = configuration(log, octokit)
 
-    async function validateCorrectYamlChanges(configurationChanges: TemplateConfig) {
-      try {
-        const { configuration: defaultValuesConfiguration, files } = await getTemplateInformation(
-          configurationChanges.repositoryConfiguration.version,
-        )
-
-        const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
-
-        const combined = combineConfigurations(defaultValuesConfiguration, configurationChanges.repositoryConfiguration)
-
-        const validatedTemplates = validateTemplateConfiguration(
-          {
-            repositoryConfiguration: combined,
-            cstYamlRepresentation: configurationChanges.cstYamlRepresentation,
-          },
-          mergeSchemaToDefault(defaultValueSchema),
-        )
-        const validatedFiles = validateFiles(combined, files)
-
-        return validatedTemplates.errors.concat(validatedFiles.errors)
-      } catch (error) {
-        if (error instanceof VersionNotFoundError) {
-          log.debug('Version for %s/%s:%s has not been found', error.owner, error.name, error.version)
-          const validatedTemplate = validateTemplateConfiguration(configurationChanges, getDefaultSchema())
-          return validatedTemplate.errors.concat({
-            message: `Version could not be found at ${error.owner}/${error.repo}:${error.version}`,
-            line: undefined,
-          })
-        } else {
-          throw error
-        }
-      }
+    if (E.isLeft(configurationChanges)) {
+      const errors = configurationChanges.left
+      const mapped: ValidationError[] = errors.map(error => ({ line: error.linePos?.[0].line, message: error.message }))
+      return E.left(mapped)
     }
+    const changes = configurationChanges.right
 
-    return pipe(
-      configurationChangesOrError,
-      E.match(
-        failure =>
-          Promise.resolve([
-            {
-              message: failure.message,
-              line: failure.linePos?.[0].line,
-            } as ValidationError,
-          ]),
-        success => {
-          return validateCorrectYamlChanges(success)
-        },
-      ),
-    )
+    const fetched = await getTemplateInformation(changes.version)
+    if (E.isLeft(fetched)) return fetched
+
+    const { configuration: defaultValuesConfiguration, files } = fetched.right
+    const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
+    const combined = combineConfigurations(defaultValuesConfiguration, changes)
+    const cst = generateCstRepresentation(stringify(changes))
+    const validatedTemplates = validateTemplateConfiguration(combined, mergeSchemaToDefault(defaultValueSchema), cst)
+    const validatedFiles = validateFiles(combined, files)
+
+    const errors = validatedTemplates.errors.concat(validatedFiles.errors)
+    if (errors.length > 0) return E.left(errors)
+    return E.right(changes)
   }
 
   const processCheck = async (input: CheckInput) => {
@@ -102,17 +71,17 @@ export const validation = (
         errors: [],
       }))
 
-    try {
-      log.debug('Found repository configuration file: %s.', configFile)
+    log.debug('Found repository configuration file: %s.', configFile)
 
-      const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
-
-      const errors = await validateChanges(configurationChanges)
+    const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
+    const result = await validateChanges(configurationChanges)
+    if (E.isLeft(result)) {
+      const errors = result.left
 
       const comment = await commentOnPullRequest(repository, prNumber, previousCheckId, conclusion(errors))
       log.debug(`Submitted comment on PR #%d in %s.`, prNumber, comment)
 
-      const checkConclusion = await resolveCheck(
+      const checkConclusion = resolveCheck(
         {
           ...checkInput,
           conclusion: conclusion(errors),
@@ -124,18 +93,6 @@ export const validation = (
       await updateCheck(checkConclusion)
 
       log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
-    } catch (error) {
-      const resolved = await resolveCheck(
-        {
-          ...checkInput,
-          conclusion: 'failure',
-          checkRunId: previousCheckId,
-          errors: [],
-        },
-        configFileName,
-      )
-      await updateCheck(resolved)
-      throw error
     }
   }
 

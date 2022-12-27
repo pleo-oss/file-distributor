@@ -8,11 +8,6 @@ export interface PathConfiguration {
 
 export type ConfigurationValues = { [key: string]: string | undefined }
 
-export interface TemplateConfig {
-  repositoryConfiguration: RepositoryConfiguration
-  cstYamlRepresentation: CSTRepresentation
-}
-
 export interface CSTRepresentation {
   tokens: Token[]
   lines: number[]
@@ -76,7 +71,7 @@ export interface CheckInput {
 
 export interface ValidationError {
   message: string | undefined
-  line: number | undefined
+  line?: number | undefined
 }
 
 export interface TemplateValidation {
@@ -85,19 +80,3 @@ export interface TemplateValidation {
 }
 
 export type OctokitInstance = InstanceType<typeof ProbotOctokit>
-
-export class VersionNotFoundError extends Error {
-  name = 'VersionNotFoundError'
-  version: string
-  owner: string
-  repo: string
-  constructor(message: string, owner: string, repo: string, version: string) {
-    super(message)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor)
-    }
-    this.owner = owner
-    this.repo = repo
-    this.version = version
-  }
-}
