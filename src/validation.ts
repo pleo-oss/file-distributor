@@ -7,7 +7,7 @@ import * as E from 'fp-ts/Either'
 import { pipe } from 'fp-ts/function'
 
 import { OctokitInstance, CheckInput, TemplateConfig, ValidationError, VersionNotFoundError } from './types'
-import { checks } from './checks'
+import { resolveCheck } from './checks'
 import { git } from './git'
 
 export const validation = (
@@ -75,9 +75,7 @@ export const validation = (
   }
 
   const processCheck = async (input: CheckInput) => {
-    const { getFilesChanged, commentOnPullRequest } = git(log, octokit)
-
-    const { resolveCheck, createCheck } = checks(log, octokit)
+    const { updateCheck, createCheck, getFilesChanged, commentOnPullRequest } = git(log, octokit)
     const { determineConfigurationChanges } = configuration(log, octokit)
     const conclusion = (errors: ValidationError[]) => (errors.length > 0 ? 'action_required' : 'success')
     const { prNumber, repository, configFileName, sha, checkId } = input
@@ -123,10 +121,11 @@ export const validation = (
         },
         configFileName,
       )
+      await updateCheck(checkConclusion)
 
       log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
     } catch (error) {
-      await resolveCheck(
+      const resolved = await resolveCheck(
         {
           ...checkInput,
           conclusion: 'failure',
@@ -135,6 +134,7 @@ export const validation = (
         },
         configFileName,
       )
+      await updateCheck(resolved)
       throw error
     }
   }

@@ -1,6 +1,8 @@
-import { checks } from '../src/checks'
 import { OctokitInstance, Check } from '../src/types'
 import { Logger } from 'probot'
+import { git } from '../src/git'
+import { resolveCheck } from '../src/checks'
+import { check } from 'prettier'
 
 describe('Github api calls', () => {
   const log = {
@@ -45,7 +47,7 @@ describe('Github api calls', () => {
 
   const testSha = 'some-sha'
 
-  const { createCheck, resolveCheck } = checks(log, octokitMock)
+  const { createCheck } = git(log, octokitMock)
 
   describe('Create checks', () => {
     const testInput: Check = {
@@ -87,7 +89,7 @@ describe('Github api calls', () => {
     })
 
     test('will throw check exception when check creation throws', async () => {
-      const { createCheck } = checks(log, throwingOctokit)
+      const { createCheck } = git(log, throwingOctokit)
 
       const input = {
         ...testInput,
@@ -115,6 +117,8 @@ describe('Github api calls', () => {
     })
 
     test('calls octokit to update check with success', async () => {
+      const { updateCheck } = git(log, octokitMock)
+
       const successCheckInput: Check = {
         ...testInput,
         sha: testSha,
@@ -123,7 +127,8 @@ describe('Github api calls', () => {
         errors: [],
       }
 
-      await resolveCheck(successCheckInput)
+      const check = resolveCheck(successCheckInput)
+      await updateCheck(check)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
@@ -141,6 +146,8 @@ describe('Github api calls', () => {
     })
 
     test('calls octokit to update check with failure', async () => {
+      const { updateCheck } = git(log, octokitMock)
+
       const errorCheckInput: Check = {
         ...testInput,
         sha: testSha,
@@ -149,7 +156,8 @@ describe('Github api calls', () => {
         errors: [],
       }
 
-      await resolveCheck(errorCheckInput)
+      const check = resolveCheck(errorCheckInput)
+      await updateCheck(check)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
@@ -168,6 +176,7 @@ describe('Github api calls', () => {
     })
 
     test('calls octokit to update check with an action required', async () => {
+      const { updateCheck } = git(log, octokitMock)
       const actionRequiredCheckInput: Check = {
         ...testInput,
         sha: testSha,
@@ -181,7 +190,8 @@ describe('Github api calls', () => {
         ],
       }
 
-      await resolveCheck(actionRequiredCheckInput, '.github/templates.yaml')
+      const check = resolveCheck(actionRequiredCheckInput, '.github/templates.yaml')
+      await updateCheck(check)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
@@ -218,10 +228,16 @@ describe('Github api calls', () => {
         errors: [],
       }
 
-      const { resolveCheck } = checks(log, throwingOctokit)
+      const { updateCheck } = git(log, throwingOctokit)
 
       expect.assertions(1)
-      await resolveCheck(input).catch(e => expect(e.message).toMatch('Error'))
+      const check = resolveCheck(input, '.github/templates.yaml')
+
+      try {
+        await updateCheck(check)
+      } catch (e) {
+        expect(e.message).toMatch('Error')
+      }
     })
   })
 })
