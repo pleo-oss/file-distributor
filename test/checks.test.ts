@@ -2,7 +2,6 @@ import { OctokitInstance, Check } from '../src/types'
 import { Logger } from 'probot'
 import { git } from '../src/git'
 import { resolveCheck } from '../src/checks'
-import { check } from 'prettier'
 
 describe('Github api calls', () => {
   const log = {

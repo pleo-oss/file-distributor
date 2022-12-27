@@ -22,15 +22,13 @@ describe('Schema Tests', () => {
     schemaValidator(log)
 
   test('returns false for an invalid input', async () => {
-    const input = {
-      repositoryConfiguration: parse('DFds'),
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
+    const input = parse('DFds')
+    const cstYamlRepresentation = {
+      lines: [],
+      tokens: [],
     }
 
-    const { result, errors } = validateTemplateConfiguration(input, getDefaultSchema())
+    const { result, errors } = validateTemplateConfiguration(input, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
@@ -48,23 +46,22 @@ describe('Schema Tests', () => {
           - source: null
             destination: path/to/template-destination/filename.yaml
         `)
+    const repositoryConfiguration = input
+    const cstYamlRepresentation = {
+      tokens: [],
+      lines: [],
+    }
     const { result, errors } = validateTemplateConfiguration(
-      {
-        repositoryConfiguration: input,
-        cstYamlRepresentation: {
-          tokens: [],
-          lines: [],
-        },
-      },
+      repositoryConfiguration,
       getDefaultSchema(),
+      cstYamlRepresentation,
     )
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
 
   test('returns true for a null value on a nullable type', async () => {
-    const configuration = {
-      repositoryConfiguration: parse(`
+    const configuration = parse(`
         # The template version to use (optional).
         version: v10.7.0
         
@@ -75,21 +72,18 @@ describe('Schema Tests', () => {
         files:           
           - source: path/to/template/filename.yaml
             destination: path/to/template-destination/filename.yaml
-            `),
-
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
+            `)
+    const cstYamlRepresentation = {
+      lines: [],
+      tokens: [],
     }
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
 
   test('returns true for a valid schema', async () => {
-    const configuration = {
-      repositoryConfiguration: parse(`
+    const configuration = parse(`
         # The template version to use (optional).
         version: v10.7.0
         
@@ -100,14 +94,13 @@ describe('Schema Tests', () => {
         files:           
           - source: path/to/template/filename.yaml
             destination: path/to/template-destination/filename.yaml
-        `),
+        `)
 
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
+    const cstYamlRepresentation = {
+      lines: [],
+      tokens: [],
     }
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -124,12 +117,9 @@ describe('Schema Tests', () => {
       - source: path/to/template/filename.yaml
         destination: path/to/template-destination/filename.yaml
     `
-    const configuration = {
-      repositoryConfiguration: parse(content),
-
-      cstYamlRepresentation: getCst(content),
-    }
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const configuration = parse(content)
+    const cstYamlRepresentation = getCst(content)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(5)
@@ -147,12 +137,10 @@ describe('Schema Tests', () => {
       - source: 2
         destination: path/to/template-destination/filename.yaml
     `
-    const configuration = {
-      repositoryConfiguration: parse(content),
+    const configuration = parse(content)
+    const cstYamlRepresentation = getCst(content)
 
-      cstYamlRepresentation: getCst(content),
-    }
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(9)
@@ -170,12 +158,9 @@ describe('Schema Tests', () => {
       - source: 2
         destination: path/to/template-destination/filename.yaml
     `
-    const configuration = {
-      repositoryConfiguration: parse(content),
-
-      cstYamlRepresentation: getCst(content),
-    }
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const configuration = parse(content)
+    const cstYamlRepresentation = getCst(content)
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(2)
     expect(errors[0].line).toBe(5)
@@ -193,20 +178,17 @@ describe('Schema Tests', () => {
     files:           
       - 2
     `
-    const configuration = {
-      repositoryConfiguration: parse(content),
+    const configuration = parse(content)
+    const cstYamlRepresentation = getCst(content)
 
-      cstYamlRepresentation: getCst(content),
-    }
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(9)
   })
 
   test('validates valid values', async () => {
-    const configuration = {
-      repositoryConfiguration: parse(`
+    const configuration = parse(`
         version: v10.7.0
         automerge: true
         files:           
@@ -214,12 +196,11 @@ describe('Schema Tests', () => {
             destination: path/to/template-destination/filename.yaml
         values: 
           jdkVersion: 17
-        `),
+        `)
 
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
+    const cstYamlRepresentation = {
+      lines: [],
+      tokens: [],
     }
 
     const valuesSchema = {
@@ -232,14 +213,17 @@ describe('Schema Tests', () => {
       },
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, mergeSchemaToDefault(valuesSchema))
+    const { result, errors } = validateTemplateConfiguration(
+      configuration,
+      mergeSchemaToDefault(valuesSchema),
+      cstYamlRepresentation,
+    )
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
 
   test('invalidates invalid values', async () => {
-    const configuration = {
-      repositoryConfiguration: parse(`
+    const configuration = parse(`
         version: v10.7.0
         automerge: true
         files:           
@@ -247,12 +231,11 @@ describe('Schema Tests', () => {
             destination: path/to/template-destination/filename.yaml
         values: 
           jdkVersion: true
-        `),
+        `)
 
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
+    const cstYamlRepresentation = {
+      lines: [],
+      tokens: [],
     }
 
     const valuesSchema = {
@@ -265,7 +248,11 @@ describe('Schema Tests', () => {
       },
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, mergeSchemaToDefault(valuesSchema))
+    const { result, errors } = validateTemplateConfiguration(
+      configuration,
+      mergeSchemaToDefault(valuesSchema),
+      cstYamlRepresentation,
+    )
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBeUndefined()
@@ -301,43 +288,37 @@ describe('Schema Tests', () => {
   })
 
   test('validates valid versions', async () => {
-    const configuration = {
-      repositoryConfiguration: parse('version: v10.7.0'),
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
+    const configuration = parse('version: v10.7.0')
+    const cstYamlRepresentation = {
+      lines: [],
+      tokens: [],
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
 
   test('invalidates invalid versions', async () => {
-    const configuration = {
-      repositoryConfiguration: parse('version: bla'),
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
+    const configuration = parse('version: bla')
+    const cstYamlRepresentation = {
+      lines: [],
+      tokens: [],
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
   })
 
   test('invalidates empty config', async () => {
-    const configuration = {
-      repositoryConfiguration: parse(''),
-      cstYamlRepresentation: {
-        lines: [],
-        tokens: [],
-      },
+    const configuration = parse('')
+    const cstYamlRepresentation = {
+      lines: [],
+      tokens: [],
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema())
+    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
   })
