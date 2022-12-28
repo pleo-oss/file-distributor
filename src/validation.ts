@@ -1,7 +1,7 @@
 import { Logger } from 'pino'
 import { stringify, YAMLError } from 'yaml'
 import { configuration } from './configuration'
-import { schemaValidator } from './schema-validator'
+import { mergeSchemaToDefault, schemaValidator, validateFiles } from './schema-validator'
 import { templates } from './templates'
 import * as E from 'fp-ts/Either'
 
@@ -17,7 +17,7 @@ export const validation = (
     configurationChanges: E.Either<YAMLError[], RepositoryConfiguration>,
   ): Promise<E.Either<ValidationError[], RepositoryConfiguration>> => {
     const { getTemplateInformation } = templates(log, octokit)
-    const { validateFiles, validateTemplateConfiguration, generateSchema, mergeSchemaToDefault } = schemaValidator(log)
+    const { validateTemplateConfiguration, generateSchema } = schemaValidator(log)
 
     const { combineConfigurations, generateCstRepresentation } = configuration(log, octokit)
 

@@ -63,7 +63,6 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
         }) ?? []
 
     const extractCodeOwners: Promise<string> = extract(loaded, 'CODEOWNERS')
-
     const toProcess: [string, Template[]] = await Promise.all([extractCodeOwners, Promise.all(extractTemplates)])
 
     const codeOwners = toProcess[0]
