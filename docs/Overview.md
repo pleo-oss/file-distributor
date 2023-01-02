@@ -3,7 +3,7 @@
 ## GitHub Webhooks
 GitHub Apps can listen to webhooks being emitted based on what's happening in the organisation they're installed into. These webhook events are configured in the organisation page in GitHub. 
 
-This app depends on one event type: `push`. The app subscribed to all `push` events happening on any repository within the organisation and will determine what to do based on the even `payload`. 
+This app depends on one event type: `push`. The app subscribed to all `push` events happening on any repository within the organisation and will determine what to do based on the event `payload`. 
 
 ## Flow
 The app will continue execution if the `push` event happens on any of the configured branches to listen for changes on. If the `push` event happened on any of these branches, the file changes in the given commit leading to the `push` event being emitted are examined. 
