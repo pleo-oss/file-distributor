@@ -6,7 +6,7 @@ import {
   extractPullRequestInformation,
   extractRepositoryInformation,
 } from './payload-extraction'
-import { templateCreation } from './template-creation'
+import { fileCreation } from './file-creation'
 import 'dotenv/config'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
@@ -47,8 +47,8 @@ const processPushEvent = async (payload: PushEvent, context: Context<'push'>) =>
 
   const repositoryLogger = log.child({ owner, repository: repo })
 
-  const { pushTemplates } = templateCreation(repositoryLogger, octokit)
-  await pushTemplates(repository, after, configFileName)
+  const { pushFiles } = fileCreation(repositoryLogger, octokit)
+  await pushFiles(repository, after, configFileName)
 }
 
 export = async (app: Probot) => {
