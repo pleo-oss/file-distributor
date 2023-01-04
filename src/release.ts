@@ -4,9 +4,9 @@ import {
   ExtractedContent,
   OctokitInstance,
   RepositoryConfiguration,
-  Template,
-  TemplateInformation,
-  Templates,
+  File,
+  ReleaseInformation,
+  Files,
   ValidationError,
 } from './types'
 import { OctokitResponse } from '@octokit/types'
@@ -21,7 +21,7 @@ interface RepositoryFiles {
   files: string[]
 }
 
-export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
+export const release = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
     const found = loaded.file(new RegExp(source, 'i'))
     log.debug('Found %d file(s) matching %s.', found.length, source)
@@ -39,13 +39,13 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     log.debug('Extracting ZIP contents.')
     const loaded = await loadAsync(contents)
 
-    const extractTemplates: Promise<Template>[] =
+    const extractFiles: Promise<File>[] =
       ensurePathConfiguration(configuration.files)
         ?.filter(file => {
           const extensionMatches = file.source.split('.').pop() === file.destination.split('.').pop()
           if (!extensionMatches) {
             log.warn(
-              "Template configuration seems to be invalid, file extension mismatch between source: '%s' and destination: '%s'. Skipping!",
+              "Configuration seems to be invalid, file extension mismatch between source: '%s' and destination: '%s'. Skipping!",
               file.source,
               file.destination,
             )
@@ -63,15 +63,15 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
         }) ?? []
 
     const extractCodeOwners: Promise<string> = extract(loaded, 'CODEOWNERS')
-    const toProcess: [string, Template[]] = await Promise.all([extractCodeOwners, Promise.all(extractTemplates)])
+    const toProcess: [string, File[]] = await Promise.all([extractCodeOwners, Promise.all(extractFiles)])
 
     const codeOwners = toProcess[0]
-    const templates = toProcess[1].filter(it => it?.contents)
-    log.debug('Extracted %d ZIP templates.', templates.length)
+    const files = toProcess[1].filter(it => it?.contents)
+    log.debug('Extracted %d ZIP files.', files.length)
 
     return {
       codeOwners,
-      templates,
+      files,
     }
   }
 
@@ -84,16 +84,16 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return data
   }
 
-  const downloadTemplates = async (templateVersion: string): Promise<TemplateInformation> => {
-    const templateRepository = {
+  const downloadFiles = async (releaseVersion: string): Promise<ReleaseInformation> => {
+    const releaseRepository = {
       owner: process.env.TEMPLATE_REPOSITORY_OWNER ?? '',
       repo: process.env.TEMPLATE_REPOSITORY_NAME ?? '',
     }
 
-    log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
-    const release = await getReleaseFromTag(templateVersion, templateRepository.owner, templateRepository.repo)
+    log.debug("Fetching files from '%s/%s'.", releaseRepository.owner, releaseRepository.repo)
+    const release = await getReleaseFromTag(releaseVersion, releaseRepository.owner, releaseRepository.repo)
 
-    log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
+    log.debug("Fetching files from URL: '%s'.", release.zipball_url)
 
     if (!release.zipball_url) {
       throw new Error(`Release '${release.id}' has no zipball URL.`)
@@ -101,7 +101,7 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
 
     log.debug("Fetching release information from '%s'.", release.zipball_url)
     const { data: contents } = (await octokit.repos.downloadZipballArchive({
-      ...templateRepository,
+      ...releaseRepository,
       ref: release.tag_name,
     })) as OctokitResponse<ArrayBuffer>
     log.debug('Fetched release contents.')
@@ -112,22 +112,18 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     }
   }
 
-  const enrichWithPrePendingHeader = (
-    mustacheRenderedContent: string,
-    template: Template,
-    codeowners: string,
-  ): string => {
-    const templateExtension = template.destinationPath.split('.').pop()
-    if (!(templateExtension === 'yaml' || templateExtension === 'toml' || templateExtension === 'yml')) {
-      log.debug('File extension: %s with not supported comments', templateExtension)
+  const enrichWithPrePendingHeader = (mustacheRenderedContent: string, file: File, codeowners: string): string => {
+    const fileExtension = file.destinationPath.split('.').pop()
+    if (!(fileExtension === 'yaml' || fileExtension === 'toml' || fileExtension === 'yml')) {
+      log.debug('File extension: %s with not supported comments', fileExtension)
       return mustacheRenderedContent
     }
 
     const codeOwnersEntries = parseCodeowners(codeowners)
-    const matchedCodeOwner = matchFile(template.sourcePath, codeOwnersEntries)
+    const matchedCodeOwner = matchFile(file.sourcePath, codeOwnersEntries)
 
     const header = process.env.PREPENDING_HEADER_TEMPLATE || '#OWNER: {{{stewards}}}'
-    if (!header) log.info('Prepending header template not defined, using default.')
+    if (!header) log.info('Prepending header is not defined, using default.')
 
     const renderedPrePendingHeader = render(header, {
       'template-repository': process.env.TEMPLATE_REPOSITORY_NAME ?? '',
@@ -137,35 +133,35 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return `${renderedPrePendingHeader}\n\n${mustacheRenderedContent}`
   }
 
-  const renderTemplates = async (configuration: RepositoryConfiguration): Promise<Templates> => {
+  const renderFiles = async (configuration: RepositoryConfiguration): Promise<Files> => {
     log.debug('Processing configuration changes.')
     const { version } = configuration
-    log.debug("Configuration uses template version '%s' and values %o.", version, configuration.values)
+    log.debug("Configuration uses release version '%s' and values %o.", version, configuration.values)
 
-    const { contents, version: fetchedVersion } = await downloadTemplates(version)
+    const { contents, version: fetchedVersion } = await downloadFiles(version)
     const extractedContent = await extractZipContents(contents, configuration)
 
     const delimiters: [string, string] = ['<<<', '>>>']
-    const rendered = extractedContent.templates.map(template => {
-      const mustacheRenderedContent = render(template.contents, configuration.values, {}, delimiters)
+    const rendered = extractedContent.files.map(file => {
+      const mustacheRenderedContent = render(file.contents, configuration.values, {}, delimiters)
 
       if (!extractedContent.codeOwners) {
-        return { ...template, contents: mustacheRenderedContent }
+        return { ...file, contents: mustacheRenderedContent }
       }
       return {
-        ...template,
-        contents: enrichWithPrePendingHeader(mustacheRenderedContent, template, extractedContent.codeOwners),
+        ...file,
+        contents: enrichWithPrePendingHeader(mustacheRenderedContent, file, extractedContent.codeOwners),
       }
     })
-    log.debug('Processed %d templates.', rendered.length)
-    return { version: fetchedVersion, templates: rendered }
+    log.debug('Processed %d files.', rendered.length)
+    return { version: fetchedVersion, files: rendered }
   }
 
-  const getTemplateInformation = async (version: string): Promise<E.Either<ValidationError[], RepositoryFiles>> => {
-    log.debug("Downloading templates with version '%s'.", version)
+  const getReleaseInformation = async (version: string): Promise<E.Either<ValidationError[], RepositoryFiles>> => {
+    log.debug("Downloading release with version '%s'.", version)
 
     try {
-      const { contents } = await downloadTemplates(version)
+      const { contents } = await downloadFiles(version)
 
       const loaded = await loadAsync(contents)
 
@@ -178,13 +174,13 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
 
       return E.right({ configuration: parsed, files: allFiles })
     } catch (e) {
-      const message: ValidationError = { message: `Could not fetch templates for version '${version}'` }
+      const message: ValidationError = { message: `Could not fetch release for version '${version}'` }
       return E.left([message])
     }
   }
 
   return {
-    renderTemplates,
-    getTemplateInformation,
+    renderFiles,
+    getReleaseInformation,
   }
 }

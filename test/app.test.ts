@@ -184,20 +184,20 @@ describe('Probot Tests', () => {
       .reply(200, { object: { sha: 'baseBranchRef' } })
 
     baseNock
-      .get('/repos/pleo-oss/test/git/ref/heads%2Fcentralized-templates?defaultBranch=baseBranch')
+      .get('/repos/pleo-oss/test/git/ref/heads%2Fcentralized-files?defaultBranch=baseBranch')
       .reply(200, { ref: 'updatedRef' })
 
     baseNock.post('/repos/pleo-oss/test/git/trees').reply(200, { sha: 'createdTreeSha' })
     baseNock.post('/repos/pleo-oss/test/git/commits').reply(200, { sha: 'newCommitSha' })
 
-    baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-templates').reply(200)
+    baseNock.patch('/repos/pleo-oss/test/git/refs/heads%2Fcentralized-files').reply(200)
 
     baseNock
       .get('/repos/pleo-oss/test/compare/baseBranch...newCommitSha?defaultBranch=baseBranch')
       .reply(200, { files: ['somefile'] })
 
     baseNock
-      .get('/repos/pleo-oss/test/pulls?defaultBranch=baseBranch&head=pleo-oss:centralized-templates&state=open')
+      .get('/repos/pleo-oss/test/pulls?defaultBranch=baseBranch&head=pleo-oss:centralized-files&state=open')
       .reply(200, [])
 
     baseNock.post('/repos/pleo-oss/test/pulls').reply(200, { number: 'prNumber' })
