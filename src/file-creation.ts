@@ -5,8 +5,8 @@ import { git } from './git'
 import { templates } from './templates'
 import { OctokitInstance, RepositoryDetails } from './types'
 
-export const templateCreation = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues'>) => {
-  const pushTemplates = async (repository: RepositoryDetails, sha: string, configFileName: string) => {
+export const fileCreation = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues'>) => {
+  const pushFiles = async (repository: RepositoryDetails, sha: string, configFileName: string) => {
     const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
     const { getTemplateInformation, renderTemplates } = templates(log, octokit)
     const { commitFilesToPR, getCommitFiles } = git(log, octokit)
@@ -34,6 +34,6 @@ export const templateCreation = (log: Logger, octokit: Pick<OctokitInstance, 'pu
   }
 
   return {
-    pushTemplates,
+    pushFiles,
   }
 }
