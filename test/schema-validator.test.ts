@@ -1,6 +1,6 @@
 import { Logger } from 'probot'
 import { LineCounter, parse, Parser } from 'yaml'
-import { schemaValidator } from '../src/schema-validator'
+import { getDefaultSchema, mergeSchemaToDefault, schemaValidator, validateFiles } from '../src/schema-validator'
 import { CSTRepresentation } from '../src/types'
 
 const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
@@ -18,8 +18,7 @@ const getCst = (content: string): CSTRepresentation => {
 }
 
 describe('Schema Tests', () => {
-  const { generateSchema, validateTemplateConfiguration, validateFiles, getDefaultSchema, mergeSchemaToDefault } =
-    schemaValidator(log)
+  const { generateSchema, validateTemplateConfiguration } = schemaValidator(log)
 
   test('returns false for an invalid input', async () => {
     const input = parse('DFds')

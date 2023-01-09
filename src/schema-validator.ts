@@ -23,30 +23,23 @@ const getLineFromOffset = (lines: number[], offset: number): number => {
   return lines.length
 }
 
-/**
- * Returns the line in the CST representation of the YAML given an instance path
- * @param instancePath Path as given by tools like ajv (i.e. /files/1/destination)
- * @param cst CST representation of the YAML file https://eemeli.org/yaml/#parser
- * @returns the line number or undefined if not found
- */
-const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): number | undefined => {
+const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation) => {
   const pathItems = instancePath.split('/').slice(1)
 
   // If there is no path no line can be found
-  if (pathItems.length === 0) return
+  if (pathItems.length === 0) return undefined
 
-  const getLineFromDoc = (doc: Document) => {
-    let line = undefined
+  const getLineFromDoc = (doc: Document): number | undefined => {
+    let line: number | undefined = undefined
     CST.visit(doc, (item, path) => {
       const currentPathValue = pathItems[path.length - 1]
       const num = Number(currentPathValue)
       // If path step is a number
       if (isNaN(num)) {
-        if (!CST.isScalar(item.value)) return
+        if (!CST.isScalar(item.value)) return undefined
 
         const key = item.key as SourceToken
-
-        if (!key) return
+        if (!key) return undefined
 
         // If note key is not the current path value skip this node and its childs and go to next sibling
         if (key.source !== currentPathValue) {
@@ -65,7 +58,7 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): 
           return CST.visit.SKIP
         }
 
-        if (!CST.isScalar(item.value)) return
+        if (!CST.isScalar(item.value)) return undefined
 
         if (path.length === pathItems.length) {
           // If it has the same value, check if it is the last item in the path, if so the item is found and finish visit
@@ -78,43 +71,53 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation): 
         }
       }
       // Otherwise go on visiting
-      return
+      return undefined
     })
     return line
   }
 
-  for (const t of cst.tokens) {
-    const l = getLineFromDoc(t as Document)
-    if (l !== undefined) return l
+  return cst.tokens.reduce<number | undefined>((acc, t) => getLineFromDoc(t as Document) ?? acc, undefined)
+}
+
+export const getDefaultSchema = () => {
+  return templateSchema
+}
+
+export const mergeSchemaToDefault = (valuesSchema: Schema) => {
+  return {
+    $merge: {
+      source: getDefaultSchema(),
+      with: {
+        properties: {
+          values: valuesSchema,
+        },
+      },
+    },
   }
-  return
+}
+
+export const validateFiles = (configuration: RepositoryConfiguration, templates: string[]): TemplateValidation => {
+  const paths = ensurePathConfiguration(configuration.files) ?? []
+  const errors = paths?.reduce(
+    (errors, file) =>
+      templates.some(t => new RegExp(file.source).test(t))
+        ? errors
+        : errors.add(`${file.source} was not found in the templates`),
+    new Set<string>(),
+  )
+
+  return {
+    result: errors.size === 0,
+    errors: Array.from(errors).map(e => ({
+      message: e,
+      line: undefined,
+    })),
+  }
 }
 
 export const schemaValidator = (log: Logger) => {
   const prettifyErrors = (errors?: ErrorObject<string, Record<string, unknown>, unknown>[] | null) =>
-    errors
-      ?.map(error => {
-        if (!error) return ''
-        return `${error.instancePath} ${error?.message}`
-      })
-      ?.filter(error => error !== '') ?? []
-
-  const getDefaultSchema = () => {
-    return templateSchema
-  }
-
-  const mergeSchemaToDefault = (valuesSchema: Schema) => {
-    return {
-      $merge: {
-        source: getDefaultSchema(),
-        with: {
-          properties: {
-            values: valuesSchema,
-          },
-        },
-      },
-    }
-  }
+    errors?.map(error => (error ? `${error.instancePath} ${error?.message}` : ''))?.filter(error => error !== '') ?? []
 
   const validateTemplateConfiguration = (
     configuration: RepositoryConfiguration,
@@ -143,25 +146,6 @@ export const schemaValidator = (log: Logger) => {
     }
   }
 
-  const validateFiles = (configuration: RepositoryConfiguration, templates: string[]): TemplateValidation => {
-    const paths = ensurePathConfiguration(configuration.files) ?? []
-    const errors = paths?.reduce(
-      (errors, file) =>
-        templates.some(t => new RegExp(file.source).test(t))
-          ? errors
-          : errors.add(`${file.source} was not found in the templates`),
-      new Set<string>(),
-    )
-
-    return {
-      result: errors.size === 0,
-      errors: Array.from(errors).map(e => ({
-        message: e,
-        line: undefined,
-      })),
-    }
-  }
-
   const generateSchema = (input?: ConfigurationValues): Schema => {
     if (!input) return {}
 
@@ -173,10 +157,7 @@ export const schemaValidator = (log: Logger) => {
   }
 
   return {
-    validateFiles,
     validateTemplateConfiguration,
     generateSchema,
-    getDefaultSchema,
-    mergeSchemaToDefault,
   }
 }
