@@ -102,7 +102,7 @@ export const validation = (
       await updateCheck(failure)
     }
 
-    log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
+    log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion.conclusion)
   }
 
   return {
