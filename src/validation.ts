@@ -74,25 +74,23 @@ export const validation = (
 
     const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
     const result = await validateChanges(configurationChanges)
-    if (E.isLeft(result)) {
-      const errors = result.left
+    const errors = E.isLeft(result) ? result.left : []
 
-      const comment = await commentOnPullRequest(repository, prNumber, previousCheckId, conclusion(errors))
-      log.debug(`Submitted comment on PR #%d in %s.`, prNumber, comment)
+    const comment = await commentOnPullRequest(repository, prNumber, previousCheckId, conclusion(errors))
+    log.debug(`Submitted comment on PR #%d in %s.`, prNumber, comment)
 
-      const checkConclusion = resolveCheck(
-        {
-          ...checkInput,
-          conclusion: conclusion(errors),
-          checkRunId: previousCheckId,
-          errors,
-        },
-        configFileName,
-      )
-      await updateCheck(checkConclusion)
+    const checkConclusion = resolveCheck(
+      {
+        ...checkInput,
+        conclusion: conclusion(errors),
+        checkRunId: previousCheckId,
+        errors,
+      },
+      configFileName,
+    )
+    await updateCheck(checkConclusion)
 
-      log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
-    }
+    log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
   }
 
   return {
