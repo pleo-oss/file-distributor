@@ -90,8 +90,18 @@ export const validation = (
         },
         configFileName,
       )
-      await updateCheck(checkConclusion)
-
+      try {
+        await updateCheck(checkConclusion)
+      } catch (e) {
+        const failure = resolveCheck({
+          ...checkInput,
+          conclusion: 'failure',
+          checkRunId: previousCheckId,
+          errors: [],
+        })
+        log.error('Failed to update check %d.', previousCheckId)
+        await updateCheck(failure)
+      }
       log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
     }
   }
