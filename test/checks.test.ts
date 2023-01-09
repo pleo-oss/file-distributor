@@ -1,5 +1,5 @@
 import { checks } from '../src/checks'
-import { OctokitInstance, UpdateCheckInput } from '../src/types'
+import { OctokitInstance, Check } from '../src/types'
 import { Logger } from 'probot'
 
 describe('Github api calls', () => {
@@ -45,20 +45,23 @@ describe('Github api calls', () => {
 
   const testSha = 'some-sha'
 
-  const { createCheckRun, resolveCheckRun } = checks(log, octokitMock)
+  const { createCheck, resolveCheck } = checks(log, octokitMock)
 
   describe('Create checks', () => {
+    const testInput: Check = {
+      ...testRepository,
+      sha: testSha,
+      conclusion: 'neutral',
+      checkRunId: undefined,
+      errors: [],
+    }
+
     beforeEach(() => {
       jest.clearAllMocks()
     })
 
     test('calls GitHub with a proper check', async () => {
-      const testInput = {
-        ...testRepository,
-        sha: testSha,
-      }
-
-      await createCheckRun(testInput)
+      await createCheck(testInput)
 
       expect(octokitMock.checks.create).toBeCalledTimes(1)
       expect(octokitMock.checks.create).toHaveBeenCalledWith({
@@ -74,44 +77,53 @@ describe('Github api calls', () => {
     })
 
     test('will not call GitHub multiple times with different checks', async () => {
-      const testInput = {
-        ...testRepository,
+      const input = {
+        ...testInput,
         sha: testSha,
       }
-      await createCheckRun(testInput)
+      await createCheck(input)
 
       expect(octokitMock.checks.create).toBeCalledTimes(1)
     })
 
     test('will throw check exception when check creation throws', async () => {
-      const { createCheckRun } = checks(log, throwingOctokit)
+      const { createCheck } = checks(log, throwingOctokit)
 
-      const testInput = {
+      const input = {
+        ...testInput,
         owner: 'pleo',
         repo: 'workflow',
         sha: testSha,
       }
 
       expect.assertions(1)
-      return createCheckRun(testInput).catch(e => expect(e.message).toMatch('Error'))
+      return createCheck(input).catch(e => expect(e.message).toMatch('Error'))
     })
   })
 
   describe('Update checks', () => {
+    const testInput: Check = {
+      ...testRepository,
+      sha: testSha,
+      conclusion: 'neutral',
+      checkRunId: undefined,
+      errors: [],
+    }
+
     beforeEach(() => {
       jest.clearAllMocks()
     })
 
     test('calls octokit to update check with success', async () => {
-      const successCheckInput = {
-        ...testRepository,
+      const successCheckInput: Check = {
+        ...testInput,
         sha: testSha,
         conclusion: 'success',
         checkRunId: 98,
         errors: [],
-      } as UpdateCheckInput
+      }
 
-      await resolveCheckRun(successCheckInput)
+      await resolveCheck(successCheckInput)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
@@ -129,15 +141,15 @@ describe('Github api calls', () => {
     })
 
     test('calls octokit to update check with failure', async () => {
-      const errorCheckInput = {
-        ...testRepository,
+      const errorCheckInput: Check = {
+        ...testInput,
         sha: testSha,
         conclusion: 'failure',
         checkRunId: 98,
         errors: [],
-      } as UpdateCheckInput
+      }
 
-      await resolveCheckRun(errorCheckInput)
+      await resolveCheck(errorCheckInput)
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
@@ -156,8 +168,8 @@ describe('Github api calls', () => {
     })
 
     test('calls octokit to update check with an action required', async () => {
-      const actionRequiredCheckInput = {
-        ...testRepository,
+      const actionRequiredCheckInput: Check = {
+        ...testInput,
         sha: testSha,
         conclusion: 'action_required',
         checkRunId: 98,
@@ -167,9 +179,9 @@ describe('Github api calls', () => {
             line: 1,
           },
         ],
-      } as UpdateCheckInput
+      }
 
-      await resolveCheckRun(actionRequiredCheckInput, '.github/templates.yaml')
+      await resolveCheck(actionRequiredCheckInput, '.github/templates.yaml')
 
       expect(octokitMock.checks.update).toBeCalledTimes(1)
       expect(octokitMock.checks.update).toHaveBeenCalledWith({
@@ -183,7 +195,7 @@ describe('Github api calls', () => {
         text: undefined,
         output: {
           title: 'Schema validation',
-          summary: 'There has been some errors during the validation',
+          summary: 'The following errors are present:',
           annotations: [
             {
               path: '.github/templates.yaml',
@@ -198,18 +210,18 @@ describe('Github api calls', () => {
     })
 
     test('will throw check exception when updating checks throws', async () => {
-      const testInput = {
-        ...testRepository,
+      const input: Check = {
+        ...testInput,
         sha: testSha,
         conclusion: 'failure',
         checkRunId: 98,
         errors: [],
-      } as UpdateCheckInput
+      }
 
-      const { resolveCheckRun } = checks(log, throwingOctokit)
+      const { resolveCheck } = checks(log, throwingOctokit)
 
       expect.assertions(1)
-      await resolveCheckRun(testInput).catch(e => expect(e.message).toMatch('Error'))
+      await resolveCheck(input).catch(e => expect(e.message).toMatch('Error'))
     })
   })
 })

@@ -57,28 +57,16 @@ export interface PRDetails {
   description: string
 }
 
-export interface CreateCheckInput {
+export type Check = {
   owner: string
   repo: string
   sha: string
-}
-
-export type CheckConclusion =
-  | 'action_required'
-  | 'cancelled'
-  | 'failure'
-  | 'neutral'
-  | 'success'
-  | 'skipped'
-  | 'timed_out'
-
-export type UpdateCheckInput = CreateCheckInput & {
-  conclusion: CheckConclusion
-  checkRunId: number
+  conclusion: 'action_required' | 'failure' | 'neutral' | 'success'
+  checkRunId: number | undefined
   errors: ValidationError[]
 }
 
-export interface ProcessCheckInput {
+export interface CheckInput {
   prNumber: number
   repository: RepositoryDetails
   configFileName: string

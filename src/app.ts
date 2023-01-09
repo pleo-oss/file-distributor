@@ -11,16 +11,16 @@ import 'dotenv/config'
 
 const configFileName = process.env['TEMPLATE_FILE_PATH'] ? process.env['TEMPLATE_FILE_PATH'] : '.github/templates.yaml'
 
-const processCheckRerun = async (payload: CheckRunRerequestedEvent, context: Context<'check_run'>) => {
+const processCheckRerequest = async (payload: CheckRunRerequestedEvent, context: Context<'check_run'>) => {
   const { log, octokit } = context
   const extracted = extractCheckRunInformation(payload)
   if (extracted === undefined) return
   const { number: prNumber, sha, repository, checkId } = extracted
 
   const repositoryLogger = log.child({ owner: repository.owner, repository: repository.repo })
-  const processCheckRun = validation(repositoryLogger, octokit).processCheckRun
+  const { processCheck } = validation(repositoryLogger, octokit)
 
-  await processCheckRun({ configFileName, prNumber, repository, sha, checkId })
+  await processCheck({ configFileName, prNumber, repository, sha, checkId })
 }
 
 const processPullRequest = async (payload: PullRequestEvent, context: Context<'pull_request'>) => {
@@ -28,9 +28,9 @@ const processPullRequest = async (payload: PullRequestEvent, context: Context<'p
   const { log, octokit } = context
 
   const repositoryLogger = log.child({ owner: repository.owner, repository: repository.repo })
-  const { processCheckRun } = validation(repositoryLogger, octokit)
+  const { processCheck } = validation(repositoryLogger, octokit)
 
-  await processCheckRun({ configFileName, prNumber, repository, sha })
+  await processCheck({ configFileName, prNumber, repository, sha })
 }
 
 const processPushEvent = async (payload: PushEvent, context: Context<'push'>) => {
@@ -62,7 +62,7 @@ export = async (app: Probot) => {
   })
 
   app.on('check_run.rerequested', async (context: Context<'check_run'>) => {
-    await processCheckRerun(context.payload as CheckRunRerequestedEvent, context)
+    await processCheckRerequest(context.payload as CheckRunRerequestedEvent, context)
   })
 
   app.on(['pull_request.opened', 'pull_request.synchronize'], async (context: Context<'pull_request'>) => {
