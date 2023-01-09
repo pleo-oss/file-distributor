@@ -50,6 +50,19 @@ const withErrors = (
   }
 }
 
+const asSummary = (conclusion: 'action_required' | 'failure' | 'neutral' | 'success') => {
+  switch (conclusion) {
+    case 'action_required':
+      return 'Action is required'
+    case 'failure':
+      return 'Failed'
+    case 'neutral':
+      return 'Unknown'
+    case 'success':
+      return 'Validation succeeded'
+  }
+}
+
 export const resolveCheck = (input: Check, configFilePath?: string) => {
   const { repo, owner, checkRunId, sha, conclusion, errors } = input
 
@@ -63,7 +76,7 @@ export const resolveCheck = (input: Check, configFilePath?: string) => {
     conclusion,
     output: {
       title: checkTitle,
-      summary: conclusion,
+      summary: asSummary(conclusion),
     },
   }
 

@@ -72,7 +72,7 @@ describe('Github api calls', () => {
         status: 'queued',
         output: {
           title: 'Schema validation',
-          summary: 'Validation queued',
+          summary: 'Queued',
         },
       })
     })
@@ -139,7 +139,7 @@ describe('Github api calls', () => {
         status: 'completed',
         output: {
           title: 'Schema validation',
-          summary: 'success',
+          summary: 'Validation succeeded',
         },
       })
     })

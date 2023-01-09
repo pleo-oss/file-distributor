@@ -1,8 +1,8 @@
 import { Logger } from 'probot'
-import { Check, OctokitInstance, PRDetails, RepositoryDetails, Template } from './types'
+import { Check, OctokitInstance, PRDetails, RepositoryDetails, File } from './types'
 import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods'
 
-const baseBranchName = 'centralized-templates'
+const baseBranchName = 'centralized-files'
 const reducedBranchName = `heads/${baseBranchName}`
 const fullBranchName = `refs/${reducedBranchName}`
 import { RequestError } from '@octokit/request-error'
@@ -51,20 +51,20 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     }
   }
 
-  const createTreeWithChanges = async (templates: Template[], repository: RepositoryDetails, baseTree: string) => {
-    log.debug('Creating git tree with modified templates.')
-    const templateTree = templates.map(template => ({
-      path: template.destinationPath,
+  const createTreeWithChanges = async (files: File[], repository: RepositoryDetails, baseTree: string) => {
+    log.debug('Creating git tree with modified files.')
+    const fileTree = files.map(file => ({
+      path: file.destinationPath,
       mode: '100644' as const,
       type: 'blob' as const,
-      content: template.contents,
+      content: file.contents,
     }))
     const {
       data: { sha: createdTreeSha },
     } = await octokit.git.createTree({
       ...repository,
       base_tree: baseTree,
-      tree: templateTree,
+      tree: fileTree,
     })
     log.debug("Created git tree with SHA '%s'.", createdTreeSha)
 
@@ -77,7 +77,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     currentCommitSha: string,
     createdTreeSha: string,
   ) => {
-    log.debug('Creating git commit with modified templates.')
+    log.debug('Creating git commit with modified files.')
 
     const {
       data: { sha: newCommitSha },
@@ -201,11 +201,11 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     const bullets = filenames.map(f => `- \`${f}\``).join('\n')
 
     return `
-  Template version: \`${version}\`
+  Release version: \`${version}\`
 
   ---
   
-  This will update templates based on the current repository configuration.
+  This will update files based on the current repository configuration.
   
   ---
   
@@ -244,13 +244,13 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
   const commitFilesToPR = async (
     repository: RepositoryDetails,
     version: string,
-    templates: Template[],
+    files: File[],
   ): Promise<number | undefined> => {
     const baseBranchLastCommitSha = await extractBranchInformation(repository)
 
-    const title = 'Update templates based on repository configuration'
+    const title = 'Update files based on repository configuration'
 
-    const createdTree = await createTreeWithChanges(templates, repository, baseBranchLastCommitSha)
+    const createdTree = await createTreeWithChanges(files, repository, baseBranchLastCommitSha)
     const newCommit = await createCommitWithChanges(repository, title, baseBranchLastCommitSha, createdTree)
     const updatedRef = await updateBranch(newCommit, repository)
 
@@ -274,7 +274,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     result: 'action_required' | 'success',
   ) => {
     log.debug('Creating review comment on PR #%d.', pullRequestNumber)
-    const invalidBody = `🤖 It looks like your template changes are invalid.\nYou can see the error report [here](https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}/checks?check_run_id=${checkId}).`
+    const invalidBody = `🤖 It looks like your configuration changes are invalid.\nYou can see the error report [here](https://github.com/${repository.owner}/${repository.repo}/pull/${pullRequestNumber}/checks?check_run_id=${checkId}).`
     const validBody = '🤖 Well done! The configuration is valid.'
     const wasSuccessful = result === 'success'
     const {
@@ -300,7 +300,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       status: 'queued',
       output: {
         title: checkTitle,
-        summary: 'Validation queued',
+        summary: 'Queued',
       },
     }
 

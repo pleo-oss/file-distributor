@@ -1,6 +1,6 @@
-import { ConfigurationValues, CSTRepresentation, RepositoryConfiguration, TemplateValidation } from './types'
+import { ConfigurationValues, CSTRepresentation, RepositoryConfiguration, ConfigurationValidation } from './types'
 import Ajv, { ErrorObject, Schema } from 'ajv'
-import templateSchema from './template-schema.json'
+import filesSchema from './files-schema.json'
 import { Logger } from 'probot'
 import { createSchema } from 'genson-js'
 import { ensurePathConfiguration } from './configuration'
@@ -80,7 +80,7 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation) =
 }
 
 export const getDefaultSchema = () => {
-  return templateSchema
+  return filesSchema
 }
 
 export const mergeSchemaToDefault = (valuesSchema: Schema) => {
@@ -96,13 +96,13 @@ export const mergeSchemaToDefault = (valuesSchema: Schema) => {
   }
 }
 
-export const validateFiles = (configuration: RepositoryConfiguration, templates: string[]): TemplateValidation => {
+export const validateFiles = (configuration: RepositoryConfiguration, files: string[]): ConfigurationValidation => {
   const paths = ensurePathConfiguration(configuration.files) ?? []
   const errors = paths?.reduce(
     (errors, file) =>
-      templates.some(t => new RegExp(file.source).test(t))
+      files.some(t => new RegExp(file.source).test(t))
         ? errors
-        : errors.add(`${file.source} was not found in the templates`),
+        : errors.add(`${file.source} was not found in the files`),
     new Set<string>(),
   )
 
@@ -119,11 +119,11 @@ export const schemaValidator = (log: Logger) => {
   const prettifyErrors = (errors?: ErrorObject<string, Record<string, unknown>, unknown>[] | null) =>
     errors?.map(error => (error ? `${error.instancePath} ${error?.message}` : ''))?.filter(error => error !== '') ?? []
 
-  const validateTemplateConfiguration = (
+  const validateConfiguration = (
     configuration: RepositoryConfiguration,
     schema: Schema,
     cstRepresentation: CSTRepresentation,
-  ): TemplateValidation => {
+  ): ConfigurationValidation => {
     const validateConfiguration = ajv.compile<RepositoryConfiguration>(schema)
 
     const isValidConfiguration = validateConfiguration(configuration)
@@ -157,7 +157,7 @@ export const schemaValidator = (log: Logger) => {
   }
 
   return {
-    validateTemplateConfiguration,
+    validateConfiguration,
     generateSchema,
   }
 }

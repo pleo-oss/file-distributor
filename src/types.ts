@@ -28,21 +28,21 @@ export interface RepositoryDetails {
 
 export interface ExtractedContent {
   codeOwners?: string
-  templates: Template[]
+  files: File[]
 }
 
-export interface Template {
+export interface File {
   sourcePath: string
   destinationPath: string
   contents: string
 }
 
-export interface Templates {
+export interface Files {
   version: string
-  templates: Template[]
+  files: File[]
 }
 
-export interface TemplateInformation {
+export interface ReleaseInformation {
   contents: ArrayBuffer
   version: string
 }
@@ -74,7 +74,7 @@ export interface ValidationError {
   line?: number | undefined
 }
 
-export interface TemplateValidation {
+export interface ConfigurationValidation {
   result: boolean
   errors: ValidationError[]
 }

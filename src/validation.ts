@@ -2,7 +2,7 @@ import { Logger } from 'pino'
 import { stringify, YAMLError } from 'yaml'
 import { configuration } from './configuration'
 import { mergeSchemaToDefault, schemaValidator, validateFiles } from './schema-validator'
-import { templates } from './templates'
+import { release } from './release'
 import * as E from 'fp-ts/Either'
 
 import { OctokitInstance, CheckInput, ValidationError, RepositoryConfiguration } from './types'
@@ -16,9 +16,8 @@ export const validation = (
   const validateChanges = async (
     configurationChanges: E.Either<YAMLError[], RepositoryConfiguration>,
   ): Promise<E.Either<ValidationError[], RepositoryConfiguration>> => {
-    const { getTemplateInformation } = templates(log, octokit)
-    const { validateTemplateConfiguration, generateSchema } = schemaValidator(log)
-
+    const { getReleaseInformation } = release(log, octokit)
+    const { validateConfiguration, generateSchema } = schemaValidator(log)
     const { combineConfigurations, generateCstRepresentation } = configuration(log, octokit)
 
     if (E.isLeft(configurationChanges)) {
@@ -28,17 +27,17 @@ export const validation = (
     }
     const changes = configurationChanges.right
 
-    const fetched = await getTemplateInformation(changes.version)
+    const fetched = await getReleaseInformation(changes.version)
     if (E.isLeft(fetched)) return fetched
 
     const { configuration: defaultValuesConfiguration, files } = fetched.right
     const defaultValueSchema = generateSchema(defaultValuesConfiguration.values)
     const combined = combineConfigurations(defaultValuesConfiguration, changes)
     const cst = generateCstRepresentation(stringify(changes))
-    const validatedTemplates = validateTemplateConfiguration(combined, mergeSchemaToDefault(defaultValueSchema), cst)
+    const validatedConfiguration = validateConfiguration(combined, mergeSchemaToDefault(defaultValueSchema), cst)
     const validatedFiles = validateFiles(combined, files)
 
-    const errors = validatedTemplates.errors.concat(validatedFiles.errors)
+    const errors = validatedConfiguration.errors.concat(validatedFiles.errors)
     if (errors.length > 0) return E.left(errors)
     return E.right(changes)
   }
@@ -75,35 +74,35 @@ export const validation = (
 
     const configurationChanges = await determineConfigurationChanges(configFileName, repository, sha)
     const result = await validateChanges(configurationChanges)
-    if (E.isLeft(result)) {
-      const errors = result.left
+    const errors = E.isLeft(result) ? result.left : []
 
-      const comment = await commentOnPullRequest(repository, prNumber, previousCheckId, conclusion(errors))
-      log.debug(`Submitted comment on PR #%d in %s.`, prNumber, comment)
+    const comment = await commentOnPullRequest(repository, prNumber, previousCheckId, conclusion(errors))
+    log.debug(`Submitted comment on PR #%d in %s.`, prNumber, comment)
 
-      const checkConclusion = resolveCheck(
-        {
-          ...checkInput,
-          conclusion: conclusion(errors),
-          checkRunId: previousCheckId,
-          errors,
-        },
-        configFileName,
-      )
-      try {
-        await updateCheck(checkConclusion)
-      } catch (e) {
-        const failure = resolveCheck({
-          ...checkInput,
-          conclusion: 'failure',
-          checkRunId: previousCheckId,
-          errors: [],
-        })
-        log.error('Failed to update check %d.', previousCheckId)
-        await updateCheck(failure)
-      }
-      log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
+    const checkConclusion = resolveCheck(
+      {
+        ...checkInput,
+        conclusion: conclusion(errors),
+        checkRunId: previousCheckId,
+        errors,
+      },
+      configFileName,
+    )
+
+    try {
+      await updateCheck(checkConclusion)
+    } catch (e) {
+      const failure = resolveCheck({
+        ...checkInput,
+        conclusion: 'failure',
+        checkRunId: previousCheckId,
+        errors: [],
+      })
+      log.error('Failed to update check %d.', previousCheckId)
+      await updateCheck(failure)
     }
+
+    log.info(`Validated configuration changes in #%d with conclusion: %s.`, prNumber, checkConclusion)
   }
 
   return {

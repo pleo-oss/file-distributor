@@ -18,7 +18,7 @@ const getCst = (content: string): CSTRepresentation => {
 }
 
 describe('Schema Tests', () => {
-  const { generateSchema, validateTemplateConfiguration } = schemaValidator(log)
+  const { generateSchema, validateConfiguration } = schemaValidator(log)
 
   test('returns false for an invalid input', async () => {
     const input = parse('DFds')
@@ -27,7 +27,7 @@ describe('Schema Tests', () => {
       tokens: [],
     }
 
-    const { result, errors } = validateTemplateConfiguration(input, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(input, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
@@ -50,11 +50,7 @@ describe('Schema Tests', () => {
       tokens: [],
       lines: [],
     }
-    const { result, errors } = validateTemplateConfiguration(
-      repositoryConfiguration,
-      getDefaultSchema(),
-      cstYamlRepresentation,
-    )
+    const { result, errors } = validateConfiguration(repositoryConfiguration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).not.toEqual(0)
   })
@@ -76,7 +72,7 @@ describe('Schema Tests', () => {
       lines: [],
       tokens: [],
     }
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -99,7 +95,7 @@ describe('Schema Tests', () => {
       lines: [],
       tokens: [],
     }
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -118,7 +114,7 @@ describe('Schema Tests', () => {
     `
     const configuration = parse(content)
     const cstYamlRepresentation = getCst(content)
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(5)
@@ -139,7 +135,7 @@ describe('Schema Tests', () => {
     const configuration = parse(content)
     const cstYamlRepresentation = getCst(content)
 
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(9)
@@ -159,7 +155,7 @@ describe('Schema Tests', () => {
     `
     const configuration = parse(content)
     const cstYamlRepresentation = getCst(content)
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(2)
     expect(errors[0].line).toBe(5)
@@ -180,7 +176,7 @@ describe('Schema Tests', () => {
     const configuration = parse(content)
     const cstYamlRepresentation = getCst(content)
 
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
     expect(errors[0].line).toBe(9)
@@ -212,7 +208,7 @@ describe('Schema Tests', () => {
       },
     }
 
-    const { result, errors } = validateTemplateConfiguration(
+    const { result, errors } = validateConfiguration(
       configuration,
       mergeSchemaToDefault(valuesSchema),
       cstYamlRepresentation,
@@ -247,7 +243,7 @@ describe('Schema Tests', () => {
       },
     }
 
-    const { result, errors } = validateTemplateConfiguration(
+    const { result, errors } = validateConfiguration(
       configuration,
       mergeSchemaToDefault(valuesSchema),
       cstYamlRepresentation,
@@ -293,7 +289,7 @@ describe('Schema Tests', () => {
       tokens: [],
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeTruthy()
     expect(errors?.length).toEqual(0)
   })
@@ -305,7 +301,7 @@ describe('Schema Tests', () => {
       tokens: [],
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
   })
@@ -317,7 +313,7 @@ describe('Schema Tests', () => {
       tokens: [],
     }
 
-    const { result, errors } = validateTemplateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
+    const { result, errors } = validateConfiguration(configuration, getDefaultSchema(), cstYamlRepresentation)
     expect(result).toBeFalsy()
     expect(errors?.length).toEqual(1)
   })
