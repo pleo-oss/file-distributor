@@ -1,3 +1,25 @@
+# v2.13.1 (Mon Jan 09 2023)
+
+#### 🐞 Fixes
+
+- Rename 'template' to 'file'/'release' globally [#95](https://github.com/pleo-oss/file-distributor/pull/95) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Restructure validation module to follow design of other modules [#93](https://github.com/pleo-oss/file-distributor/pull/93) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Prefer passing data via Either instead of throwing custom exceptions [#92](https://github.com/pleo-oss/file-distributor/pull/92) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Move GitHub calls to unified module [#90](https://github.com/pleo-oss/file-distributor/pull/90) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Simplify checks module and types [#89](https://github.com/pleo-oss/file-distributor/pull/89) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Reorder/simplify main application module [#88](https://github.com/pleo-oss/file-distributor/pull/88) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Update Overview.md [#94](https://github.com/pleo-oss/file-distributor/pull/94) ([@r0binary](https://github.com/r0binary))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Robin Lungwitz ([@r0binary](https://github.com/r0binary))
+
+---
+
 # v2.13.0 (Fri Dec 23 2022)
 
 #### 🎁 Features
