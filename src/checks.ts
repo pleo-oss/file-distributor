@@ -20,6 +20,7 @@ const asError = (
         'There was an unexpected error running the check. Please try again and if the error persists contact the stewards.',
     },
   }
+}
 
 const withErrors = (
   check: RestEndpointMethodTypes['checks']['update']['parameters'],
@@ -47,6 +48,7 @@ const withErrors = (
       })),
     },
   }
+}
 
 export const resolveCheck = (input: Check, configFilePath?: string) => {
   const { repo, owner, checkRunId, sha, conclusion, errors } = input
