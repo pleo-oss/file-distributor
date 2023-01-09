@@ -300,7 +300,7 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
       status: 'queued',
       output: {
         title: checkTitle,
-        summary: 'Validation queued',
+        summary: 'Queued',
       },
     }
 
