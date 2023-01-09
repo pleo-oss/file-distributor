@@ -76,8 +76,7 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation) =
     return line
   }
 
-  const found = cst.tokens.reduce<number | undefined>((acc, t) => getLineFromDoc(t as Document) ?? acc, undefined)
-  return found
+  return cst.tokens.reduce<number | undefined>((acc, t) => getLineFromDoc(t as Document) ?? acc, undefined)
 }
 
 export const getDefaultSchema = () => {
