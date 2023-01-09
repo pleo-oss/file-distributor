@@ -1,12 +1,14 @@
 import { Logger } from 'probot'
-import { OctokitInstance, PRDetails, RepositoryDetails, Template } from './types'
+import { Check, OctokitInstance, PRDetails, RepositoryDetails, Template } from './types'
+import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods'
 
 const baseBranchName = 'centralized-templates'
 const reducedBranchName = `heads/${baseBranchName}`
 const fullBranchName = `refs/${reducedBranchName}`
 import { RequestError } from '@octokit/request-error'
+import { checkName, checkTitle } from './checks'
 
-export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues'>) => {
+export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues' | 'checks'>) => {
   const getCommitFiles = async (repository: RepositoryDetails, sha: string) => {
     const commit = await octokit.repos.getCommit({
       ...repository,
@@ -288,10 +290,45 @@ export const git = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos
     return id
   }
 
+  const createCheck = async (input: Check) => {
+    const { owner, repo, sha } = input
+    const newCheck = {
+      owner,
+      repo,
+      name: checkName,
+      head_sha: sha,
+      status: 'queued',
+      output: {
+        title: checkTitle,
+        summary: 'Validation queued',
+      },
+    }
+
+    log.debug('Creating queued check run on %s.', sha)
+    const {
+      data: { id },
+    } = await octokit.checks.create(newCheck)
+    log.debug('Queued check run %s with ID %d.', sha, id)
+
+    return id
+  }
+
+  const updateCheck = async (parameters: RestEndpointMethodTypes['checks']['update']['parameters']) => {
+    const { check_run_id } = parameters
+    log.debug('Updating check run %d.', check_run_id)
+    const {
+      data: { conclusion: result },
+    } = await octokit.checks.update(parameters)
+    log.debug('Updated check run %d with conclusion %s.', check_run_id, result)
+    return result
+  }
+
   return {
     commitFilesToPR,
     getCommitFiles,
     getFilesChanged,
     commentOnPullRequest,
+    createCheck,
+    updateCheck,
   }
 }
