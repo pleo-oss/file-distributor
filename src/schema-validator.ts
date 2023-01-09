@@ -80,11 +80,7 @@ const getLineFromInstancePath = (instancePath: string, cst: CSTRepresentation) =
 }
 
 export const getDefaultSchema = () => {
-<<<<<<< HEAD
   return filesSchema
-=======
-  return templateSchema
->>>>>>> main
 }
 
 export const mergeSchemaToDefault = (valuesSchema: Schema) => {
@@ -100,7 +96,6 @@ export const mergeSchemaToDefault = (valuesSchema: Schema) => {
   }
 }
 
-<<<<<<< HEAD
 export const validateFiles = (configuration: RepositoryConfiguration, files: string[]): ConfigurationValidation => {
   const paths = ensurePathConfiguration(configuration.files) ?? []
   const errors = paths?.reduce(
@@ -108,15 +103,6 @@ export const validateFiles = (configuration: RepositoryConfiguration, files: str
       files.some(t => new RegExp(file.source).test(t))
         ? errors
         : errors.add(`${file.source} was not found in the files`),
-=======
-export const validateFiles = (configuration: RepositoryConfiguration, templates: string[]): TemplateValidation => {
-  const paths = ensurePathConfiguration(configuration.files) ?? []
-  const errors = paths?.reduce(
-    (errors, file) =>
-      templates.some(t => new RegExp(file.source).test(t))
-        ? errors
-        : errors.add(`${file.source} was not found in the templates`),
->>>>>>> main
     new Set<string>(),
   )
 
@@ -171,11 +157,7 @@ export const schemaValidator = (log: Logger) => {
   }
 
   return {
-<<<<<<< HEAD
     validateConfiguration,
-=======
-    validateTemplateConfiguration,
->>>>>>> main
     generateSchema,
   }
 }
