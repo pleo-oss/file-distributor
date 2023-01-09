@@ -88,6 +88,7 @@ export const validation = (
       },
       configFileName,
     )
+
     try {
       await updateCheck(checkConclusion)
     } catch (e) {
