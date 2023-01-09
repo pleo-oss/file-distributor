@@ -5,7 +5,10 @@ import { git } from './git'
 import { templates } from './templates'
 import { OctokitInstance, RepositoryDetails } from './types'
 
-export const fileCreation = (log: Logger, octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues'>) => {
+export const fileCreation = (
+  log: Logger,
+  octokit: Pick<OctokitInstance, 'pulls' | 'repos' | 'git' | 'issues' | 'checks'>,
+) => {
   const pushFiles = async (repository: RepositoryDetails, sha: string, configFileName: string) => {
     const { combineConfigurations, determineConfigurationChanges } = configuration(log, octokit)
     const { getTemplateInformation, renderTemplates } = templates(log, octokit)
@@ -18,8 +21,11 @@ export const fileCreation = (log: Logger, octokit: Pick<OctokitInstance, 'pulls'
     const errorOrTemplateConfig = await determineConfigurationChanges(configFileName, repository, sha)
     if (E.isLeft(errorOrTemplateConfig)) return
 
-    const { repositoryConfiguration } = errorOrTemplateConfig.right
-    const { configuration: defaultValues } = await getTemplateInformation(repositoryConfiguration.version)
+    const repositoryConfiguration = errorOrTemplateConfig.right
+    const fetched = await getTemplateInformation(repositoryConfiguration.version)
+
+    if (E.isLeft(fetched)) return
+    const { configuration: defaultValues } = fetched.right
 
     const combined = combineConfigurations(defaultValues, repositoryConfiguration)
     const { version, templates: processed } = await renderTemplates(combined)

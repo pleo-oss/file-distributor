@@ -2,7 +2,7 @@ import { Logger } from 'probot'
 import { OctokitInstance, RepositoryConfiguration } from '../src/types'
 import { combineConfigurations, configuration as configurationSetup } from '../src/configuration'
 import * as E from 'fp-ts/Either'
-import { YAMLParseError } from 'yaml'
+import { YAMLError } from 'yaml'
 
 describe('Configuration', () => {
   const log = { info: () => ({}), error: () => ({}), debug: () => ({}) } as unknown as Logger
@@ -41,7 +41,7 @@ values:
 
     expect(E.isRight(either)).toBeTruthy()
     if (E.isRight(either)) {
-      expect(either.right.repositoryConfiguration).toEqual(expected)
+      expect(either.right).toEqual(expected)
     }
   })
 
@@ -70,7 +70,8 @@ values:
 
     expect(E.isLeft(result)).toBeTruthy()
     if (E.isLeft(result)) {
-      expect(result.left).toBeInstanceOf(YAMLParseError)
+      expect(result.left).toBeInstanceOf(Array)
+      result.left.every(e => expect(e).toBeInstanceOf(YAMLError))
     }
   })
 

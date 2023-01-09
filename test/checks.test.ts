@@ -2,7 +2,6 @@ import { OctokitInstance, Check } from '../src/types'
 import { Logger } from 'probot'
 import { git } from '../src/git'
 import { resolveCheck } from '../src/checks'
-import { check } from 'prettier'
 
 describe('Github api calls', () => {
   const log = {
@@ -90,6 +89,7 @@ describe('Github api calls', () => {
 
     test('will throw check exception when check creation throws', async () => {
       const { createCheck } = git(log, throwingOctokit)
+
       const input = {
         ...testInput,
         owner: 'pleo',
@@ -117,6 +117,7 @@ describe('Github api calls', () => {
 
     test('calls octokit to update check with success', async () => {
       const { updateCheck } = git(log, octokitMock)
+
       const successCheckInput: Check = {
         ...testInput,
         sha: testSha,

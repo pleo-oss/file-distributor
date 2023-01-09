@@ -7,14 +7,19 @@ import {
   Template,
   TemplateInformation,
   Templates,
-  VersionNotFoundError,
+  ValidationError,
 } from './types'
 import { OctokitResponse } from '@octokit/types'
 import { Logger } from 'probot'
 import { matchFile, parse as parseCodeowners } from 'codeowners-utils'
 import { parse } from 'yaml'
 import { ensurePathConfiguration } from './configuration'
-import { RequestError } from '@octokit/request-error'
+import * as E from 'fp-ts/Either'
+
+interface RepositoryFiles {
+  configuration: RepositoryConfiguration
+  files: string[]
+}
 
 export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) => {
   const extract = async (loaded: JSZip, source: string): Promise<string> => {
@@ -87,20 +92,8 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     }
 
     log.debug("Fetching templates from '%s/%s'.", templateRepository.owner, templateRepository.repo)
-    let release
-    try {
-      release = await getReleaseFromTag(templateVersion, templateRepository.owner, templateRepository.repo)
-    } catch (error) {
-      if (error instanceof RequestError && error.status === 404) {
-        throw new VersionNotFoundError(
-          error.message,
-          templateRepository.owner,
-          templateRepository.repo,
-          templateVersion,
-        )
-      }
-      throw error
-    }
+    const release = await getReleaseFromTag(templateVersion, templateRepository.owner, templateRepository.repo)
+
     log.debug("Fetching templates from URL: '%s'.", release.zipball_url)
 
     if (!release.zipball_url) {
@@ -169,20 +162,26 @@ export const templates = (log: Logger, octokit: Pick<OctokitInstance, 'repos'>) 
     return { version: fetchedVersion, templates: rendered }
   }
 
-  const getTemplateInformation = async (version: string) => {
+  const getTemplateInformation = async (version: string): Promise<E.Either<ValidationError[], RepositoryFiles>> => {
     log.debug("Downloading templates with version '%s'.", version)
-    const { contents } = await downloadTemplates(version)
 
-    const loaded = await loadAsync(contents)
+    try {
+      const { contents } = await downloadTemplates(version)
 
-    const defaults = await extract(loaded, 'defaults.yaml')
-    log.debug('Saw default configuration: %o', defaults)
+      const loaded = await loadAsync(contents)
 
-    const allFiles = Object.keys(loaded.files)
+      const defaults = await extract(loaded, 'defaults.yaml')
+      log.debug('Saw default configuration: %o', defaults)
 
-    const parsed = parse(defaults) as RepositoryConfiguration
+      const allFiles = Object.keys(loaded.files)
 
-    return { configuration: parsed, files: allFiles }
+      const parsed = parse(defaults) as RepositoryConfiguration
+
+      return E.right({ configuration: parsed, files: allFiles })
+    } catch (e) {
+      const message: ValidationError = { message: `Could not fetch templates for version '${version}'` }
+      return E.left([message])
+    }
   }
 
   return {
