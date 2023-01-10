@@ -1,3 +1,21 @@
+# v2.13.2 (Tue Jan 10 2023)
+
+#### 🐞 Fixes
+
+- Ensure label creation on PR creation [#100](https://github.com/pleo-oss/file-distributor/pull/100) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### 🏠 Internal
+
+- Change dependency bump to patch by default [#98](https://github.com/pleo-oss/file-distributor/pull/98) ([@marcos-arranz](https://github.com/marcos-arranz))
+- Use check outcome for logging [#97](https://github.com/pleo-oss/file-distributor/pull/97) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 2
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+- Marcos Arranz ([@marcos-arranz](https://github.com/marcos-arranz))
+
+---
+
 # v2.13.1 (Mon Jan 09 2023)
 
 #### 🐞 Fixes
