@@ -98,11 +98,14 @@ export const mergeSchemaToDefault = (valuesSchema: Schema) => {
 
 export const validateFiles = (configuration: RepositoryConfiguration, files: string[]): ConfigurationValidation => {
   const paths = ensurePathConfiguration(configuration.files) ?? []
+  const { version } = configuration
   const errors = paths?.reduce(
     (errors, file) =>
       files.some(t => new RegExp(file.source).test(t))
         ? errors
-        : errors.add(`${file.source} was not found in the files`),
+        : errors.add(
+            `'${file.source}' was not found in the release '${version}' - make sure the file is present in the release.`,
+          ),
     new Set<string>(),
   )
 
