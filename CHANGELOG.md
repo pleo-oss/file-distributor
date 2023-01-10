@@ -1,3 +1,15 @@
+# v2.13.3 (Tue Jan 10 2023)
+
+#### 🐞 Fixes
+
+- Extend validation errors for missing files in releases [#99](https://github.com/pleo-oss/file-distributor/pull/99) ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+#### Authors: 1
+
+- Anders Fischer-Nielsen ([@andersfischernielsen](https://github.com/andersfischernielsen))
+
+---
+
 # v2.13.2 (Tue Jan 10 2023)
 
 #### 🐞 Fixes
