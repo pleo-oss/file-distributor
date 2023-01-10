@@ -1,12 +1,5 @@
 name: Build, Lint & Test
 on:
-  pull_request:
-    types:
-    - opened
-    - edited
-    - labeled
-    - unlabeled
-    - synchronize
   push:
     branches-ignore:
       - main
